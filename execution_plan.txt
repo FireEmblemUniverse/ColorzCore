@@ -1,0 +1,3 @@
+1) Tokenization and Lexing
+2) Line-by-line: Parsing, Label definitions, Macro expansion, Preprocessor evalutation, in that order (First Pass)
+3) Interpret byte changes (Second Pass)
