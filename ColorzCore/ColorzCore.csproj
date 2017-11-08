@@ -42,11 +42,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EAInstance.cs" />
+    <Compile Include="Lexer\Token.cs" />
+    <Compile Include="Lexer\Tokenizer.cs" />
+    <Compile Include="Lexer\TokenType.cs" />
+    <Compile Include="Parser\AST\EAProgram.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="testFile.event" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="ebnf_plan.txt" />
+    <Content Include="execution_plan.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

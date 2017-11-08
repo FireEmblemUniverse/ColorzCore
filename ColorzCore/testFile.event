@@ -1,0 +1,20 @@
+﻿
+
+#ifndef InlineEvents
+  //Assume the Map is contained and documented elsewhere.
+  #define ChOne_DefaultChapterOffset 0x1000D10
+  #define ChOne_ID 0x01 //TODO: Change this depending on what chapter you're making.
+  
+  EventPointerTable(ChOne_ID, ChOne_ThisChapter)
+  ORG ChOne_DefaultChapterOffset
+#endif
+
+//Installing Dragon Veins
+PUSH
+VeinEffect(ChOne_Vein1, ChOne_Vein1_Effect)
+VeinEffect(ChOne_Vein2, ChOne_Vein2_Effect)
+VeinEffect(ChOne_Vein3, ChOne_Vein3_Effect)
+VeinEffect(ChOne_Vein4, ChOne_Vein4_Effect)
+VeinEffect(ChOne_Vein5, ChOne_Vein5_Effect)
+POP
+
