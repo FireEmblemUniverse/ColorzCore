@@ -42,7 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataBlock.cs" />
     <Compile Include="EAInstance.cs" />
+    <Compile Include="Either.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
     <Compile Include="Lexer\TokenType.cs" />
@@ -55,9 +57,11 @@
     <Compile Include="Parser\Macro.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Preprocessor\IDirective.cs" />
-    <Compile Include="Preprocessor\Preprocessor.cs" />
+    <Compile Include="Preprocessor\Handler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IWritable.cs" />
+    <Compile Include="WritableInt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ColorzCore.Preprocessor
+namespace ColorzCore
 {
-    class Preprocessor
+    public interface  IWritable
     {
+        byte[] Bytes { get; }
     }
 }
