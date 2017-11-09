@@ -1,47 +1,51 @@
 EAPROGRAM = [ LINE , { NEWLINE , LINE } ];
 
-LINE = PREPROCESSOR-COMMAND | LABEL | STATEMENTS;
+LINE = PREPROCESSOR_COMMAND | LABEL | STATEMENT_LIST;
 
-PREPROCESSOR-COMMAND = "#" , IDENTIFIER , PARAM-LIST;
+PREPROCESSOR_COMMAND = "#" , IDENTIFIER , [ PARAM_LIST ];
 
 LABEL = INDENTIFIER , COLON;
 
-STATEMENTS = STATEMENT , { SEMICOLON , STATEMENTS };
+STATEMENT_LIST = STATEMENT , { SEMICOLON , STATEMENTS };
 STATEMENT = MACRO | RAW , { PARAM };
-MACRO = IDENTIFIER , OPEN-PAREN , PARAM-LIST , CLOSE-PAREN; //Expands to the string with a matching number of parameters, in code (think python's exec()). Gets parsed as such immediately.
-PARAM-LIST = PARAM , { COMMA , PARAM };
-PARAM = ATOM | LIST | STRING;
+MACRO = IDENTIFIER , OPEN_PAREN , PARAM_LIST , CLOSE_PAREN; //Expands to the string with a matching number of parameters, in code (think python's exec()). Gets parsed as such immediately.
+//Note: NO WHITESPACE between the identifier and open_paren
+PARAM_LIST = PARAM , { COMMA , PARAM };
 RAW = IDENTIFIER;
-LIST = OPEN-BRACKET , ATOM , { COMMA , ATOM } , CLOSE-BRACKET; //Shorthand for construction of a large int / series of ints?
 
-ATOM = MATH-EXPR | IDENTIFIER | MACRO;
-MATH-EXPR = PREC4 , MUL-OP , MATH-EXPR | PREC4 , DIV-OP , MATH-EXPR | PREC4;
-PREC4 = PREC5 , ADD-OP , PREC4 | PREC5 , SUB-OP , PREC4 | PREC5
-PREC5 = PREC8 , LSHIFT-OP , PREC5 | PREC8 , RSHIFT-OP , PREC5 | PREC8
-PREC8 = PREC9 , AND-OP , PREC8 | PREC9
-PREC9 = PREC10 , XOR-OP , PREC9 | PREC10
-PREC10 = PREC11 , OR-OP , LITERAL | LITERAL
-LITERAL = OPEN-PAREN , ATOM , CLOSE-PAREN | NUMBER
-STRING = QUOTE , STRING-ELEM , QUOTE;
+PARAM = ATOM | LIST | STRING;
+
+ATOM = ATOM , MUL_OP , PREC4 | ATOM , DIV_OP , PREC4 | PREC4;
+PREC4 = PREC4 , ADD_OP , PREC5 | PREC4 , SUB_OP , PREC5 | PREC5
+PREC5 = PREC5 , LSHIFT_OP , PREC8 | PREC5 , RSHIFT_OP , PREC8 | PREC8
+PREC8 = PREC8 , AND_OP , PREC9 | PREC9
+PREC9 = PREC9 , XOR_OP , PREC10 | PREC10
+PREC10 = LITERAL , OR_OP , PREC10 | LITERAL
+LITERAL = OPEN_PAREN , ATOM , CLOSE_PAREN | IDENTIFIER | MACRO | NUMBER
+
+LIST = OPEN_BRACKET , ATOM , { COMMA , ATOM } , CLOSE_BRACKET; //Shorthand for construction of a large int / series of ints?
+
+STRING = QUOTE , STRING_ELEM , QUOTE; //Quotes handled in tokenization
 
 NEWLINE = "\n";
 SEMICOLON = ";";
 COLON = ":"; 
-OPEN-PAREN = "(";
-CLOSE-PAREN = ")";
-MUL-OP = "*";
-DIV-OP = "/";
-ADD-OP = "+";
-SUB-OP = "-";
-LSHIFT-OP = "<<";
-RSHIFT-OP = ">>";
-AND-OP = "&";
-XOR-OP = "^";
-OR-OP = "|";
-NUMBER = [0-9]+ | \$[0-9]+ | 0x[0-9]+;
-OPEN-BRACKET = "[";
-CLOSE-BRACKET = "]";
+OPEN_PAREN = "(";
+CLOSE_PAREN = ")";
+MUL_OP = "*";
+DIV_OP = "/";
+ADD_OP = "+";
+SUB_OP = "_";
+LSHIFT_OP = "<<";
+RSHIFT_OP = ">>";
+AND_OP = "&";
+XOR_OP = "^";
+OR_OP = "|";
+NUMBER = SUB_OP USIGNED_NUMBER | USIGNED_NUMBER
+USIGNED_NUMBER = [0_9]+ | \$[0_9]+ | 0x[0_9]+;
+OPEN_BRACKET = "[";
+CLOSE_BRACKET = "]";
 QUOTE = "\"";
-ESCAPE-CHAR = [trn\"\\]; //Might be missing some
-STRING-ELEM = [^\"\\] | "\\" , ESCAPE-CHAR;
-IDENTIFIER = [a-zA-Z][a-zA-Z0-9\_]*;
+ESCAPE_CHAR = [trn\"\\]; //Might be missing some
+STRING_ELEM = [^\"\\] | "\\" , ESCAPE_CHAR;
+IDENTIFIER = [a_zA_Z][a_zA_Z0_9\_]*;

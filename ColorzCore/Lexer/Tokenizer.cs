@@ -14,15 +14,31 @@ namespace ColorzCore.Lexer
         private static readonly Regex numRegex = new Regex("[01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+");
         private static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
         private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
+        
+        private static bool inMultilineComment = false; //TODO: Make this class not static.
 
         //private static readonly IDictionary<TokenType, Regex> parseRegex = initializeDictionary();
-        public static IEnumerable<Token> TokenizePhrase(string line, int lineNum, int startOffs, int endOffs)
+        public static IEnumerable<Token> TokenizePhrase(string line, string fileName,  int lineNum, int startOffs, int endOffs)
         {
 
             int curCol = startOffs;
             while (curCol < endOffs)
             {
                 char nextChar = line[curCol];
+                if (inMultilineComment)
+                {
+                    if (nextChar == '*' && curCol + 1 < endOffs && line[curCol + 1] == '/')
+                    {
+                        inMultilineComment = false;
+                        curCol+=2;
+                        continue;
+                    }
+                    else
+                    {
+                        curCol++;
+                        continue;
+                    }
+                }
                 if (Char.IsWhiteSpace(nextChar))
                 {
                     curCol++;
@@ -31,37 +47,37 @@ namespace ColorzCore.Lexer
                 switch (nextChar)
                 {
                     case ';':
-                        yield return new Token(TokenType.SEMICOLON, lineNum, curCol);
+                        yield return new Token(TokenType.SEMICOLON, fileName, lineNum, curCol);
                         break;
                     case ':':
-                        yield return new Token(TokenType.COLON, lineNum, curCol);
+                        yield return new Token(TokenType.COLON, fileName, lineNum, curCol);
                         break;
                     case '#':
-                        yield return new Token(TokenType.HASH, lineNum, curCol);
+                        yield return new Token(TokenType.HASH, fileName, lineNum, curCol);
                         break;
                     case '{':
-                        yield return new Token(TokenType.OPEN_BRACE, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_BRACE, fileName, lineNum, curCol);
                         break;
                     case '}':
-                        yield return new Token(TokenType.CLOSE_BRACE, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_BRACE, fileName, lineNum, curCol);
                         break;
                     case '[':
-                        yield return new Token(TokenType.OPEN_BRACKET, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_BRACKET, fileName, lineNum, curCol);
                         break;
                     case ']':
-                        yield return new Token(TokenType.CLOSE_BRACKET, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_BRACKET, fileName, lineNum, curCol);
                         break;
                     case '(':
-                        yield return new Token(TokenType.OPEN_PAREN, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_PAREN, fileName, lineNum, curCol);
                         break;
                     case ')':
-                        yield return new Token(TokenType.CLOSE_PAREN, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_PAREN, fileName, lineNum, curCol);
                         break;
                     case '*':
-                        yield return new Token(TokenType.MUL_OP, lineNum, curCol);
+                        yield return new Token(TokenType.MUL_OP, fileName, lineNum, curCol);
                         break;
                     case ',':
-                        yield return new Token(TokenType.COMMA, lineNum, curCol);
+                        yield return new Token(TokenType.COMMA, fileName, lineNum, curCol);
                         break;
                     case '/':
                         if (curCol + 1 < endOffs && line[curCol + 1] == '/')
@@ -69,49 +85,55 @@ namespace ColorzCore.Lexer
                             //Is a comment, ignore rest of line
                             curCol = endOffs;
                         }
+                        else if (curCik + 1 < endOffs && line[curCol + 1] == '*')
+                        {
+                            inMultilineComment = true;
+                            curCol += 2;
+                            continue;
+                        }
                         else
                         {
-                            yield return new Token(TokenType.DIV_OP, lineNum, curCol);
+                            yield return new Token(TokenType.DIV_OP, fileName, lineNum, curCol);
                         }
                         break;
                     case '+':
-                        yield return new Token(TokenType.ADD_OP, lineNum, curCol);
+                        yield return new Token(TokenType.ADD_OP, fileName, lineNum, curCol);
                         break;
                     case '-':
-                        yield return new Token(TokenType.SUB_OP, lineNum, curCol);
+                        yield return new Token(TokenType.SUB_OP, fileName, lineNum, curCol);
                         break;
                     case '&':
-                        yield return new Token(TokenType.AND_OP, lineNum, curCol);
+                        yield return new Token(TokenType.AND_OP, fileName, lineNum, curCol);
                         break;
                     case '^':
-                        yield return new Token(TokenType.XOR_OP, lineNum, curCol);
+                        yield return new Token(TokenType.XOR_OP, fileName, lineNum, curCol);
                         break;
                     case '|':
-                        yield return new Token(TokenType.OR_OP, lineNum, curCol);
+                        yield return new Token(TokenType.OR_OP, fileName, lineNum, curCol);
                         break;
                     case '\"':
                         {
                             curCol++;
-                            Match quoteInterior = stringRegex.Match(line, curCol);
+                            Match quoteInterior = stringRegex.Match(line, curCol, endOffs - curCol);
                             string match = quoteInterior.Value;
-                            yield return new Token(TokenType.STRING, lineNum, curCol, match);
+                            yield return new Token(TokenType.STRING, fileName, lineNum, curCol, match);
                             curCol += match.Length;
                             if (curCol == endOffs || line[curCol] != '\"')
                             {
-                                yield return new Token(TokenType.ERROR, lineNum, curCol, "Unclosed string.");
+                                yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, "Unclosed string.");
                             }
                             continue;
                         }
                     case '<':
                         if (curCol + 1 < endOffs && line[curCol + 1] == '<')
                         {
-                            yield return new Token(TokenType.LSHIFT_OP, lineNum, curCol);
+                            yield return new Token(TokenType.LSHIFT_OP, fileName, lineNum, curCol);
                             curCol += 2;
                             continue;
                         }
                         else
                         {
-                            yield return new Token(TokenType.ERROR, lineNum, curCol, "<");
+                            yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, "<");
                             break;
                         }
                     case '>':
@@ -119,19 +141,19 @@ namespace ColorzCore.Lexer
                         {
                             if (curCol + 2 < endOffs && line[curCol + 2] == '>')
                             {
-                                yield return new Token(TokenType.SIGNED_RSHIFT_OP, lineNum, curCol);
+                                yield return new Token(TokenType.SIGNED_RSHIFT_OP, fileName, lineNum, curCol);
                                 curCol += 3;
                             }
                             else
                             {
-                                yield return new Token(TokenType.RSHIFT_OP, lineNum, curCol);
+                                yield return new Token(TokenType.RSHIFT_OP, fileName, lineNum, curCol);
                                 curCol += 2;
                             }
                             continue;
                         }
                         else
                         {
-                            yield return new Token(TokenType.ERROR, lineNum, curCol, ">");
+                            yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, ">");
                             break;
                         }
                     default:
@@ -140,38 +162,38 @@ namespace ColorzCore.Lexer
                         if (idMatch.Success)
                         {
                             string match = idMatch.Value;
-                            yield return new Token(TokenType.IDENTIFIER, lineNum, curCol, match);
+                            yield return new Token(TokenType.IDENTIFIER, fileName, lineNum, curCol, match);
                             curCol += match.Length;
                             if (curCol < endOffs && (Char.IsLetterOrDigit(line[curCol]) | line[curCol] == '_'))
                             {
-                                Match idMatch2 = new Regex("[a-zA-Z0-9_]+").Match(line, curCol);
+                                Match idMatch2 = new Regex("[a-zA-Z0-9_]+").Match(line, curCol, endOffs - curCol);
                                 match = idMatch2.Value;
-                                yield return new Token(TokenType.ERROR, lineNum, curCol, "Identifier longer than 64 characters.");
+                                yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, "Identifier longer than 64 characters.");
                                 curCol += match.Length;
                             }
                             continue;
                         }
-                        Match numMatch = numRegex.Match(line, curCol);
+                        Match numMatch = numRegex.Match(line, curCol, endOffs - curCol);
                         if (numMatch.Success)
                         {
                             string match = numMatch.Value;
-                            yield return new Token(TokenType.NUMBER, lineNum, curCol, match);
+                            yield return new Token(TokenType.NUMBER, fileName, lineNum, curCol, match);
                             curCol += match.Length;
                             continue;
                         }
-                        string restOfWord = new Regex("\\S+").Match(line, curCol).Value;
-                        yield return new Token(TokenType.ERROR, lineNum, curCol, restOfWord);
+                        string restOfWord = new Regex("\\S+").Match(line, curCol, endOffs - curCol).Value;
+                        yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, restOfWord);
                         curCol += restOfWord.Length;
                         continue;
                 }
                 curCol++;
             }
         }
-        public static IEnumerable<Token> TokenizeLine(string line, int lineNum)
+        public static IEnumerable<Token> TokenizeLine(string line, string fileName, int lineNum)
         {
-            return TokenizePhrase(line, lineNum, 0, line.Length);
+            return TokenizePhrase(line, fileName, lineNum, 0, line.Length);
         }
-        public static IEnumerable<Token> Tokenize(BufferedStream input)
+        public static IEnumerable<Token> Tokenize(BufferedStream input, string fileName)
         {
 
             StreamReader sr = new StreamReader(input);
@@ -179,13 +201,13 @@ namespace ColorzCore.Lexer
             while (!sr.EndOfStream)
             {
                 string line = sr.ReadLine();
-                foreach (Token t in TokenizeLine(line, curLine))
+                foreach (Token t in TokenizeLine(line, fileName, curLine))
                 {
                     yield return t;
                 }
                 if (!sr.EndOfStream)
                 {
-                    yield return new Token(TokenType.NEWLINE, curLine, line.Length);
+                    yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
                     curLine++;
                 }
             }
