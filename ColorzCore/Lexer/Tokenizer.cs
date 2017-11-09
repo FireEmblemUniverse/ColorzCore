@@ -16,7 +16,7 @@ namespace ColorzCore.Lexer
         private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
 
         //private static readonly IDictionary<TokenType, Regex> parseRegex = initializeDictionary();
-        public static IEnumerator<Token> TokenizePhrase(string line, int lineNum, int startOffs, int endOffs)
+        public static IEnumerable<Token> TokenizePhrase(string line, int lineNum, int startOffs, int endOffs)
         {
 
             int curCol = startOffs;
@@ -167,11 +167,11 @@ namespace ColorzCore.Lexer
                 curCol++;
             }
         }
-        public static IEnumerator<Token> TokenizeLine(string line, int lineNum)
+        public static IEnumerable<Token> TokenizeLine(string line, int lineNum)
         {
             return TokenizePhrase(line, lineNum, 0, line.Length);
         }
-        public static IEnumerator<Token> Tokenize(BufferedStream input)
+        public static IEnumerable<Token> Tokenize(BufferedStream input)
         {
 
             StreamReader sr = new StreamReader(input);

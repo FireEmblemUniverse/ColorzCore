@@ -7,12 +7,9 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public interface IASTNode
+    class StatementNode// : IASTNode
     {
-		ASTNodeType Type { get; }
-        Token startToken { get; }
-		string File { get; }
-		int Line { get; }
-		int Column { get; }
+        public Token Raw { get; set; }
+        public IList<IParamNode> Parameters { get; set; }
     }
 }

@@ -19,7 +19,7 @@ namespace ColorzCore
                 byte[] toWrite = Data[i].Bytes;
                 for(int j=0; j<toWrite.Length; j++)
                 {
-                    target[runningOffset + j] = toWrite[j]
+                    target[runningOffset + j] = toWrite[j];
                 }
                 runningOffset += toWrite.Length;
             }

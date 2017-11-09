@@ -9,7 +9,7 @@ PREPROCESSOR_COMMAND = HASH , IDENTIFIER , PARAM_LIST;
 LABEL = INDENTIFIER , COLON;
 
 STATEMENTS = STATEMENT , { SEMICOLON , STATEMENTS };
-STATEMENT = MACRO | RAW , { PARAM };
+STATEMENT = MACRO , { PARAM } | RAW , { PARAM };
 MACRO = IDENTIFIER , OPEN_PAREN , PARAM_LIST , CLOSE_PAREN; //Expands to the string with a matching number of parameters, in code (think python's exec()). Gets parsed as such immediately.
 PARAM_LIST = PARAM , { COMMA , PARAM };
 PARAM = ATOM | LIST | STRING;

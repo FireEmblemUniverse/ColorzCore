@@ -43,16 +43,23 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataBlock.cs" />
+    <Compile Include="DataTypes\ImmutableStack.cs" />
+    <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="EAInstance.cs" />
-    <Compile Include="Either.cs" />
+    <Compile Include="DataTypes\Either.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
     <Compile Include="Lexer\TokenType.cs" />
     <Compile Include="Parser\AST\ASTNodeType.cs" />
+    <Compile Include="Parser\AST\BlockNode.cs" />
     <Compile Include="Parser\AST\EAProgram.cs" />
+    <Compile Include="Parser\AST\EmptyNode.cs" />
     <Compile Include="Parser\AST\ErrorNode.cs" />
+    <Compile Include="Parser\AST\ILineNode.cs" />
     <Compile Include="Parser\AST\IParamNode.cs" />
-    <Compile Include="Parser\AST\EOSNode.cs" />
+    <Compile Include="Parser\AST\ParameterNode.cs" />
+    <Compile Include="Parser\AST\StatementListNode.cs" />
+    <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\Closure.cs" />
     <Compile Include="Parser\Macro.cs" />
     <Compile Include="Parser\Parser.cs" />
@@ -61,6 +68,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IWritable.cs" />
+    <Compile Include="Raws\Raw.cs" />
     <Compile Include="WritableInt.cs" />
   </ItemGroup>
   <ItemGroup>

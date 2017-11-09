@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Lexer
 {
-    class Token
+    public class Token
     {
         public TokenType Type { get; private set; }
         public int LineNumber { get; private set; }

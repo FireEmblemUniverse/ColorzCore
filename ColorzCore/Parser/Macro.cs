@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ColorzCore.Lexer;
+using ColorzCore.Parser.AST;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,5 +11,10 @@ namespace ColorzCore.Parser
     class Macro
     {
         int numParams;
+        public IEnumerator<Token> ApplyMacro(IList<IList<Token>> parameters)
+        {
+
+            throw new NotImplementedException();
+        }
     }
 }
