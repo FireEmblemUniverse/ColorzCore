@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,18 +9,21 @@ namespace ColorzCore.Lexer
 {
     public class Token
     {
+        public Location Location;
+
         public TokenType Type { get; private set; }
-        public string FileName { get; private set; }
-        public int LineNumber { get; private set; }
-        public int ColumnNumber { get; private set; }
+        public string FileName { get { return Location.file; } }
+        public int LineNumber { get { return Location.lineNum; } }
+        public int ColumnNumber { get { return Location.colNum; } }
         public string Content { get; private set; }
 
         public Token(TokenType type, string fileName, int lineNum, int colNum, string original = "")
         {
             Type = type;
-            FileName = fileName;
-            LineNumber = lineNum;
-            ColumnNumber = colNum + 1;
+            Location = new Location();
+            Location.file = fileName;
+            Location.lineNum = lineNum;
+            Location.colNum = colNum + 1;
             Content = original;
         }
 

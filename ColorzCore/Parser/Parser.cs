@@ -53,22 +53,23 @@ namespace ColorzCore.Parser
             }
             else
             {   
-                temp.Parameters = new IList<IParamNode>();
+                temp.Parameters = new List<IParamNode>();
             }
-            currentOffset += Raws[raw.Content].Length;
+            currentOffset += Raws[head.Content].Length;
             return temp;
         }
 
         private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            IList<IParamNode> parameters;
+            IList<IParamNode> parameters = new List<IParamNode>();
             do
             {
-                parameters.Add(ParseParam(tokens, scope));
+                parameters.Add(ParseParam(tokens, scopes));
                 if(tokens.Current.Type == TokenType.COMMA)
                     tokens.MoveNext();
             } while(tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_PAREN);
             tokens.MoveNext();
+            return parameters;
         }
         
         IParamNode ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
@@ -86,17 +87,17 @@ namespace ColorzCore.Parser
             }
         }
         
-        private static readonly Dictionary<TokenType, int> precedences = {
-            { MUL_OP , 3 },
-            { DIV_OP , 3 },
-            { ADD_OP , 4 },
-            { SUB_OP , 4 },
-            { LSHIFT_OP , 5 },
-            { RSHIFT_OP , 5 },
-            { SIGNED_RSHIFT_OP , 5 },
-            { AND_OP , 8 },
-            { XOR_OP , 9 },
-            { OR_OP , 10 }        
+        private static readonly Dictionary<TokenType, int> precedences = new Dictionary<TokenType, int> {
+            { TokenType.MUL_OP , 3 },
+            { TokenType.DIV_OP , 3 },
+            { TokenType.ADD_OP , 4 },
+            { TokenType.SUB_OP , 4 },
+            { TokenType.LSHIFT_OP , 5 },
+            { TokenType.RSHIFT_OP , 5 },
+            { TokenType.SIGNED_RSHIFT_OP , 5 },
+            { TokenType.AND_OP , 8 },
+            { TokenType.XOR_OP , 9 },
+            { TokenType.OR_OP , 10 }        
         };
         
         
@@ -104,7 +105,6 @@ namespace ColorzCore.Parser
         IAtomNode ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             //Use Shift Reduce Parsing
-            IAtomNode currentNode;
             Token head = tokens.Current;
             Stack<Either<IAtomNode,Token>> grammarSymbols = new Stack<Either<IAtomNode,Token>>();
             bool ended = false;
@@ -127,7 +127,7 @@ namespace ColorzCore.Parser
                 {
                     IAtomNode node = top.GetLeft;
                     int treePrec = node.Precendence;
-                    else if(precedences.HasKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
+                    else if(precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
                     {
                         Reduce(grammarSymbols, precedences[lookAhead.Type]);
                     }
@@ -171,7 +171,7 @@ namespace ColorzCore.Parser
                         case TokenType.OR_OP:
                             //TODO: Log error
                             IgnoreRestOfStatement(tokens);
-                            return EmptyNode();
+                            return new EmptyNode();
                         case TokenType.IDENTIFIER:
                             if(ExpandIdentifier(tokens))
                                 continue;
@@ -184,7 +184,7 @@ namespace ColorzCore.Parser
                             break;
                         case TokenType.NUMBER:
                             grammarSymbols.Push(new NumberNode(lookAhead, scopes));
-                            tokens.MoveNex();
+                            tokens.MoveNext();
                             break;
                         default:
                             //TODO: Unexpected token
@@ -203,6 +203,8 @@ namespace ColorzCore.Parser
             {
                 Reduce(grammarSymbols, 1);
             }
+
+            return grammarSymbols.Peek().GetLeft;
         }
 
         /***
@@ -213,7 +215,7 @@ namespace ColorzCore.Parser
          */
         void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
         {
-            while(grammarSymbols.Count > 1 || grammarSymbols.Peek().Precedence > targetPrecedence)
+            while(grammarSymbols.Count > 1 || grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
             {
                 //These shouldn't error...
                 r = grammarSymbols.Pop().GetLeft;
@@ -223,7 +225,7 @@ namespace ColorzCore.Parser
                 grammarSymbols.Push(new OperatorNode(l, op, r, l.Precedence));
             }
             if(grammarSymbols.Count == 1)
-                grammarSymbols.Peek().precedence = targetPrecedence;
+                grammarSymbols.Peek().GetLeft.Precedence = targetPrecedence;
         }
         
         IList<IAtomNode> ParseAtomList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
@@ -254,7 +256,7 @@ namespace ColorzCore.Parser
                     {
                         return ParseLine(tokens, scopes);
                     }
-                    if(Raws.hasKey(identifier.Content))
+                    if(Raws.ContainsKey(nextToken.Content))
                     {
                         return new StatementListNode(ParseStatementList(tokens, scopes));
                     }
@@ -264,9 +266,9 @@ namespace ColorzCore.Parser
                         if(tokens.Current.Type == TokenType.COLON)
                         {
                             tokens.MoveNext();
-                            if(scopes.Head.Labels.ContainsKey(identifier.Content))
+                            if(scopes.Head.Labels.ContainsKey(nextToken.Content))
                             {
-                                Log(Errors, File, identifier.LineNumber, identifier.ColumnNumber, "Label already in scope: " + identifier.Content);
+                                Log(Errors, File, nextToken.LineNumber, nextToken.ColumnNumber, "Label already in scope: " + nextToken.Content);
                             }
                             else
                             {
@@ -294,21 +296,21 @@ namespace ColorzCore.Parser
                     tokens.MoveNext();
                     if(tokens.Current.Type != TokenType.IDENTIFIER)
                     {
-                        Log(Errors, File, nextToken.LineNumber, nextToken.ColumnNumber, "Expected preprocessor directive identifier after #.");
+                        Log(Errors, nextToken.Location, "Expected preprocessor directive identifier after #.");
                     }
                     //return Handler.HandleDirective(tokens);
                     //List < IParamNode > = ParseParamList(tokens, scopes);
                     break;
                 case TokenType.OPEN_BRACKET:
-                    Log(Errors, File, nextToken.LineNumber, nextToken.ColumnNumber, "Unexpected list literal.");
+                    Log(Errors, nextToken.Location, "Unexpected list literal.");
                     break;
                 case TokenType.NUMBER:
                 case TokenType.OPEN_PAREN:
-                    Log(Errors, File, nextToken.LineNumber, nextToken.ColumnNumber, "Unexpected mathematical expression.");
+                    Log(Errors, nextToken.Location, "Unexpected mathematical expression.");
                     break;
                 default:
                     tokens.MoveNext();
-                    Log(Errors, File, nextToken.LineNumber, nextToken.ColumnNumber, String.Format("Unexpected token: {0}", nextToken.Type));
+                    Log(Errors, nextToken.Location, String.Format("Unexpected token: {0}", nextToken.Type));
                     break;
             }
             IgnoreRestOfLine(tokens);
@@ -320,11 +322,12 @@ namespace ColorzCore.Parser
             IList<StatementNode> stmts = new List<StatementNode>();
             do
             {
-                stmts.Add(ParseStatement(tokens, currentOffset, scopes));
+                stmts.Add(ParseStatement(tokens, scopes));
                 if(tokens.Current.Type == TokenType.SEMICOLON)
                     tokens.MoveNext();
             } while(tokens.Current.Type != TokenType.NEWLINE);
             tokens.MoveNext();
+            return stmts;
         }
         
         /***
@@ -345,7 +348,7 @@ namespace ColorzCore.Parser
             }
             else if(Definitions.ContainsKey(tokens.Current.Content))
             {
-                bool noteos = Definitions[tokens.Current.Context].ApplyDefinition(tokens);
+                bool noteos = Definitions[tokens.Current.Content].ApplyDefinition(tokens);
                 if(noteos && tokens.Current.Type == TokenType.IDENTIFIER)
                 {
                     ExpandIdentifier(tokens);
@@ -383,9 +386,12 @@ namespace ColorzCore.Parser
             ExpandMacro(macro, tokens);
         }
 
-        private void Log(IList<string> record, string filename, int lineNum, int colNum, string message)
+        private void Log(IList<string> record, Location? causedError, string message)
         {
-            record.Add(String.Format("In File {0}, Line {1}, Column {2}: {3}", filename, lineNum, colNum, message));
+            if (causedError.HasValue)
+                record.Add(String.Format("In File {0}, Line {1}, Column {2}: {3}", causedError.Value.file, causedError.Value.lineNum, causedError.Value.colNum, message));
+            else
+                record.Add(message);
         }
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {

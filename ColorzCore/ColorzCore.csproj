@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="DataBlock.cs" />
     <Compile Include="DataTypes\ImmutableStack.cs" />
+    <Compile Include="DataTypes\Location.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="EAInstance.cs" />
     <Compile Include="DataTypes\Either.cs" />

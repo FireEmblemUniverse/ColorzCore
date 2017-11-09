@@ -85,7 +85,7 @@ namespace ColorzCore.Lexer
                             //Is a comment, ignore rest of line
                             curCol = endOffs;
                         }
-                        else if (curCik + 1 < endOffs && line[curCol + 1] == '*')
+                        else if (curCol + 1 < endOffs && line[curCol + 1] == '*')
                         {
                             inMultilineComment = true;
                             curCol += 2;
