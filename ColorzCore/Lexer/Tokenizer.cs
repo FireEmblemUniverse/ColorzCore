@@ -16,166 +16,176 @@ namespace ColorzCore.Lexer
         private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
 
         //private static readonly IDictionary<TokenType, Regex> parseRegex = initializeDictionary();
+        public static IEnumerator<Token> TokenizePhrase(string line, int lineNum, int startOffs, int endOffs)
+        {
 
-        public static IEnumerable<Token> Tokenize(BufferedStream input)
+            int curCol = startOffs;
+            while (curCol < endOffs)
+            {
+                char nextChar = line[curCol];
+                if (Char.IsWhiteSpace(nextChar))
+                {
+                    curCol++;
+                    continue;
+                }
+                switch (nextChar)
+                {
+                    case ';':
+                        yield return new Token(TokenType.SEMICOLON, lineNum, curCol);
+                        break;
+                    case ':':
+                        yield return new Token(TokenType.COLON, lineNum, curCol);
+                        break;
+                    case '#':
+                        yield return new Token(TokenType.HASH, lineNum, curCol);
+                        break;
+                    case '{':
+                        yield return new Token(TokenType.OPEN_BRACE, lineNum, curCol);
+                        break;
+                    case '}':
+                        yield return new Token(TokenType.CLOSE_BRACE, lineNum, curCol);
+                        break;
+                    case '[':
+                        yield return new Token(TokenType.OPEN_BRACKET, lineNum, curCol);
+                        break;
+                    case ']':
+                        yield return new Token(TokenType.CLOSE_BRACKET, lineNum, curCol);
+                        break;
+                    case '(':
+                        yield return new Token(TokenType.OPEN_PAREN, lineNum, curCol);
+                        break;
+                    case ')':
+                        yield return new Token(TokenType.CLOSE_PAREN, lineNum, curCol);
+                        break;
+                    case '*':
+                        yield return new Token(TokenType.MUL_OP, lineNum, curCol);
+                        break;
+                    case ',':
+                        yield return new Token(TokenType.COMMA, lineNum, curCol);
+                        break;
+                    case '/':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '/')
+                        {
+                            //Is a comment, ignore rest of line
+                            curCol = endOffs;
+                        }
+                        else
+                        {
+                            yield return new Token(TokenType.DIV_OP, lineNum, curCol);
+                        }
+                        break;
+                    case '+':
+                        yield return new Token(TokenType.ADD_OP, lineNum, curCol);
+                        break;
+                    case '-':
+                        yield return new Token(TokenType.SUB_OP, lineNum, curCol);
+                        break;
+                    case '&':
+                        yield return new Token(TokenType.AND_OP, lineNum, curCol);
+                        break;
+                    case '^':
+                        yield return new Token(TokenType.XOR_OP, lineNum, curCol);
+                        break;
+                    case '|':
+                        yield return new Token(TokenType.OR_OP, lineNum, curCol);
+                        break;
+                    case '\"':
+                        {
+                            curCol++;
+                            Match quoteInterior = stringRegex.Match(line, curCol);
+                            string match = quoteInterior.Value;
+                            yield return new Token(TokenType.STRING, lineNum, curCol, match);
+                            curCol += match.Length;
+                            if (curCol == endOffs || line[curCol] != '\"')
+                            {
+                                yield return new Token(TokenType.ERROR, lineNum, curCol, "Unclosed string.");
+                            }
+                            continue;
+                        }
+                    case '<':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '<')
+                        {
+                            yield return new Token(TokenType.LSHIFT_OP, lineNum, curCol);
+                            curCol += 2;
+                            continue;
+                        }
+                        else
+                        {
+                            yield return new Token(TokenType.ERROR, lineNum, curCol, "<");
+                            break;
+                        }
+                    case '>':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '>')
+                        {
+                            if (curCol + 2 < endOffs && line[curCol + 2] == '>')
+                            {
+                                yield return new Token(TokenType.SIGNED_RSHIFT_OP, lineNum, curCol);
+                                curCol += 3;
+                            }
+                            else
+                            {
+                                yield return new Token(TokenType.RSHIFT_OP, lineNum, curCol);
+                                curCol += 2;
+                            }
+                            continue;
+                        }
+                        else
+                        {
+                            yield return new Token(TokenType.ERROR, lineNum, curCol, ">");
+                            break;
+                        }
+                    default:
+                        //Try matching to identifier, then to number
+                        Match idMatch = idRegex.Match(line, curCol, Math.Min(MAX_ID_LENGTH, endOffs - curCol));
+                        if (idMatch.Success)
+                        {
+                            string match = idMatch.Value;
+                            yield return new Token(TokenType.IDENTIFIER, lineNum, curCol, match);
+                            curCol += match.Length;
+                            if (curCol < endOffs && (Char.IsLetterOrDigit(line[curCol]) | line[curCol] == '_'))
+                            {
+                                Match idMatch2 = new Regex("[a-zA-Z0-9_]+").Match(line, curCol);
+                                match = idMatch2.Value;
+                                yield return new Token(TokenType.ERROR, lineNum, curCol, "Identifier longer than 64 characters.");
+                                curCol += match.Length;
+                            }
+                            continue;
+                        }
+                        Match numMatch = numRegex.Match(line, curCol);
+                        if (numMatch.Success)
+                        {
+                            string match = numMatch.Value;
+                            yield return new Token(TokenType.NUMBER, lineNum, curCol, match);
+                            curCol += match.Length;
+                            continue;
+                        }
+                        string restOfWord = new Regex("\\S+").Match(line, curCol).Value;
+                        yield return new Token(TokenType.ERROR, lineNum, curCol, restOfWord);
+                        curCol += restOfWord.Length;
+                        continue;
+                }
+                curCol++;
+            }
+        }
+        public static IEnumerator<Token> TokenizeLine(string line, int lineNum)
+        {
+            return TokenizePhrase(line, lineNum, 0, line.Length);
+        }
+        public static IEnumerator<Token> Tokenize(BufferedStream input)
         {
 
             StreamReader sr = new StreamReader(input);
-            int nextChar, curLine = 1, curCol = 1;
-            string nextLine;
+            int curLine = 1;
             while (!sr.EndOfStream)
             {
-                nextLine = sr.ReadLine();
-                curCol = 0;
-                while(curCol < nextLine.Length)
+                string line = sr.ReadLine();
+                foreach (Token t in TokenizeLine(line, curLine))
                 {
-                    nextChar = nextLine[curCol];
-                    if (Char.IsWhiteSpace((char)nextChar))
-                    {
-                        curCol++;
-                        continue;
-                    }
-                    switch (nextChar)
-                    {
-                        case ';':
-                            yield return new Token(TokenType.SEMICOLON, curLine, curCol);
-                            break;
-                        case ':':
-                            yield return new Token(TokenType.COLON, curLine, curCol);
-                            break;
-                        case '#':
-                            yield return new Token(TokenType.HASH, curLine, curCol);
-                            break;
-                        case '{':
-                            yield return new Token(TokenType.OPEN_BRACE, curLine, curCol);
-                            break;
-                        case '}':
-                            yield return new Token(TokenType.CLOSE_BRACE, curLine, curCol);
-                            break;
-                        case '[':
-                            yield return new Token(TokenType.OPEN_BRACKET, curLine, curCol);
-                            break;
-                        case ']':
-                            yield return new Token(TokenType.CLOSE_BRACKET, curLine, curCol);
-                            break;
-                        case '(':
-                            yield return new Token(TokenType.OPEN_PAREN, curLine, curCol);
-                            break;
-                        case ')':
-                            yield return new Token(TokenType.CLOSE_PAREN, curLine, curCol);
-                            break;
-                        case '*':
-                            yield return new Token(TokenType.MUL_OP, curLine, curCol);
-                            break;
-                        case ',':
-                            yield return new Token(TokenType.COMMA, curLine, curCol);
-                            break;
-                        case '/':
-                            if(curCol + 1 < nextLine.Length && nextLine[curCol+1] == '/')
-                            {
-                                //Is a comment, ignore rest of line
-                                curCol = nextLine.Length;
-                            }
-                            else
-                            {
-                                yield return new Token(TokenType.DIV_OP, curLine, curCol);
-                            }
-                            break;
-                        case '+':
-                            yield return new Token(TokenType.ADD_OP, curLine, curCol);
-                            break;
-                        case '-':
-                            yield return new Token(TokenType.SUB_OP, curLine, curCol);
-                            break;
-                        case '&':
-                            yield return new Token(TokenType.AND_OP, curLine, curCol);
-                            break;
-                        case '^':
-                            yield return new Token(TokenType.XOR_OP, curLine, curCol);
-                            break;
-                        case '|':
-                            yield return new Token(TokenType.OR_OP, curLine, curCol);
-                            break;
-                        case '\"':
-                            {
-                                curCol++;
-                                Match quoteInterior = stringRegex.Match(nextLine, curCol);
-                                string match = quoteInterior.Value;
-                                yield return new Token(TokenType.STRING, curLine, curCol, match);
-                                curCol += match.Length;
-                                if (curCol == nextLine.Length || nextLine[curCol] != '\"')
-                                {
-                                    yield return new Token(TokenType.ERROR, curLine, curCol, "Unclosed string.");
-                                }
-                                continue;
-                            }
-                        case '<':
-                            if (curCol + 1 < nextLine.Length && nextLine[curCol + 1] == '<')
-                            {
-                                yield return new Token(TokenType.LSHIFT_OP, curLine, curCol);
-                                curCol += 2;
-                                continue;
-                            }
-                            else
-                            {
-                                yield return new Token(TokenType.ERROR, curLine, curCol, "<");
-                                break;
-                            }
-                        case '>':
-                            if (curCol + 1 < nextLine.Length && nextLine[curCol + 1] == '>')
-                            {
-                                if(curCol + 2 < nextLine.Length && nextLine[curCol + 2] == '>')
-                                {
-                                    yield return new Token(TokenType.SIGNED_RSHIFT_OP, curLine, curCol);
-                                    curCol += 3;
-                                }
-                                else
-                                {
-                                    yield return new Token(TokenType.RSHIFT_OP, curLine, curCol);
-                                    curCol += 2;
-                                }
-                                continue;
-                            }
-                            else
-                            {
-                                yield return new Token(TokenType.ERROR, curLine, curCol, ">");
-                                break;
-                            }
-                        default:
-                            //Try matching to identifier, then to number
-                            Match idMatch = idRegex.Match(nextLine, curCol, Math.Min(MAX_ID_LENGTH, nextLine.Length - curCol));
-                            if(idMatch.Success)
-                            {
-                                string match = idMatch.Value;
-                                yield return new Token(TokenType.IDENTIFIER, curLine, curCol, match);
-                                curCol += match.Length;
-                                if(curCol < nextLine.Length && (Char.IsLetterOrDigit(nextLine[curCol]) | nextLine[curCol] == '_'))
-                                {
-                                    Match idMatch2 = new Regex("[a-zA-Z0-9_]+").Match(nextLine, curCol);
-                                    match = idMatch2.Value;
-                                    yield return new Token(TokenType.ERROR, curLine, curCol, "Identifier longer than 64 characters.");
-                                    curCol += match.Length;
-                                }
-                                continue;
-                            }
-                            Match numMatch = numRegex.Match(nextLine, curCol);
-                            if(numMatch.Success)
-                            {
-                                string match = numMatch.Value;
-                                yield return new Token(TokenType.NUMBER, curLine, curCol, match);
-                                curCol += match.Length;
-                                continue;
-                            }
-                            string restOfWord = new Regex("\\S+").Match(nextLine, curCol).Value;
-                            yield return new Token(TokenType.ERROR, curLine, curCol, restOfWord);
-                            curCol += restOfWord.Length;
-                            continue;
-                    }
-                    curCol++;
+                    yield return t;
                 }
-                if(!sr.EndOfStream)
+                if (!sr.EndOfStream)
                 {
-                    yield return new Token(TokenType.NEWLINE, curLine, curCol);
+                    yield return new Token(TokenType.NEWLINE, curLine, line.Length);
                     curLine++;
                 }
             }

@@ -15,16 +15,16 @@ namespace ColorzCore
             FileStream inputFile = new FileStream("../../testFile.event", FileMode.Open);
             BufferedStream inputStream = new BufferedStream(inputFile);
 
-            FirstPass(Tokenizer.Tokenize(inputStream));
+            //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            /*
+            
             foreach (Token t in Tokenizer.Tokenize(inputStream))
             {
                 Console.Out.WriteLine(t.ToString());
             }
 
             Console.In.ReadLine();
-            */
+            
             inputFile.Close();
         }
 

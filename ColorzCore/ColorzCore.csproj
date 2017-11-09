@@ -46,12 +46,22 @@
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
     <Compile Include="Lexer\TokenType.cs" />
+    <Compile Include="Parser\AST\ASTNodeType.cs" />
     <Compile Include="Parser\AST\EAProgram.cs" />
+    <Compile Include="Parser\AST\ErrorNode.cs" />
+    <Compile Include="Parser\AST\IParamNode.cs" />
+    <Compile Include="Parser\AST\EOSNode.cs" />
+    <Compile Include="Parser\Closure.cs" />
+    <Compile Include="Parser\Macro.cs" />
+    <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Preprocessor\IDirective.cs" />
+    <Compile Include="Preprocessor\Preprocessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Compile Include="Parser\AST\IASTNode.cs" />
     <None Include="testFile.event" />
   </ItemGroup>
   <ItemGroup />
