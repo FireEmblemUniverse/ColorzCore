@@ -71,7 +71,7 @@
     <Compile Include="Parser\Closure.cs" />
     <Compile Include="Parser\Definition.cs" />
     <Compile Include="Parser\Macro.cs" />
-    <Compile Include="Parser\Parser.cs" />
+    <Compile Include="Parser\EAParser.cs" />
     <Compile Include="Preprocessor\IDirective.cs" />
     <Compile Include="Preprocessor\Handler.cs" />
     <Compile Include="Program.cs" />

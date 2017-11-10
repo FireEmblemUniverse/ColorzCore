@@ -11,11 +11,12 @@ using ColorzCore.Raws;
 
 namespace ColorzCore.Parser
 {
-    class Parser
+    class EAParser
     {
         public Dictionary<string, Dictionary<int, Macro>> Macros { get; set; }
         public Dictionary<string, Definition> Definitions { get; set; }
         public Dictionary<string, Raw> Raws { get; set; }
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT" }; // TODO
         public string File { get; private set; }
         public Closure GlobalClosure { get; set; }
         int currentOffset;
@@ -24,9 +25,9 @@ namespace ColorzCore.Parser
         IList<string> Warnings { get; }
         IList<string> Errors { get; }
 
-        public Parser(string includedBy = "")
+        public EAParser()
         {
-            GlobalClosure = new Closure(includedBy);
+            GlobalClosure = new Closure("");
             pastOffsets = new Stack<int>();
         }
         public BlockNode ParseBlock(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
@@ -45,29 +46,43 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             StatementNode temp = new StatementNode() { Raw = head };
             //TODO: Replace with real raw information, and error if not valid.
-            temp.Raw = head;
-            if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
+            if(SpecialCodes.Contains(head.Content.ToUpper()))
             {
-                IList<IParamNode> parameters = ParseParamList(tokens, scopes);
-                temp.Parameters = parameters;
+                //TODO: Handle this case
+                //return new SpecialActionNode(); ???
+                return temp;
+            }
+            else if(Raws.ContainsKey(head.Content))
+            {
+                temp.Raw = head;
+                if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
+                {
+                    IList<IParamNode> parameters = ParseParamList(tokens, scopes);
+                    temp.Parameters = parameters;
+                }
+                else
+                {
+                    temp.Parameters = new List<IParamNode>();
+                }
+                currentOffset += Raws[head.Content].Length;
+                return temp;
             }
             else
-            {   
-                temp.Parameters = new List<IParamNode>();
+            {
+                Log(Errors, head.Location, "Unrecognized code: " + head.Content);
+                return temp; //TODO - Nullable?
             }
-            currentOffset += Raws[head.Content].Length;
-            return temp;
         }
 
         private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             IList<IParamNode> parameters = new List<IParamNode>();
-            do
+            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_PAREN)
             {
                 parameters.Add(ParseParam(tokens, scopes));
                 if(tokens.Current.Type == TokenType.COMMA)
                     tokens.MoveNext();
-            } while(tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_PAREN);
+            }
             tokens.MoveNext();
             return parameters;
         }
@@ -290,16 +305,20 @@ namespace ColorzCore.Parser
                     }
                 case TokenType.OPEN_BRACE:
                     tokens.MoveNext();
-                    return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(), scopes));
+                    return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(scopes.Head.IncludedBy), scopes));
                 case TokenType.HASH:
                     tokens.MoveNext();
                     if(tokens.Current.Type != TokenType.IDENTIFIER)
                     {
                         Log(Errors, nextToken.Location, "Expected preprocessor directive identifier after #.");
+                        break;
                     }
-                    //return Handler.HandleDirective(tokens);
-                    //List < IParamNode > = ParseParamList(tokens, scopes);
-                    break;
+                    else
+                    {
+                        Token directiveName = tokens.Current;
+                        IList<IParamNode> paramList = ParseParamList(tokens, scopes);
+                        return Handler.HandleDirective(directiveName, paramList, tokens);
+                    }
                 case TokenType.OPEN_BRACKET:
                     Log(Errors, nextToken.Location, "Unexpected list literal.");
                     break;

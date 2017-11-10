@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace ColorzCore.Preprocessor
 {
     class Handler
     {
-        public static IASTNode HandleDirective(IEnumerator<Token> tokens)
+        public static ILineNode HandleDirective(Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
 
 

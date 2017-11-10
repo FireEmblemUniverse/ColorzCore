@@ -1,4 +1,5 @@
 ﻿using ColorzCore.Lexer;
+using ColorzCore.Parser;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +18,7 @@ namespace ColorzCore
             BufferedStream inputStream = new BufferedStream(inputFile);
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
-
+            EAParser myParser = new EAParser();
             
             foreach (Token t in Tokenizer.Tokenize(inputStream, fileName))
             {
