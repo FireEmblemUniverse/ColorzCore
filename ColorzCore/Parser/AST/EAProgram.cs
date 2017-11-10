@@ -7,14 +7,13 @@ using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.AST
 {
-    class EAProgram : IASTNode
+    class EAProgram
     {
-        public ASTNodeType Type => ASTNodeType.EAPROGRAM;
 
         public string File { get; }
         public int Line { get; }
         public int Column { get; }
 
-        public Token startToken => throw new NotImplementedException();
+        public Token StartToken => throw new NotImplementedException();
     }
 }

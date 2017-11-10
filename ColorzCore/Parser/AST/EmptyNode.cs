@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class EmptyNode : IASTNode, ILineNode, IAtomNode
+    class EmptyNode : ILineNode, IAtomNode
     {
         public int Precedence => throw new NotImplementedException();
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public interface IParamNode : IASTNode
+    public interface IParamNode
     {
         string ToString(); //For use in other programs.
         ParamType Type { get; }
