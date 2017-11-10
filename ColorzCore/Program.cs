@@ -12,13 +12,14 @@ namespace ColorzCore
     {
         static void Main(string[] args)
         {
-            FileStream inputFile = new FileStream("../../testFile.event", FileMode.Open);
+            string fileName = "../../testFile.event";
+            FileStream inputFile = new FileStream(fileName, FileMode.Open);
             BufferedStream inputStream = new BufferedStream(inputFile);
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
             
-            foreach (Token t in Tokenizer.Tokenize(inputStream))
+            foreach (Token t in Tokenizer.Tokenize(inputStream, fileName))
             {
                 Console.Out.WriteLine(t.ToString());
             }

@@ -1,4 +1,4 @@
-using ColorzCore.Parser;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,18 +7,18 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public class NumberNode
+    public class NumberNode : IAtomNode
     {
         private Token number;
 
-		int Precedence { get { return 11; } }
+		public int Precedence { get { return 11; } }
 
-		public NumberNode(Token id)
+		public NumberNode(Token num)
 		{
-            identifier = id;
+            number = num;
 		}
 		
-		int Evaluate()
+		public int Evaluate()
         {
             string numString = number.Content;
             if(numString.StartsWith("$"))

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    class Empty { }
-    class ImmutableStack<T> : Either<Tuple<T, ImmutableStack<T>>, Empty>
+    public class Empty { }
+    public class ImmutableStack<T> : Either<Tuple<T, ImmutableStack<T>>, Empty>
     {
         public ImmutableStack(T elem, ImmutableStack<T> tail) : base(Tuple.Create(elem, tail))
         { }

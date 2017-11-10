@@ -1,4 +1,5 @@
-using ColorzCore.Parser;
+using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public class IdentifierNode
+    public class IdentifierNode : IAtomNode
     {
         private Token identifier;
         ImmutableStack<Closure> scope;
 
-		int Precedence { get { return 11; } }
+		public int Precedence { get { return 11; } }
 
 		public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
 		{
@@ -20,7 +21,7 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
 		}
 		
-		int Evaluate()
+		public int Evaluate()
         {
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public interface IAtomNode
+    public interface IAtomNode : IParamNode
     {
 		int Precedence { get; }
 		int Evaluate();

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore
 {
-    class Either<Left,Right>
+    public class Either<Left,Right>
     {
         private bool isLeft;
         private readonly Left l;
