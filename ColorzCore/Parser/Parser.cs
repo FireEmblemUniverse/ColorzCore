@@ -210,10 +210,10 @@ namespace ColorzCore.Parser
         /***
          *   Precondition: grammarSymbols alternates between IAtomNodes, operator Tokens, .Count is odd
          *                 the precedences of the IAtomNodes is increasing.
-         *   Postcondition: Everything in grammarSymbols will have precedence <= targetPrecedence, with proper tree built.
+         *   Postcondition: Either grammarSymbols.Count == 1, or everything in grammarSymbols will have precedence <= targetPrecedence.
          *
          */
-        void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
+        private void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
         {
             while(grammarSymbols.Count > 1 || grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
             {
@@ -224,8 +224,6 @@ namespace ColorzCore.Parser
                 
                 grammarSymbols.Push(new OperatorNode(l, op, r, l.Precedence));
             }
-            if(grammarSymbols.Count == 1)
-                grammarSymbols.Peek().GetLeft.Precedence = targetPrecedence;
         }
         
         IList<IAtomNode> ParseAtomList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
