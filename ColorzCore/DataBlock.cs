@@ -8,8 +8,8 @@ namespace ColorzCore
 {
     class DataBlock
     {
-        public int Offset { get; private set; }
-        public IList<IWritable> Data { get; private set; }
+        public int Offset { get; }
+        public IList<IWritable> Data { get; }
 
         public void Write(byte[] target)
         {

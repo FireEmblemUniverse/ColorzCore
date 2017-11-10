@@ -1,4 +1,10 @@
-﻿
+﻿//Made by CrazyColorz5 of Fire Emblem Universe
+//Based off of Camtech75's Skeleton
+#include EAstdlib.event
+#include "../Destiny Definitions.txt"
+#define BACKWARDS_COMPATIBILITY
+
+#define SaveSuspend "ASMC 0xB5D5D"
 
 #ifndef InlineEvents
   //Assume the Map is contained and documented elsewhere.
@@ -18,3 +24,417 @@ VeinEffect(ChOne_Vein4, ChOne_Vein4_Effect)
 VeinEffect(ChOne_Vein5, ChOne_Vein5_Effect)
 POP
 
+ChOne_ThisChapter:
+
+POIN ChOne_TurnBasedEvents
+POIN ChOne_CharacterBasedEvents
+POIN ChOne_LocationBasedEvents
+POIN ChOne_MiscBasedEvents
+POIN ChOne_Dunno ChOne_Dunno ChOne_Dunno
+POIN ChOne_Tutorial
+POIN ChOne_Ballista1 ChOne_Ballista2
+POIN ChOne_Player ChOne_Player
+POIN $0 $0 $0 $0 $0 $0
+POIN ChOne_BeginningScene ChOne_EndingScene
+
+ChOne_TurnBasedEvents:
+TurnEventPlayer(0x07,ChOne_ShowDV,1)
+TurnEventPlayer(0x06,ChOne_GhastArrives,6)
+TurnEventPlayer(0x00,ChOne_GhastCHAI,13)
+TurnEventPlayer(0x00,ChOne_StairsRein,2,127)
+TurnEventPlayer(0x00,ChOne_Rein2_Event,11)
+TurnEventPlayer(0x00,ChOne_Rein1_Event,7)
+TURN
+
+ChOne_CharacterBasedEvents:
+CHAR 0x08 ChOne_Arch_Ghast_Talk Arch Ghast 0x0
+CHAR
+
+ChOne_LocationBasedEvents:
+Seize(0x0, ChOne_EndingScene,16,1)
+//Seize(0x0, ChOne_EndingScene,13,15) // Debug
+LOCA
+
+ChOne_MiscBasedEvents:
+CauseGameOverIfLordDies
+AFEV
+
+ChOne_Dunno:
+END_MAIN
+
+ChOne_Tutorial:
+END_MAIN
+
+ChOne_Ballista1:
+Vein(0, 15, ChOne_Vein1)
+Vein(4, 7, ChOne_Vein2)
+Vein(11, 2, ChOne_Vein3)
+Vein(13, 5, ChOne_Vein4)
+Vein(13, 12, ChOne_Vein5)
+BLST
+
+ChOne_Ballista2:
+BLST
+
+ALIGN 4
+
+ChOne_Player:
+UNIT Arch NohrPrince Arch Level(1, Ally, 0) [13,15] 0x0 0x00 0x00 0x00 [BreakableIronSword, Vulnerary] [0x0, 0x0] 0x0 0x0
+UNIT Ash Troubadour Arch Level(3, Ally, 0) [13,17] 0x0 0x00 0x00 0x00 [BrassKatana, BloomFestal, Vulnerary] [0x0, 0x0] 0x0 0x0
+UNIT Colorz PegasusMage Arch Level(10, Ally, 0) [12,17] 0x0 0x00 0x00 0x00 [RatSpirit, OxSpirit] [0x0, 0x0] 0x0 0x0
+UNIT
+
+ChOne_Player2:
+UNIT Zim Maid Arch Level(4, Ally, 0) [14,15] 0x0 0x00 0x00 0x00 [BrassShuriken, IronShuriken, Mend] [0x0, 0x0] 0x0 0x0
+UNIT
+
+ChOne_Ghast:
+UNIT Ghast Dawg Arch Level(1, NPC, 0) [0,3] 0x0 0x00 0x00 0x00 [FireFang, Tinder] [0x3, 0x3] 0x0 0x0
+UNIT
+
+ChOne_Boss:
+UNIT Gazga Brigand Gazga Level(6, Enemy, 1) [16,1] 0x0 0x00 0x00 0x00 [IronClub, HandAxe] [0x03,0x03] 0x0 0x20
+UNIT
+
+ChOne_Enemy_One:
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [16,12] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Mercenary 0x00 Level(4,Enemy,True) [17,9] 0x00 0x00 0x00 0x00 [BrassKatana] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Lancer 0x00 Level(3,Enemy,True) [9,13] 0x00 0x00 0x00 0x00 [BrassNaginata] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Archer 0x00 Level(3,Enemy,True) [8,10] 0x00 0x00 0x00 0x00 [BrassYumi] [0x00,0x03,0x00,0x00]
+//UNIT ChOneGeneric1 Mercenary 0x00 Level(4,Enemy,True) [7,11] 0x00 0x00 0x00 0x00 [BrassKatana] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [10,8] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Lancer 0x00 Level(3,Enemy,True) [8,4] 0x00 0x00 0x00 0x00 [BrassNaginata] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Lancer 0x00 Level(3,Enemy,True) [7,7] 0x00 0x00 0x00 0x00 [BrassNaginata] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Archer 0x00 Level(3,Enemy,True) [4,6] 0x00 0x00 0x00 0x00 [BrassYumi] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Mage 0x00 Level(3,Enemy,True) [14,5] 0x00 0x00 0x00 0x00 [RatSpirit] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [3,4] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [10,2] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x03,0x00,0x00]
+UNIT
+
+ChOne_Enemy_Two:
+UNIT ChOneGeneric3 Maid 0x00 Level(1,Enemy,True) [11,3] 0x00 0x00 0x00 0x00 [BrassShuriken, SunFestal, Freeze] [0x03,0x03] 0x00 0x20
+UNIT ChOneGeneric1 Mercenary 0x00 Level(4,Enemy,True) [4,3] 0x02 0x00 0x00 0x00 [IronKatana] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Archer 0x00 Level(3,Enemy,True) [20,8] 0x00 0x00 0x00 0x00 [BrassYumi] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [19,7] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x03,0x00,0x00]
+//UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [17,5] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Fighter 0x00 Level(4,Enemy,True) [16,6] 0x00 0x00 0x00 0x00 [HandAxe] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Fighter 0x00 Level(4,Enemy,True) [14,2] 0x00 0x00 0x00 0x00 [BrassClub, HandAxe] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Mage 0x00 Level(3,Enemy,True) [18,2] 0x00 0x00 0x00 0x00 [RatSpirit] [0x00,0x03,0x00,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [4,18] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(3,Enemy,True) [0,16] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_Stairs1:
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [7,1] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [8,2] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [6,2] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_Stairs2:
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [20,4] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [21,5] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_Stairs3: //add in more than just brigands after a few turns?
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [3,15] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric2 Brigand 0x00 Level(4,Enemy,True) [2,16] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_Rein1: //Maybe around turn 7?
+UNIT ChOneGeneric1 Mage 0x00 Level(4,Enemy,True) [2,7] 0x00 0x00 0x00 0x00 [RatSpirit] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Mercenary 0x00 Level(4,Enemy,True) [2,10] 0x00 0x00 0x00 0x00 [IronKatana] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Fighter 0x00 Level(4,Enemy,True) [1,8] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(4,Enemy,True) [1,10] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_Rein2: //Maybe like 9-11?
+UNIT ChOneGeneric1 Brigand 0x00 Level(4,Enemy,True) [20,15] 0x00 0x00 0x00 0x00 [BrassClub] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Fighter 0x00 Level(4,Enemy,True) [21,14] 0x00 0x00 0x00 0x00 [HandAxe] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Mercenary 0x00 Level(4,Enemy,True) [21,16] 0x00 0x00 0x00 0x00 [IronKatana] [0x00,0x00,0x04,0x00]
+UNIT ChOneGeneric1 Brigand 0x00 Level(4,Enemy,True) [20,17] 0x00 0x00 0x00 0x00 [IronClub] [0x00,0x00,0x04,0x00]
+UNIT
+
+ChOne_BeginningScene:
+CAM1 [14,14]
+
+LOAD1 0x1 ChOne_Boss
+LOAD1 0x1 ChOne_Enemy_One
+LOAD1 0x1 ChOne_Enemy_Two
+
+LOAD2 0x1 ChOne_Player      //load pre-existing units, don't load dead units
+
+MUSC Follow_Me //TODO
+
+#define Ruins 0x29
+TextStart
+SetBackground(Ruins)
+TEXTSHOW ChOne_Text_1 //"hey ash, isn't this. . ."
+TEXTEND
+ClearBackgroundSmooth
+
+TextStart
+SetBackground(Ruins)
+TEXTSHOW ChOne_Text_2 //"hey arch, I think we've. . ."
+TEXTEND
+ClearBackgroundSmooth
+
+LOAD1 0x1 ChOne_Player2
+STAL3 0x8
+
+MUSC Comrades
+
+TextStart
+TEXTSHOW ChOne_Text_3 //"Hi! Who are you?. . ."
+TEXTEND
+REMA
+
+MUSC Distant_Roads
+
+EVBIT_T 0x7
+ENDA
+
+ChOne_EndingScene:
+MUSC Into_the_Shadow_of_Victory
+TEXTSTART
+SetBackground(Ruins)
+TEXTSHOW ChOne_Text_7 //"Yaaay! All of the. . ."
+TEXTEND
+REMOVEPORTRAITS
+MUSC Victory
+TEXTSTART
+TEXTSHOW ChOne_Text_8 //"Aww! What a cute dog!. . ."
+TEXTEND
+REMOVEPORTRAITS
+TEXTSTART
+TEXTSHOW ChOne_Text_9 //"Woof woof! *bites*. . ."
+TEXTEND
+REMOVEPORTRAITS
+#define Prison 0x17
+
+MUSS 0x0
+
+SetBackground(Prison)
+TEXTSTART
+TEXTSHOW ChOne_Text_10 //"Good Lord, that's a LOT of chests. . ."
+TEXTEND
+REMOVEPORTRAITS
+SOUN 0xB1 //Unlocking door
+SMOV 0x3 6000 //Money to give
+GIVEITEMTOMAIN 0x0
+TEXTSTART
+TEXTSHOW ChOne_Text_11 //"Whoa, that's a lot of money."
+TEXTEND
+
+MURE 0x8
+
+SetBackground(Ruins)
+TEXTSTART
+TEXTSHOW ChOne_Text_12 //"So that's it? Can I. . ."
+TEXTEND
+
+MUSC TethysTheme
+
+#define Sanctum 0x2D
+SetBackground(Sanctum)
+TEXTSTART
+TEXTSHOW ChOne_Text_13 //"There it is, milord. . ."
+TEXTEND
+REMOVEPORTRAITS
+SOUN DragonVeinSFXID
+STAL3 0xF0
+STAL3 0xF0
+FADI 0x10
+STAL3 0x10
+SOUN 0xAB //Rock Exploding
+STAL3 0x90
+SOUN 0xAB //Rock Exploding
+STAL3 0x18
+SOUN 0xAB //Rock Exploding
+STAL3 0x18
+SOUN 0xAB //Rock Exploding
+STAL3 0xC0
+SOUN 0xAB //Rock Exploding
+STAL3 0x60
+#define MountainousClearing 0x1D
+SetBackground(MountainousClearing)
+FADU 0x10
+SMOV 3 Dragonstone
+GIVEITEMTO Arch
+TEXTSTART
+TEXTSHOW ChOne_Text_14 //"...A dragonstone?. . ."
+TEXTEND
+MNCH 0x01 //TODO: Replace with proper code for next chapter.
+ENDA
+
+//Event
+ChOne_GhastArrives:
+LOAD1 0x1 ChOne_Ghast
+CAM1 Ghast
+FlashCursor(Ghast, 0x40)
+
+TextStart
+TEXTSHOW ChOne_Text_5 //"Grrr...!"
+TEXTEND
+REMA
+
+EVBIT_T 0x7
+ENDA
+
+ChOne_ShowDV:
+CAM1 [13,12]
+FlashCursor(13,12,0x40)
+TextStart
+TEXTSHOW ChOne_Text_4 //"Oh! Arch. I think that's a Dragon Vein. . ."
+TEXTEND
+REMA
+EVBIT_T 0x7
+ENDA
+
+ChOne_Arch_Ghast_Talk:
+TextStart
+TEXTSHOW ChOne_Text_6 //"What the!/ Why is. . ."
+TEXTEND
+REMA
+TurnAlly(Ghast)
+EVBIT_T 0x7
+ENDA
+
+ChOne_GhastCHAI:
+CHECK_EVENTID 0x08 //Arch talked to ghast
+BNE 0x3 rC r0 //if the event bit was set, skip
+SMOV r2 0x0000
+CHAI Ghast
+LABEL 0x3
+EVBIT_T 0x7
+ENDA
+
+ChOne_StairsRein:
+CHECK_TURNS
+//Now get remainder mod 3
+SMOV r1 0x3
+SDIV slotsParam(r2, rC, r1) //r2 = rC/3
+SMUL slotsParam(r1, r2)     //r1 = r2*3
+SSUB slotsParam(r1, rC, r1)     //r1 -= rC
+BNE 0x0 r1 r0
+ReinforcementEvent(ChOne_Stairs2)    //Remainder was 0 (right)
+GOTO 0x1
+LABEL 0x0
+SMOV r2 0x1
+BNE 0x2 r1 r2 
+ReinforcementEvent(ChOne_Stairs1)    //Remainder was 1 (upper left)
+GOTO 0x1
+LABEL 0x02
+ReinforcementEvent(ChOne_Stairs3)    //Remainder was 2 (lower left)
+LABEL 0x1
+EVBIT_T 0x7
+ENDB
+
+ChOne_Rein1_Event:
+ReinforcementEvent(ChOne_Rein1)
+ENDB
+
+ChOne_Rein2_Event:
+ReinforcementEvent(ChOne_Rein2)
+ENDB
+
+
+ChOne_Vein1_Effect:
+VeinActivation
+//CAM1 [2, 17]
+FlashCursor(2,17,0x20)
+SMOV 0xB 0x110001
+TILECHANGE 0xFFFF
+SaveSuspend
+SOUN 0xB0
+ENDB
+
+ChOne_Vein2_Effect:
+VeinActivation
+CAM1 [7, 3]
+SMOV 0xB 0x030006
+TILECHANGE 0xFFFF
+SaveSuspend
+SOUN 0xB0
+ENDB
+
+ChOne_Vein3_Effect:
+ASMC (ChOne_DamageASMC|0x1)
+SaveSuspend
+VeinActivation
+CAM1 [0x10, 0x2]
+SOUN 0xAF   //Wall/Snag breaking
+FlashCursor(0xE, 0x1, 0x08)
+FlashCursor(0xF, 0x1, 0x08)
+SOUN 0xAF
+FlashCursor(0x10, 0x1, 0x08)
+FlashCursor(0x11, 0x1, 0x08)
+SOUN 0xAF
+FlashCursor(0x12, 0x1, 0x08)
+FlashCursor(0xE, 0x2, 0x08)
+SOUN 0xAF
+FlashCursor(0xF, 0x2, 0x08)
+FlashCursor(0x10, 0x2, 0x08)
+SOUN 0xAF
+FlashCursor(0x11, 0x2, 0x08)
+FlashCursor(0x12, 0x2, 0x08)
+ENDB
+
+ChOne_Vein4_Effect:
+VeinActivation
+CAM1 [21, 6]
+SMOV 0xB 0x060014
+TILECHANGE 0xFFFF
+SaveSuspend
+SOUN 0xB0
+ENDB
+
+ChOne_Vein5_Effect:
+ASMC (ChOne_DebuffASMC|0x1)
+SaveSuspend
+VeinActivation
+SOUN 0xB6
+WEA1 Rain
+STAL 0x40
+WEA1 Clear
+EVBIT_T 0x7
+ENDA
+
+ALIGN 4
+ChOne_DebuffASMC:
+BYTE 0xF0 0xB5 0x81 0x24 0x20 0x1C 0x18 0x49 0x00 0xF0 0x2C 0xF8 0x00 0x28 0x24 0xD0 0x01 0x68 0x00 0x29 0x21 0xD0 0xC1 0x7A 0x14 0x48 0xC9 0x00 0x40 0x18 0x05 0x68 0x00 0x27 0x00 0x21 0x0F 0x22 0x8B 0x00 0x9A 0x40 0x04 0x26 0x9E 0x40 0x2A 0x40 0xB5 0x42 0x00 0xDA 0x35 0x1C 0x2F 0x43 0x01 0x31 0x06 0x29 0xF2 0xDB 0xFF 0x21 0x09 0x06 0x29 0x40 0x39 0x43 0x01 0x60 0x81 0x79 0x0A 0x09 0x04 0x2A 0x04 0xDA 0x40 0x22 0x0F 0x23 0x19 0x40 0x11 0x43 0x81 0x71 0x01 0x34 0xBF 0x2C 0xD1 0xDD 0xF0 0xBC 0x02 0xBC 0x08 0x47 0xC0 0x46 0x31 0x94 0x01 0x08
+WORD DebuffTable
+
+ALIGN 4
+ChOne_DamageASMC:
+#incbin "ASMCs/FE8-Deal Damage in Box.dmp"
+
+//Tile Changes
+#define ChOneMapChangesID 0x9
+EventPointerTable(ChOneMapChangesID,ChOneMapChangesLocation)
+ChOneMapChangesLocation:
+TileMap(0x0,19,1,2,2,ChOne_TileChange0)
+TileMap(0x1,2,2,2,2,ChOne_TileChange1)
+TileMap(0x3,20,6,2,2,ChOne_TileChange3)
+TileMap(0x4,1,17,3,2,ChOne_TileChange4)
+TileMap(0x8,6,3,3,2,ChOne_TileChange2)
+TileMapEnd
+
+ChOne_TileChange0:
+SHORT 0x07A8 0x0CD0
+SHORT 0x0CE4 0x0CD8 
+ChOne_TileChange1:
+SHORT 0x07A8 0x0CD0
+SHORT 0x0CE4 0x0CD8
+ChOne_TileChange2:
+SHORT 0x06A8 0x06A8 0x06A8
+SHORT 0x0CE0 0x0CE4 0x0CE0
+ChOne_TileChange3:
+SHORT 0x06A8 0x06A8 0x0CE4 0x0CE0
+ChOne_TileChange4:
+SHORT 0x06B0 0x06A8 0x06A8
+SHORT 0x0B48 0x0BC8 0x0B48
+
+
+#ifndef InlineEvents
+  MESSAGE Events end at offset currentOffset
+#endif

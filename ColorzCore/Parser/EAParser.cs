@@ -17,8 +17,8 @@ namespace ColorzCore.Parser
         public Dictionary<string, Definition> Definitions { get; set; }
         public Dictionary<string, Raw> Raws { get; set; }
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT" }; // TODO
-        public string File { get; private set; }
-        public Closure GlobalClosure { get; set; }
+        public string File { get; }
+        public Closure GlobalClosure { get; }
         int currentOffset;
         private Stack<int> pastOffsets;
         IList<string> Messages { get; }

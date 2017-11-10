@@ -9,13 +9,13 @@ namespace ColorzCore.Lexer
 {
     public class Token
     {
-        public Location Location { get; private set; }
+        public Location Location { get; }
 
-        public TokenType Type { get; private set; }
+        public TokenType Type { get; }
         public string FileName { get { return Location.file; } }
         public int LineNumber { get { return Location.lineNum; } }
         public int ColumnNumber { get { return Location.colNum; } }
-        public string Content { get; private set; }
+        public string Content { get; }
 
         public Token(TokenType type, string fileName, int lineNum, int colNum, string original = "")
         {

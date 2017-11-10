@@ -13,6 +13,6 @@ namespace ColorzCore.Parser.AST
             Statements = list;
         }
 
-        public IList<StatementNode> Statements { get; private set; }
+        public IList<StatementNode> Statements { get; }
     }
 }

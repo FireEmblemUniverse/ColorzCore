@@ -11,9 +11,9 @@ namespace ColorzCore.Parser.AST
     {
         public ASTNodeType Type => ASTNodeType.EAPROGRAM;
 
-        public string File { get; private set; }
-        public int Line { get; private set; }
-        public int Column { get; private set; }
+        public string File { get; }
+        public int Line { get; }
+        public int Column { get; }
 
         public Token startToken => throw new NotImplementedException();
     }
