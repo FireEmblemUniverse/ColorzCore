@@ -56,8 +56,12 @@
     <Compile Include="Parser\AST\EAProgram.cs" />
     <Compile Include="Parser\AST\EmptyNode.cs" />
     <Compile Include="Parser\AST\ErrorNode.cs" />
+    <Compile Include="Parser\AST\IAtomNode.cs" />
+    <Compile Include="Parser\AST\IdentifierNode.cs" />
     <Compile Include="Parser\AST\ILineNode.cs" />
     <Compile Include="Parser\AST\IParamNode.cs" />
+    <Compile Include="Parser\AST\NumberNode.cs" />
+    <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParameterNode.cs" />
     <Compile Include="Parser\AST\StatementListNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
