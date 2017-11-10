@@ -6,10 +6,9 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    interface IParamNode : IASTNode
+    public interface IParamNode : IASTNode
     {
         string ToString(); //For use in other programs.
-        int[] ToInts();
         byte[] ToBytes();
     }
 }

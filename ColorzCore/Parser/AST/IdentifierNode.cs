@@ -8,12 +8,12 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public class IdentifierNode : IAtomNode
+    public class IdentifierNode : AtomNodeKernel
     {
         private Token identifier;
         ImmutableStack<Closure> scope;
 
-		public int Precedence { get { return 11; } }
+		public override int Precedence { get { return 11; } }
 
 		public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
 		{
@@ -21,7 +21,7 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
 		}
 		
-		public int Evaluate()
+		public override int Evaluate()
         {
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)

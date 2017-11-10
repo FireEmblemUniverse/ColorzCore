@@ -52,6 +52,7 @@
     <Compile Include="Lexer\Tokenizer.cs" />
     <Compile Include="Lexer\TokenType.cs" />
     <Compile Include="Parser\AST\ASTNodeType.cs" />
+    <Compile Include="Parser\AST\AtomNodeKernel.cs" />
     <Compile Include="Parser\AST\BlockNode.cs" />
     <Compile Include="Parser\AST\EAProgram.cs" />
     <Compile Include="Parser\AST\EmptyNode.cs" />
@@ -66,6 +67,7 @@
     <Compile Include="Parser\AST\StatementListNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\Closure.cs" />
+    <Compile Include="Parser\Definition.cs" />
     <Compile Include="Parser\Macro.cs" />
     <Compile Include="Parser\Parser.cs" />
     <Compile Include="Preprocessor\IDirective.cs" />
@@ -82,9 +84,5 @@
     <None Include="testFile.event" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <Content Include="ebnf_plan.txt" />
-    <Content Include="execution_plan.txt" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

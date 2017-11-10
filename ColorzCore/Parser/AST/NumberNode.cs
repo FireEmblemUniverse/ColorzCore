@@ -7,18 +7,18 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public class NumberNode : IAtomNode
+    public class NumberNode : AtomNodeKernel
     {
         private Token number;
 
-		public int Precedence { get { return 11; } }
+		public override int Precedence { get { return 11; } }
 
 		public NumberNode(Token num)
 		{
             number = num;
 		}
 		
-		public int Evaluate()
+		public override int Evaluate()
         {
             string numString = number.Content;
             if(numString.StartsWith("$"))

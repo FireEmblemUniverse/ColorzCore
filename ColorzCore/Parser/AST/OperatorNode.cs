@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    delegate int BinaryIntOp(int, int);
+    delegate int BinaryIntOp(int a, int b);
     
-    class OperatorNode : IAtomNode
+    class OperatorNode : AtomNodeKernel
     {
         public static readonly Dictionary<TokenType, BinaryIntOp> Operators = new Dictionary<TokenType, BinaryIntOp> {
                 { TokenType.MUL_OP , (x, y) => x*y },
@@ -27,19 +27,19 @@ namespace ColorzCore.Parser.AST
         
         private IAtomNode left, right;
         private Token op;
-		public int Precedence { get; }
+		public override int Precedence { get; }
 		
-		public OperatorNode(IAtomNode l, Token operator, IAtomNode r, int prec)
+		public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
 		{
             left = l;
             right = r;
-            op = operator;
+            this.op = op;
             Precedence = prec;
 		}
 		
-		public int Evaluate()
+		public override int Evaluate()
 		{
-            Operators[op.Type](l.Evaluate(), r.Evaluate());
+            return Operators[op.Type](left.Evaluate(), right.Evaluate());
 		}
     }
 }

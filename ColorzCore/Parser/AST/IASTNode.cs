@@ -9,10 +9,12 @@ namespace ColorzCore.Parser.AST
 {
     public interface IASTNode
     {
-		ASTNodeType Type { get; }
-        Token startToken { get; }
-		string File { get; }
-		int Line { get; }
-		int Column { get; }
+        /*
+		    ASTNodeType Type { get; }
+            Token startToken { get; }
+		    string File { get; }
+		    int Line { get; }
+		    int Column { get; }
+        */
     }
 }
