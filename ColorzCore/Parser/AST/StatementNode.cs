@@ -11,5 +11,16 @@ namespace ColorzCore.Parser.AST
     {
         public Token Raw { get; set; }
         public IList<IParamNode> Parameters { get; set; }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(Raw.Content);
+            sb.Append(' ');
+            foreach(IParamNode n in Parameters)
+            {
+                sb.Append(n.ToString());
+            }
+            return sb.ToString();
+        }
     }
 }

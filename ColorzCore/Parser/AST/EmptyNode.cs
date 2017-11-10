@@ -21,5 +21,10 @@ namespace ColorzCore.Parser.AST
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return "Empty node.";
+        }
     }
 }

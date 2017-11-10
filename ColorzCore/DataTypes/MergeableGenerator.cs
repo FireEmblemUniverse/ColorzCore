@@ -10,10 +10,12 @@ namespace ColorzCore.DataTypes
     public class MergeableGenerator<T>
     {
         private Stack<IEnumerator<T>> myEnums;
-        public MergeableGenerator(IEnumerator<T> baseEnum)
+        public bool EOS { get; private set; }
+        public MergeableGenerator(IEnumerable<T> baseEnum)
         {
             myEnums = new Stack<IEnumerator<T>>();
-            myEnums.Push(baseEnum);
+            myEnums.Push(baseEnum.GetEnumerator());
+            Prime();
         }
 
         public T Current { get { return myEnums.Peek().Current; } }
@@ -28,6 +30,7 @@ namespace ColorzCore.DataTypes
                 }
                 else
                 {
+                    EOS = true;
                     return false;
                 }
             }
@@ -39,6 +42,12 @@ namespace ColorzCore.DataTypes
         public void PrependEnumerator(IEnumerator<T> nextEnum)
         {
             myEnums.Push(nextEnum);
+            Prime();
+            EOS = false;
+        }
+        private void Prime()
+        {
+            myEnums.Peek().MoveNext();
         }
     }
 }

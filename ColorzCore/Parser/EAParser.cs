@@ -13,23 +13,43 @@ namespace ColorzCore.Parser
 {
     class EAParser
     {
-        public Dictionary<string, Dictionary<int, Macro>> Macros { get; set; }
-        public Dictionary<string, Definition> Definitions { get; set; }
-        public Dictionary<string, Raw> Raws { get; set; }
+        public Dictionary<string, Dictionary<int, Macro>> Macros { get; }
+        public Dictionary<string, Definition> Definitions { get; }
+        public Dictionary<string, Raw> Raws { get; }
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT" }; // TODO
-        public string File { get; }
-        public Closure GlobalClosure { get; }
-        int currentOffset;
+        public ImmutableStack<Closure> GlobalScope { get; }
+        //public Closure GlobalClosure { get; }
+        
+
+        private int currentOffset;
         private Stack<int> pastOffsets;
-        IList<string> Messages { get; }
-        IList<string> Warnings { get; }
-        IList<string> Errors { get; }
+
+        public IList<string> Messages { get; }
+        public IList<string> Warnings { get; }
+        public IList<string> Errors { get; }
 
         public EAParser()
         {
-            GlobalClosure = new Closure("");
+            GlobalScope = new ImmutableStack<Closure>(new Closure(""), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<int>();
+            Messages = new List<string>();
+            Warnings = new List<string>();
+            Errors = new List<string>();
+            currentOffset = 0;
+            Macros = new Dictionary<string, Dictionary<int, Macro>>();
+            Definitions = new Dictionary<string, Definition>();
+            Raws = new Dictionary<string, Raw>();
         }
+
+        public IEnumerable<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
+        {
+            MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
+            while(!tokens.EOS)
+            {
+                yield return ParseLine(tokens, GlobalScope);
+            }
+        }
+
         public BlockNode ParseBlock(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             BlockNode temp = new BlockNode();
@@ -127,28 +147,49 @@ namespace ColorzCore.Parser
             {
                 bool shift = false;
                 Token lookAhead = tokens.Current;
-                
-                if(grammarSymbols.Count == 0)
-                {
-                    //Shift
-                    grammarSymbols.Push(new Either<IAtomNode,Token>(lookAhead));
-                    tokens.MoveNext();
-                    continue;
-                }
-                
-                Either<IAtomNode,Token> top = grammarSymbols.Peek();
 
-                if (!ended && top.IsLeft) //Is already a complete node. Needs an operator of matching precedence and a node of matching prec to reduce.
+                if (grammarSymbols.Count == 0)
                 {
-                    IAtomNode node = top.GetLeft;
-                    int treePrec = node.Precedence;
-                    if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
+                    shift = true;
+                }
+                else
+                {
+                    Either<IAtomNode, Token> top = grammarSymbols.Peek();
+
+                    if (!ended && top.IsLeft) //Is already a complete node. Needs an operator of matching precedence and a node of matching prec to reduce.
                     {
-                        Reduce(grammarSymbols, precedences[lookAhead.Type]);
+                        IAtomNode node = top.GetLeft;
+                        int treePrec = node.Precedence;
+                        if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
+                        {
+                            Reduce(grammarSymbols, precedences[lookAhead.Type]);
+                        }
+                        else
+                        {
+                            //Verify next symbol to be an operator.
+                            switch (lookAhead.Type)
+                            {
+                                case TokenType.MUL_OP:
+                                case TokenType.DIV_OP:
+                                case TokenType.ADD_OP:
+                                case TokenType.SUB_OP:
+                                case TokenType.LSHIFT_OP:
+                                case TokenType.RSHIFT_OP:
+                                case TokenType.SIGNED_RSHIFT_OP:
+                                case TokenType.AND_OP:
+                                case TokenType.XOR_OP:
+                                case TokenType.OR_OP:
+                                    shift = true;
+                                    break;
+                                default:
+                                    ended = true;
+                                    break;
+                            }
+                        }
                     }
-                    else
+                    else if (!ended) //Is just an operator. Error if two operators in a row.
                     {
-                        //Verify next symbol to be an operator.
+                        //Error if two operators in a row.
                         switch (lookAhead.Type)
                         {
                             case TokenType.MUL_OP:
@@ -161,6 +202,11 @@ namespace ColorzCore.Parser
                             case TokenType.AND_OP:
                             case TokenType.XOR_OP:
                             case TokenType.OR_OP:
+                                //TODO: Log error
+                                IgnoreRestOfStatement(tokens);
+                                return new EmptyNode();
+                            case TokenType.IDENTIFIER:
+                            case TokenType.NUMBER:
                                 shift = true;
                                 break;
                             default:
@@ -169,47 +215,29 @@ namespace ColorzCore.Parser
                         }
                     }
                 }
-                else if (!ended) //Is just an operator. Error if two operators in a row.
-                {
-                    //Error if two operators in a row.
-                    switch (lookAhead.Type)
-                    {
-                        case TokenType.MUL_OP:
-                        case TokenType.DIV_OP:
-                        case TokenType.ADD_OP:
-                        case TokenType.SUB_OP:
-                        case TokenType.LSHIFT_OP:
-                        case TokenType.RSHIFT_OP:
-                        case TokenType.SIGNED_RSHIFT_OP:
-                        case TokenType.AND_OP:
-                        case TokenType.XOR_OP:
-                        case TokenType.OR_OP:
-                            //TODO: Log error
-                            IgnoreRestOfStatement(tokens);
-                            return new EmptyNode();
-                        case TokenType.IDENTIFIER:
-                            if (ExpandIdentifier(tokens))
-                                continue;
-                            else
-                            {
-                                //Modied shift -- Shift but stick it in a node.
-                                grammarSymbols.Push(new Either<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
-                                tokens.MoveNext();
-                            }
-                            break;
-                        case TokenType.NUMBER:
-                            grammarSymbols.Push(new Either<IAtomNode, Token>(new NumberNode(lookAhead)));
-                            tokens.MoveNext();
-                            break;
-                        default:
-                            //TODO: Unexpected token
-                            break;
-                    }
-                }
                 
                 if(shift)
                 {
-                    grammarSymbols.Push(new Either<IAtomNode,Token>(lookAhead));
+                    if(lookAhead.Type == TokenType.IDENTIFIER)
+                    {
+                        if (ExpandIdentifier(tokens))
+                            continue;
+                        grammarSymbols.Push(new Either<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
+                    }
+                    else if(lookAhead.Type == TokenType.NUMBER)
+                    {
+                        grammarSymbols.Push(new Either<IAtomNode, Token>(new NumberNode(lookAhead)));
+                    }
+                    else if(lookAhead.Type == TokenType.ERROR)
+                    {
+                        Log(Errors, lookAhead.Location, String.Format("Unexpected token: {0}", lookAhead.Content));
+                        tokens.MoveNext();
+                        return new EmptyNode();
+                    }
+                    else
+                    {
+                        grammarSymbols.Push(new Either<IAtomNode, Token>(lookAhead));
+                    }
                     tokens.MoveNext();
                     continue;
                 }
@@ -298,7 +326,7 @@ namespace ColorzCore.Parser
                         }
                         else
                         {
-                            Log(Errors, nextToken.Location, "Unrecognized raw code: " + nextToken.Content);
+                            Log(Errors, nextToken.Location, "Unrecognized code: " + nextToken.Content);
                             IgnoreRestOfStatement(tokens);
                             return new EmptyNode();
                         }
@@ -306,19 +334,16 @@ namespace ColorzCore.Parser
                 case TokenType.OPEN_BRACE:
                     tokens.MoveNext();
                     return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(scopes.Head.IncludedBy), scopes));
-                case TokenType.HASH:
-                    tokens.MoveNext();
-                    if(tokens.Current.Type != TokenType.IDENTIFIER)
+                case TokenType.PREPROCESSOR_DIRECTIVE:
+                    Token directiveName = tokens.Current;
+                    IList<IParamNode> paramList;
+                    if (tokens.MoveNext())
                     {
-                        Log(Errors, nextToken.Location, "Expected preprocessor directive identifier after #.");
-                        break;
+                        paramList = ParseParamList(tokens, scopes);
                     }
                     else
-                    {
-                        Token directiveName = tokens.Current;
-                        IList<IParamNode> paramList = ParseParamList(tokens, scopes);
-                        return Handler.HandleDirective(directiveName, paramList, tokens);
-                    }
+                        paramList = new List<IParamNode>();
+                    return Handler.HandleDirective(directiveName, paramList, tokens);
                 case TokenType.OPEN_BRACKET:
                     Log(Errors, nextToken.Location, "Unexpected list literal.");
                     break;
@@ -328,7 +353,7 @@ namespace ColorzCore.Parser
                     break;
                 default:
                     tokens.MoveNext();
-                    Log(Errors, nextToken.Location, String.Format("Unexpected token: {0}", nextToken.Type));
+                    Log(Errors, nextToken.Location, String.Format("Unexpected token: {0}: {1}", nextToken.Type, nextToken.Content));
                     break;
             }
             IgnoreRestOfLine(tokens);

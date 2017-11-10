@@ -2,7 +2,8 @@ EAPROGRAM = [ LINE , { NEWLINE , LINE } ];
 
 LINE = PREPROCESSOR_COMMAND | LABEL | STATEMENT_LIST;
 
-PREPROCESSOR_COMMAND = "#" , IDENTIFIER , [ PARAM_LIST ];
+PREPROCESSOR_COMMAND = "#include" , WIN_PATHNAME | "#incbin" , WIN_PATHNAME | "#" , IDENTIFIER , [PARAM_LIST]; //No whitespace between # and Identifier
+WIN_PATHNAME = STRING | [^Path.GetInvalidPathChars()]+ //Note WIN_PATHNAME is a superset of NUMBER and IDENTIFIER
 
 LABEL = INDENTIFIER , COLON;
 
@@ -29,7 +30,7 @@ STRING = QUOTE , STRING_ELEM , QUOTE; //Quotes handled in tokenization
 
 NEWLINE = "\n";
 SEMICOLON = ";";
-COLON = ":"; 
+COLON = ":";
 OPEN_PAREN = "(";
 CLOSE_PAREN = ")";
 MUL_OP = "*";

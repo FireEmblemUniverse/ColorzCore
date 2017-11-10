@@ -17,8 +17,8 @@ namespace ColorzCore.Preprocessor
 
 
 
-
-            throw new NotImplementedException();
+            return new EmptyNode();
+            //throw new NotImplementedException();
         }
     }
 }

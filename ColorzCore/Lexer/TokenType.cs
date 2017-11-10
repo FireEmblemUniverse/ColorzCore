@@ -11,7 +11,7 @@ namespace ColorzCore.Lexer
         NEWLINE,
         SEMICOLON,
         COLON,
-        HASH,
+        PREPROCESSOR_DIRECTIVE,
         OPEN_BRACE,
         CLOSE_BRACE,
         OPEN_PAREN,
@@ -31,6 +31,7 @@ namespace ColorzCore.Lexer
         OPEN_BRACKET,
         CLOSE_BRACKET,
         STRING,
+        WIN_PATHNAME,
         IDENTIFIER,
         ERROR //Catch-all for invalid characters.
     }
