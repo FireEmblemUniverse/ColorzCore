@@ -61,11 +61,13 @@
     <Compile Include="Parser\AST\IdentifierNode.cs" />
     <Compile Include="Parser\AST\ILineNode.cs" />
     <Compile Include="Parser\AST\IParamNode.cs" />
+    <Compile Include="Parser\AST\ListNode.cs" />
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
-    <Compile Include="Parser\AST\ParameterNode.cs" />
+    <Compile Include="Parser\AST\ParamType.cs" />
     <Compile Include="Parser\AST\StatementListNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
+    <Compile Include="Parser\AST\StringNode.cs" />
     <Compile Include="Parser\Closure.cs" />
     <Compile Include="Parser\Definition.cs" />
     <Compile Include="Parser\Macro.cs" />

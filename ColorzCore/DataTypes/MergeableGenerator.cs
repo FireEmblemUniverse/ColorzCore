@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    class MergeableGenerator<T>
+    public class MergeableGenerator<T>
     {
         private Stack<IEnumerator<T>> myEnums;
         public MergeableGenerator(IEnumerator<T> baseEnum)

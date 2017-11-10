@@ -3,5 +3,7 @@
 ################################################################################
 
 /ColorzCore/bin/Debug
-/ColorzCore/obj/Debug/ColorzCore.csproj.FileListAbsolute.txt
+/ColorzCore/obj/Debug
+/ColorzCore/.vs
 *.exe
+*.cache

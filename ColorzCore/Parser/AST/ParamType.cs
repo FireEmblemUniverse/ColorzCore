@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    public interface IParamNode : IASTNode
+    public enum ParamType
     {
-        string ToString(); //For use in other programs.
-        ParamType Type { get; }
-        byte[] ToBytes();
+        ATOM,
+        LIST,
+        STRING
     }
 }

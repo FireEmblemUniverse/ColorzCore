@@ -43,7 +43,7 @@ namespace ColorzCore.Parser
         {
             Token head = tokens.Current;
             tokens.MoveNext();
-            StatementNode temp = new StatementNode();
+            StatementNode temp = new StatementNode() { Raw = head };
             //TODO: Replace with real raw information, and error if not valid.
             temp.Raw = head;
             if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
@@ -81,7 +81,7 @@ namespace ColorzCore.Parser
                     return new ListNode(ParseAtomList(tokens, scopes));
                 case TokenType.STRING:
                     tokens.MoveNext();
-                    return new StringNode(head);
+                    return new StringNode(head.Content);
                 default:
                     return ParseAtom(tokens, scopes);
             }
@@ -370,11 +370,15 @@ namespace ColorzCore.Parser
                     tokens.MoveNext();
                 }
             } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
-            if (tokens.Current.Type == TokenType.CLOSE_PAREN)
-                tokens.PrependEnumerator(Definitions[macro.Content].ApplyMacro(parameters));
-            else
+            if(Macros[macro.Content].ContainsKey(parameters.Count) && tokens.Current.Type == TokenType.CLOSE_PAREN)
+                tokens.PrependEnumerator(Macros[macro.Content][parameters.Count].ApplyMacro(parameters));
+            else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
             {
                 Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
+            }
+            else
+            {
+                Log(Errors, macro.Location, "Incorrect number of parameters: " + parameters.Count);
             }
         }
 

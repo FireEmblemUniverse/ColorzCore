@@ -12,6 +12,8 @@ namespace ColorzCore.Parser.AST
 
         public abstract int Evaluate();
 
+        public ParamType Type { get { return ParamType.ATOM; } }
+
         public byte[] ToBytes()
         {
             int temp = this.Evaluate();

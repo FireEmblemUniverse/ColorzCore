@@ -25,11 +25,11 @@ namespace ColorzCore.Parser.AST
             {
                 return Convert.ToInt32(numString.Substring(1), 16);
             }
-            else if(numString.StartsWith("0x")
+            else if(numString.StartsWith("0x"))
             {
                 return Convert.ToInt32(numString.Substring(2), 16);
             }
-            else if(numString.EndsWith("b")
+            else if(numString.EndsWith("b"))
             {
                 return Convert.ToInt32(numString.Substring(0, numString.Length-1), 2);
             }

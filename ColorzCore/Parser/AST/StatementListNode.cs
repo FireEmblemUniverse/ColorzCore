@@ -8,10 +8,9 @@ namespace ColorzCore.Parser.AST
 {
     class StatementListNode : ILineNode
     {
-        public StatementListNode(StatementNode statementNode)
+        public StatementListNode(IList<StatementNode> list)
         {
-            Statements = new List<StatementNode>();
-            Statements.Add(statementNode);
+            Statements = list;
         }
 
         public IList<StatementNode> Statements { get; private set; }

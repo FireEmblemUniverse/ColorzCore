@@ -9,7 +9,7 @@ namespace ColorzCore.Lexer
 {
     public class Token
     {
-        public Location Location;
+        public Location Location { get; private set; }
 
         public TokenType Type { get; private set; }
         public string FileName { get { return Location.file; } }
@@ -20,11 +20,15 @@ namespace ColorzCore.Lexer
         public Token(TokenType type, string fileName, int lineNum, int colNum, string original = "")
         {
             Type = type;
-            Location = new Location();
-            Location.file = fileName;
-            Location.lineNum = lineNum;
-            Location.colNum = colNum + 1;
+            Location = new Location(fileName, lineNum, colNum+1);
             Content = original;
+        }
+
+        public Token(TokenType type, Location newLoc, string content)
+        {
+            Type = type;
+            this.Location = newLoc;
+            Content = content;
         }
 
         public override string ToString()
