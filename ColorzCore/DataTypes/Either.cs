@@ -6,43 +6,38 @@ using System.Threading.Tasks;
 
 namespace ColorzCore
 {
-    public class Either<Left,Right>
+#pragma warning disable IDE1006 // Naming Styles
+    public interface Either<Left, Right>
+#pragma warning restore IDE1006 // Naming Styles
     {
-        private bool isLeft;
-        private readonly Left l;
-        private readonly Right r;
-        public Either(Left l)
+        bool IsLeft { get; }
+        bool IsRight { get; }
+        Left GetLeft { get; }
+        Right GetRight { get; }
+    }
+    public class Left<L, R> : Either <L, R>
+    {
+        public Left(L val)
         {
-            this.l = l;
-            this.r = default(Right);
-            isLeft = true;
-        }
-        public Either(Right r)
-        {
-            this.l = default(Left);
-            this.r = r;
-            isLeft = false;
+            GetLeft = val;
         }
 
-        public bool IsLeft { get { return isLeft; } }
-        public bool IsRight { get { return !isLeft; } }
-        public Left GetLeft { get {
-                if (IsLeft)
-                    return l;
-                else
-                    throw new WrongEitherException();
-            }
-        }
-        public Right GetRight
+        public bool IsLeft { get { return true; } }
+        public bool IsRight { get { return false; } }
+        public L GetLeft { get; }
+        public R GetRight { get { throw new WrongEitherException(); } }
+    }
+    public class Right<L, R> : Either<L, R>
+    {
+        public Right(R val)
         {
-            get
-            {
-                if (IsRight)
-                    return r;
-                else
-                    throw new WrongEitherException();
-            }
+            GetRight = val;
         }
+
+        public bool IsLeft { get { return false; } }
+        public bool IsRight { get { return true; } }
+        public L GetLeft { get { throw new WrongEitherException(); } }
+        public R GetRight { get; }
     }
     class WrongEitherException : Exception { }
 }

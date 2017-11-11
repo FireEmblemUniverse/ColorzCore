@@ -11,7 +11,7 @@ namespace ColorzCore.Lexer
     class Tokenizer
     {
         public const int MAX_ID_LENGTH = 64;
-        private static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)");
+        private static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)($|\\s)");
         private static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
         private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
         private static readonly Regex winPathnameRegex = new Regex(String.Format("\\G([^ \\{0}]|\\ |\\\\)+", Process(Path.GetInvalidPathChars())));
