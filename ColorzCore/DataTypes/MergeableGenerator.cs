@@ -54,5 +54,12 @@ namespace ColorzCore.DataTypes
         {
             return myEnums.Peek().MoveNext();
         }
+        public IEnumerator<T> GetEnumerator()
+        {
+            while(!EOS) {
+                yield return this.Current;
+                this.MoveNext();
+            }
+        }
     }
 }

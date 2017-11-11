@@ -64,12 +64,20 @@ namespace ColorzCore.Preprocessor.Directives
             }
             else
             {
-                //TODO: Check for mutually recursive definitions.
+                //Note [mutually] recursive definitions are handled by Parser expansion.
                 Maybe<string> maybeIdentifier;
                 if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
                 {
-                    //TODO: Check for valid definition name.
                     string name = maybeIdentifier.FromJust;
+                    if(!p.IsValidDefinitionName(name)
+                    {
+                        if (p.IsRawName(name))
+                        {
+                            p.Error(signature.MyLocation, "Invalid redefinition: " + name);
+                        }
+                        else
+                            p.Warning(signature.MyLocation, "Redefining " + name + '.');
+                    }
                     if (parameters.Count == 2)
                     {
                         Maybe<IList<Token>> toRepl = TokenizeParam(p, parameters[1]);
@@ -96,8 +104,9 @@ namespace ColorzCore.Preprocessor.Directives
             switch (param.Type)
             {
                 case ParamType.STRING:
-                    //TODO: Tokenize
-                    break;
+                    Token input = ((StringNode)param).MyToken;
+                    Tokenizer t = new Tokenizer();
+                    return new Just<IList<Token>>(new List<Token>(t.TokenizeLine(input.Content, input.FileName, input.LineNumber, input.ColumnNumber)));
                 case ParamType.MACRO:
                     try
                     {

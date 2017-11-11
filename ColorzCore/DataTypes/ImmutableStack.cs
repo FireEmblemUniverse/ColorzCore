@@ -38,5 +38,11 @@ namespace ColorzCore.DataTypes
                     return count;
                 }
             } }
+        public bool Contains(T toLookFor)
+        {
+            bool acc = false;
+            for(ImmutableStack<T> temp = this; !acc && !temp.IsEmpty; temp = temp.Tail) acc |= temp.Head == toLookFor;
+            return acc;
+        }
     }
 }

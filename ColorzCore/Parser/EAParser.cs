@@ -479,13 +479,34 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = ImmutableStack<Tuple<string,int>>.Nil, seenMacros = ImmutableStack<Tuple<string,int>>.Nil)
         {
             bool ret = false;
             //Macros and Definitions.
             if (Macros.ContainsKey(tokens.Current.Content))
             {
-                ExpandMacro(tokens);
+                Token head = tokens.Current;
+                tokens.MoveNext();
+                IList<IList<Token>> parameters = ParseMacroParamList(tokens);
+                if (tokens.Current.Type == TokenType.CLOSE_PAREN)
+                {
+                    if(Macros[macro.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(macro.Content, parameters.Count)))
+                    {
+                        tokens.PrependEnumerator(ExpandAll(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters).GetEnumerator(), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string,int>(macro.Content, parameters.Count), seenMacros)));
+                    }
+                    else
+                    {
+                        Error(head.Location, String.Format("No overload of {0} with {1} parameters, or recursive definition.", head.Content, parameters.Count));
+                    }
+                }
+                else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
+                {
+                    Error(tokens.Current.Location, "Unmatched open parenthesis.");
+                }
+                else
+                {
+                    Error(macro.Location, "Incorrect number of parameters: " + parameters.Count);
+                }
                 ret = true;
                 if (tokens.Current.Type == TokenType.IDENTIFIER)
                     ExpandIdentifier(tokens);
@@ -501,27 +522,18 @@ namespace ColorzCore.Parser
 
             return ret;
         }
-
-        public void ExpandMacro(Token macro, MergeableGenerator<Token> tokens)
+        
+        //TODO: Interface these better so they're not mutually recursive making new MergeableGenerators each loop
+        //Ideally, expand within the definitions themselves so that I only every have to substitute for the head.
+        public IEnumerable<Token> ExpandAll(IList<Token> tokens, ImmutableStack<string> seenDefinitions, ImmutableStack<Tuple<string, int>> seenMacros)
         {
-            IList<IList<Token>> parameters = ParseMacroParamList(tokens);
-            if (Macros[macro.Content].ContainsKey(parameters.Count) && tokens.Current.Type == TokenType.CLOSE_PAREN)
-                tokens.PrependEnumerator(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters).GetEnumerator());
-            else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
+            MergeableGenerator<Token> myGen = new MergeableGenerator<Token>(tokens.GetEnumerator());
+            while(!myGen.EOS)
             {
-                Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
+                while(ExpandIdentifier(myGen, seenDefinitions, seenMacros)) ;
+                yield myGen.Current;
+                myGen.MoveNext();
             }
-            else
-            {
-                Log(Errors, macro.Location, "Incorrect number of parameters: " + parameters.Count);
-            }
-        }
-
-        public void ExpandMacro(MergeableGenerator<Token> tokens)
-        {
-            Token macro = tokens.Current;
-            tokens.MoveNext();
-            ExpandMacro(macro, tokens);
         }
 
         private static void Log(IList<string> record, Location? causedError, string message)
