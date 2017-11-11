@@ -2,8 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/ColorzCore/bin/Debug
-/ColorzCore/obj/Debug
-/ColorzCore/.vs
+ColorzCore/obj
+ColorzCore/.vs
 *.exe
 *.cache
