@@ -452,21 +452,13 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
-            Either<Maybe<ILineNode>, string> retVal = HandleDirective(this, directiveName, paramList, tokens);
-            if (retVal.IsLeft)
-            {
-                if (retVal.GetLeft.IsNothing)
-                    return new EmptyNode();
-                else
-                {
-                    currentOffset += retVal.GetLeft.FromJust.Size;
-                    return retVal.GetLeft.FromJust;
-                }
-            }
+            Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
+            if (retVal.IsNothing)
+                return new EmptyNode();
             else
             {
-                Log(Errors, directiveName.Location, retVal.GetRight);
-                return new EmptyNode();
+                currentOffset += retVal.FromJust.Size;
+                return retVal.FromJust;
             }
         }
 

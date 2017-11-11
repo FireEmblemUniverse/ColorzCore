@@ -26,7 +26,7 @@ namespace ColorzCore.Preprocessor
             { "endif", new EndIfDirective() }
         };
 
-        public static Either<Maybe<ILineNode>, string> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public static Maybe<ILineNode> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             string directiveName = directive.Content.Substring(1);
             if(DIRECTIVE_DICT.ContainsKey(directiveName))
@@ -40,18 +40,15 @@ namespace ColorzCore.Preprocessor
                     }
                     else
                     {
-                        return new Right<Maybe<ILineNode>, string>("Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
+                        p.Error(directive.Location, "Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
                     }
-                }
-                else
-                {
-                    return new Left<Maybe<ILineNode>,string>(new Nothing<ILineNode>());
                 }
             }
             else
             {
-                return new Right<Maybe<ILineNode>, string>("Directive not recognized: " + directiveName);
+                p.Error(directive.Location, "Directive not recognized: " + directiveName);
             }
+            return new Nothing<ILineNode>();
         }
     }
 }
