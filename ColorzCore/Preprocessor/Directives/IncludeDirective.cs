@@ -19,7 +19,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion { get { return true; } }
 
-        public Either<Maybe<ILineNode>, string> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             Maybe<string> existantFile = IO.IOUtility.FindFile(self.FileName, parameters[0].ToString());
             if(!existantFile.IsNothing)
@@ -31,17 +31,17 @@ namespace ColorzCore.Preprocessor.Directives
                     FileStream inputFile = new FileStream(pathname, FileMode.Open);
                     Tokenizer newFileTokenizer = new Tokenizer();
                     tokens.PrependEnumerator(newFileTokenizer.Tokenize(inputFile).GetEnumerator());
-                    return new Left<Maybe<ILineNode>, string>(new Nothing<ILineNode>());
                 }
                 catch(Exception)
                 {
-                    return new Right<Maybe<ILineNode>, string>("Error reading file \"" + parameters[0].ToString() + "\".");
+                    p.Error(self.Location, "Error reading file \"" + parameters[0].ToString() + "\".");
                 }
             }
             else
             {
-                return new Right<Maybe<ILineNode>, string>("Could not find file \"" + parameters[0].ToString() + "\".");
+                p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
             }
+            return new Nothing<ILineNode>();
         }
     }
 }

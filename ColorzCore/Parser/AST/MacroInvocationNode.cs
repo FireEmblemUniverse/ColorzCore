@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,12 +12,13 @@ namespace ColorzCore.Parser.AST
     {
         private EAParser p;
         private Token invokeToken;
-        private IList<IList<Token>> parameters;
+        public IList<IList<Token>> Parameters { get; }
 
         public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters)
         {
+            this.p = p;
             this.invokeToken = invokeTok;
-            this.parameters = parameters;
+            this.Parameters = parameters;
         }
 
         public ParamType Type => ParamType.MACRO;
@@ -32,22 +34,25 @@ namespace ColorzCore.Parser.AST
             StringBuilder sb = new StringBuilder();
             sb.Append(invokeToken.Content);
             sb.Append('(');
-            for(int i=0; i<parameters.Count; i++)
+            for(int i=0; i<Parameters.Count; i++)
             {
-                foreach (Token t in parameters[i])
+                foreach (Token t in Parameters[i])
                 {
                     sb.Append(t.Content);
                 }
-                if (i < parameters.Count - 1)
+                if (i < Parameters.Count - 1)
                     sb.Append(',');
             }
             sb.Append(')');
             return sb.ToString();
         }
 
-        public IEnumerator<Token> ExpandMacro()
+        public IEnumerable<Token> ExpandMacro()
         {
-            return p.Macros[invokeToken.Content][parameters.Count].ApplyMacro(invokeToken, parameters);
+            return p.Macros[invokeToken.Content][Parameters.Count].ApplyMacro(invokeToken, Parameters);
         }
+        public string Name { get { return invokeToken.Content; } }
+
+        public Location MyLocation { get { return invokeToken.Location; } }
     }
 }

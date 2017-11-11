@@ -26,7 +26,7 @@ namespace ColorzCore.Parser
         /***
          *   Precondition: parameters.Count = max(keys(idToParamNum))
          */
-        public IEnumerator<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
+        public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             foreach(Token t in body)
             {

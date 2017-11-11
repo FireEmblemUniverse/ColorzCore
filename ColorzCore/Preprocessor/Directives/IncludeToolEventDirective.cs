@@ -17,11 +17,14 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams { get { return null; } }
         public bool RequireInclusion { get { return true; } }
 
-        public Either<Maybe<ILineNode>, string> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             Maybe<string> validFile = IO.IOUtility.FindFile(self.FileName, GetFileName(parameters[0].ToString()));
             if (validFile.IsNothing)
-                return new Right<Maybe<ILineNode>, string>("Tool " + parameters[0].ToString() + " not found.");
+            {
+                parse.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
+                return new Nothing<ILineNode>();
+            }
 
             //from http://stackoverflow.com/a/206347/1644720
             // Start the child process.
@@ -63,15 +66,18 @@ namespace ColorzCore.Preprocessor.Directives
             byte[] output = outputBytes.GetBuffer().Take((int)outputBytes.Length).ToArray();
             if(errorStream.Length > 0)
             {
-                return new Right<Maybe<ILineNode>, string>(Encoding.ASCII.GetString(errorStream.GetBuffer().Take((int)errorStream.Length).ToArray()));
+                parse.Error(self.Location, Encoding.ASCII.GetString(errorStream.GetBuffer().Take((int)errorStream.Length).ToArray()));
             }
             else if (output.Length >= 7 && Encoding.ASCII.GetString(output.Take(7).ToArray()) == "ERROR: ")
             {
-                return new Right<Maybe<ILineNode>, string>(Encoding.ASCII.GetString(output.Take(7).ToArray()));
+                parse.Error(self.Location, Encoding.ASCII.GetString(output.Take(7).ToArray()));
             }
-            Tokenizer t = new Tokenizer();
-            tokens.PrependEnumerator(t.Tokenize(new BufferedStream(outputBytes), self.FileName + ":" + parameters[0].ToString()).GetEnumerator());
-            return new Left<Maybe<ILineNode>, string>(new Nothing<ILineNode>());
+            else
+            {
+                Tokenizer t = new Tokenizer();
+                tokens.PrependEnumerator(t.Tokenize(new BufferedStream(outputBytes), self.FileName + ":" + parameters[0].ToString()).GetEnumerator());
+            }
+            return new Nothing<ILineNode>();
         }
 
         private string GetFileName(string toolName)

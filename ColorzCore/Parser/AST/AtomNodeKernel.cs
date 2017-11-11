@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.AST
 {
@@ -32,5 +33,7 @@ namespace ColorzCore.Parser.AST
         }
 
         public abstract string PrettyPrint();
+        public abstract IEnumerable<Token> ToTokens();
+        public abstract Location MyLocation { get; }
     }
 }

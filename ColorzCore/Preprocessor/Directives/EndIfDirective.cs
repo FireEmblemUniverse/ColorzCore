@@ -18,15 +18,13 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion => false;
 
-        public Either<Maybe<ILineNode>, string> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             if (p.Inclusion.IsEmpty)
-                return new Right<Maybe<ILineNode>, string>("No matching if[n]def.");
+                p.Error(self.Location, "No matching if[n]def.");
             else
-            {
                 p.Inclusion = p.Inclusion.Tail;
-                return new Left<Maybe<ILineNode>, string>(new Nothing<ILineNode>());
-            }
+            return new Nothing<ILineNode>();
         }
     }
 }

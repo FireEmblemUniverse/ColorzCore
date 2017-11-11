@@ -14,8 +14,9 @@ namespace ColorzCore.Parser.AST
         ImmutableStack<Closure> scope;
 
 		public override int Precedence { get { return 11; } }
+        public override Location MyLocation { get { return identifier.Location; } }
 
-		public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
+        public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
 		{
             identifier = id;
             scope = scopes;
@@ -43,6 +44,8 @@ namespace ColorzCore.Parser.AST
         {
             return identifier.Content;
         }
+
+        public override IEnumerable<Token> ToTokens() { yield return identifier; }
 
         public class UndefinedIdentifierException : Exception
         {

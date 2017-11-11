@@ -56,7 +56,7 @@ namespace ColorzCore.Lexer
             inMultilineComment = false;
         }
         
-        public IEnumerable<Token> TokenizePhrase(string line, string fileName, int lineNum, int startOffs, int endOffs)
+        public IEnumerable<Token> TokenizePhrase(string line, string fileName, int lineNum, int startOffs, int endOffs, int offset = 0)
         {
             bool afterInclude = false;
 
@@ -87,34 +87,34 @@ namespace ColorzCore.Lexer
                 switch (nextChar)
                 {
                     case ';':
-                        yield return new Token(TokenType.SEMICOLON, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.SEMICOLON, fileName, lineNum, curCol+offset);
                         break;
                     case ':':
-                        yield return new Token(TokenType.COLON, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.COLON, fileName, lineNum, curCol+offset);
                         break;
                     case '{':
-                        yield return new Token(TokenType.OPEN_BRACE, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_BRACE, fileName, lineNum, curCol+offset);
                         break;
                     case '}':
-                        yield return new Token(TokenType.CLOSE_BRACE, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_BRACE, fileName, lineNum, curCol+offset);
                         break;
                     case '[':
-                        yield return new Token(TokenType.OPEN_BRACKET, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_BRACKET, fileName, lineNum, curCol+offset);
                         break;
                     case ']':
-                        yield return new Token(TokenType.CLOSE_BRACKET, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_BRACKET, fileName, lineNum, curCol+offset);
                         break;
                     case '(':
-                        yield return new Token(TokenType.OPEN_PAREN, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.OPEN_PAREN, fileName, lineNum, curCol+offset);
                         break;
                     case ')':
-                        yield return new Token(TokenType.CLOSE_PAREN, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.CLOSE_PAREN, fileName, lineNum, curCol+offset);
                         break;
                     case '*':
-                        yield return new Token(TokenType.MUL_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.MUL_OP, fileName, lineNum, curCol+offset);
                         break;
                     case ',':
-                        yield return new Token(TokenType.COMMA, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.COMMA, fileName, lineNum, curCol+offset);
                         break;
                     case '/':
                         if (curCol + 1 < endOffs && line[curCol + 1] == '/')
@@ -130,23 +130,23 @@ namespace ColorzCore.Lexer
                         }
                         else
                         {
-                            yield return new Token(TokenType.DIV_OP, fileName, lineNum, curCol);
+                            yield return new Token(TokenType.DIV_OP, fileName, lineNum, curCol+offset);
                         }
                         break;
                     case '+':
-                        yield return new Token(TokenType.ADD_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.ADD_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '-':
-                        yield return new Token(TokenType.SUB_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.SUB_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '&':
-                        yield return new Token(TokenType.AND_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.AND_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '^':
-                        yield return new Token(TokenType.XOR_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.XOR_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '|':
-                        yield return new Token(TokenType.OR_OP, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.OR_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '\"':
                         {
@@ -164,7 +164,7 @@ namespace ColorzCore.Lexer
                     case '<':
                         if (curCol + 1 < endOffs && line[curCol + 1] == '<')
                         {
-                            yield return new Token(TokenType.LSHIFT_OP, fileName, lineNum, curCol);
+                            yield return new Token(TokenType.LSHIFT_OP, fileName, lineNum, curCol+offset);
                             curCol++;
                             break;
                         }
@@ -178,12 +178,12 @@ namespace ColorzCore.Lexer
                         {
                             if (curCol + 2 < endOffs && line[curCol + 2] == '>')
                             {
-                                yield return new Token(TokenType.SIGNED_RSHIFT_OP, fileName, lineNum, curCol);
+                                yield return new Token(TokenType.SIGNED_RSHIFT_OP, fileName, lineNum, curCol+offset);
                                 curCol += 2;
                             }
                             else
                             {
-                                yield return new Token(TokenType.RSHIFT_OP, fileName, lineNum, curCol);
+                                yield return new Token(TokenType.RSHIFT_OP, fileName, lineNum, curCol+offset);
                                 curCol++;
                             }
                             break;
@@ -194,7 +194,7 @@ namespace ColorzCore.Lexer
                             break;
                         }
                     case '\n':
-                        yield return new Token(TokenType.NEWLINE, fileName, lineNum, curCol);
+                        yield return new Token(TokenType.NEWLINE, fileName, lineNum, curCol+offset);
                         break;
                     default:
                         if (afterInclude)
@@ -261,9 +261,9 @@ namespace ColorzCore.Lexer
                 afterInclude = false;
             }
         }
-        public IEnumerable<Token> TokenizeLine(string line, string fileName, int lineNum)
+        public IEnumerable<Token> TokenizeLine(string line, string fileName, int lineNum, int offset = 0)
         {
-            return TokenizePhrase(line, fileName, lineNum, 0, line.Length);
+            return TokenizePhrase(line, fileName, lineNum, 0, line.Length, offset);
         }
 
         /***

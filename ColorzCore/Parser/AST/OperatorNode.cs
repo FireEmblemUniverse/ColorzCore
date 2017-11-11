@@ -1,3 +1,4 @@
+using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using System;
@@ -28,6 +29,8 @@ namespace ColorzCore.Parser.AST
         private IAtomNode left, right;
         private Token op;
 		public override int Precedence { get; }
+
+        public override Location MyLocation { get { return op.Location; } }
 		
 		public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
 		{
@@ -82,6 +85,18 @@ namespace ColorzCore.Parser.AST
             }
             sb.Append(right.PrettyPrint());
             return sb.ToString();
+        }
+        public override IEnumerable<Token> ToTokens()
+        {
+            foreach(Token t in left.ToTokens())
+            {
+                yield return t;
+            }
+            yield return op;
+            foreach(Token t in right.ToTokens())
+            {
+                yield return t;
+            }
         }
     }
 }

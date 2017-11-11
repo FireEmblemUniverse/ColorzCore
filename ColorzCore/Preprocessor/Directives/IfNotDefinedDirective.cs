@@ -18,7 +18,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion => false;
 
-        public Either<Maybe<ILineNode>, string> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             bool flag = true;
             Maybe<string> identifier;
@@ -30,11 +30,11 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 else
                 {
-                    return new Right<Maybe<ILineNode>, string>("Definition name must be an identifier.");
+                    p.Error(parameter.MyLocation, "Definition name must be an identifier.");
                 }
             }
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
-            return new Left<Maybe<ILineNode>, string>(new Nothing<ILineNode>());
+            return new Nothing<ILineNode>();
         }
     }
 }

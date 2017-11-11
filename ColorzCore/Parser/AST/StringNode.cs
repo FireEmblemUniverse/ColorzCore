@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,27 +10,29 @@ namespace ColorzCore.Parser.AST
 {
     public class StringNode : IParamNode
     {
-        private string myString;
+        private Token myToken;
 
+        public Location MyLocation { get { return myToken.Location; } }
         public ParamType Type { get { return ParamType.STRING; } }
 
-        public StringNode(string value)
+        public StringNode(Token value)
         {
-            myString = value;
+            myToken = value;
         }
 
         public byte[] ToBytes()
         {
-            return Encoding.ASCII.GetBytes(myString);
+            return Encoding.ASCII.GetBytes(ToString());
         }
 
         public override string ToString()
         {
-            return myString;
+            return myToken.Content;
         }
         public string PrettyPrint()
         {
             return '"' + ToString() + '"';
         }
+        public IEnumerable<Token> ToTokens() { yield return myToken; }
     }
 }

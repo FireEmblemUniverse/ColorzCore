@@ -47,5 +47,7 @@ namespace ColorzCore.Parser.AST
         {
             return new Nothing<string>();
         }
+        public IEnumerable<Token> ToTokens() { yield break; }
+        public Location MyLocation { get { return new Location(); } }
     }
 }

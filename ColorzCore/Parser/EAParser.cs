@@ -54,6 +54,18 @@ namespace ColorzCore.Parser
             Inclusion = ImmutableStack<bool>.Nil;
         }
 
+        public bool IsRawName(string name)
+        {
+            return Raws.ContainsKey(name) || SpecialCodes.Contains(name);
+        }
+        public bool IsValidDefinitionName(string name)
+        {
+            return !(Definitions.ContainsKey(name) || Raws.ContainsKey(name) || SpecialCodes.Contains(name));
+        }
+        public bool IsValidMacroName(string name, int paramNum)
+        {
+            return !(Macros.ContainsKey(name) && Macros[name].ContainsKey(paramNum)) && !IsRawName(name);
+        }
         public IEnumerable<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
@@ -85,35 +97,33 @@ namespace ColorzCore.Parser
             Token head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
+            IList<IParamNode> parameters;
+            //TODO: Make intelligent to reject malformed parameters.
+            if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
+            {
+                parameters = ParseParamList(tokens, scopes);
+            }
+            else
+            {
+                parameters = new List<IParamNode>();
+            }
+
             if (SpecialCodes.Contains(head.Content.ToUpper()))
             {
                 //TODO: Handle this case
                 //return new SpecialActionNode(); ???
-                return new EmptyNode();
+                return new RawNode(null, head, parameters);
             }
-            else
+            else if (Raws.ContainsKey(head.Content))
             {
-                IList<IParamNode> parameters;
-                //TODO: Make intelligent to reject malformed parameters.
-                if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
-                {
-                    parameters = ParseParamList(tokens, scopes);
-                }
-                else
-                {
-                    parameters = new List<IParamNode>();
-                }
-                if (Raws.ContainsKey(head.Content))
-                {
-                    StatementNode temp = new RawNode(Raws[head.Content], head, parameters);
-                    currentOffset += temp.Size;
-                    return temp;
-                }
-                else //TODO: Move outside of this else.
-                {
-                    Log(Errors, head.Location, "Unrecognized code: " + head.Content);
-                    return new RawNode(null, head, parameters); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
-                }
+                StatementNode temp = new RawNode(Raws[head.Content], head, parameters);
+                currentOffset += temp.Size;
+                return temp;
+            }
+            else //TODO: Move outside of this else.
+            {
+                Log(Errors, head.Location, "Unrecognized code: " + head.Content);
+                return new RawNode(null, head, parameters); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
             }
         }
 
@@ -158,10 +168,10 @@ namespace ColorzCore.Parser
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(ParseList(tokens, scopes));
+                    return new ListNode(head.Location, ParseList(tokens, scopes));
                 case TokenType.STRING:
                     tokens.MoveNext();
-                    return new StringNode(head.Content);
+                    return new StringNode(head);
                 case TokenType.IDENTIFIER:
                     if (!expandMacros)
                     {
@@ -256,7 +266,7 @@ namespace ColorzCore.Parser
                             break;
                         case TokenType.OPEN_PAREN:
                             tokens.MoveNext();
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(ParseAtom(tokens, scopes))));
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, ParseAtom(tokens, scopes))));
                             if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                             {
                                 Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
@@ -279,7 +289,7 @@ namespace ColorzCore.Parser
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
                         default:
-                            Log(Errors, lookAhead.Location, "Unexpeced token: " + lookAhead.Type);
+                            Log(Errors, lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + '.');
                             IgnoreRestOfStatement(tokens);
                             return new EmptyNode();
                     }
@@ -504,7 +514,7 @@ namespace ColorzCore.Parser
         {
             IList<IList<Token>> parameters = ParseMacroParamList(tokens);
             if (Macros[macro.Content].ContainsKey(parameters.Count) && tokens.Current.Type == TokenType.CLOSE_PAREN)
-                tokens.PrependEnumerator(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters));
+                tokens.PrependEnumerator(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters).GetEnumerator());
             else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
             {
                 Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
@@ -522,12 +532,24 @@ namespace ColorzCore.Parser
             ExpandMacro(macro, tokens);
         }
 
-        private void Log(IList<string> record, Location? causedError, string message)
+        private static void Log(IList<string> record, Location? causedError, string message)
         {
             if (causedError.HasValue)
                 record.Add(String.Format("In File {0}, Line {1}, Column {2}: {3}", Path.GetFileName(causedError.Value.file), causedError.Value.lineNum, causedError.Value.colNum, message));
             else
                 record.Add(message);
+        }
+        public void Message(Location? loc, string message)
+        {
+            Log(Messages, loc, message);
+        }
+        public void Warning(Location? loc, string message)
+        {
+            Log(Warnings, loc, message);
+        }
+        public void Error(Location? loc, string message)
+        {
+            Log(Errors, loc, message);
         }
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {

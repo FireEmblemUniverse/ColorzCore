@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ColorzCore.DataTypes;
 
 namespace ColorzCore.Parser.AST
 {
@@ -11,7 +12,8 @@ namespace ColorzCore.Parser.AST
     {
         private Token number;
 
-		public override int Precedence { get { return 11; } }
+        public override Location MyLocation => number.Location;
+        public override int Precedence { get { return 11; } }
 
 		public NumberNode(Token num)
 		{
@@ -43,5 +45,6 @@ namespace ColorzCore.Parser.AST
         {
             return number.Content;
         }
+        public override IEnumerable<Token> ToTokens () { yield return number; }
     }
 }

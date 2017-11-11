@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,12 +10,14 @@ namespace ColorzCore.Parser.AST
 {
     public class ListNode : IParamNode
     {
+        public Location MyLocation { get; }
         private IList<IAtomNode> interior;
 
         public ParamType Type { get { return ParamType.LIST; } }
 
-        public ListNode(IList<IAtomNode> param)
+        public ListNode(Location startLocation, IList<IAtomNode> param)
         {
+            MyLocation = startLocation;
             interior = param;
         }
 
@@ -53,6 +57,31 @@ namespace ColorzCore.Parser.AST
             }
             sb.Append(']');
             return sb.ToString();
+        }
+        public IEnumerable<Token> ToTokens()
+        {
+            //Similar code to ParenthesizedAtom
+            IList<IList<Token>> temp = new List<IList<Token>>();
+            foreach(IAtomNode n in interior)
+            {
+                temp.Add(new List<Token>(n.ToTokens()));
+            }
+            Location myStart = temp[0][0].Location;
+            Location myEnd = temp.Last().Last().Location;
+            yield return new Token(TokenType.OPEN_BRACKET, new Location(myStart.file, myStart.lineNum, myStart.colNum - 1), "[");
+            for (int i = 0; i < temp.Count; i++)
+            {
+                foreach (Token t in temp[i])
+                {
+                    yield return t;
+                }
+                if (i < temp.Count - 1)
+                {
+                    Location tempEnd = temp[i].Last().Location;
+                    yield return new Token(TokenType.COMMA, new Location(tempEnd.file, tempEnd.lineNum, tempEnd.colNum + temp[i].Last().Content.Length), ",");
+                }
+            }
+            yield return new Token(TokenType.CLOSE_BRACKET, new Location(myEnd.file, myEnd.lineNum, myEnd.colNum + temp.Last().Last().Content.Length), "]");
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,5 +13,6 @@ namespace ColorzCore.Parser.AST
         ParamType Type { get; }
         byte[] ToBytes();
         string PrettyPrint();
+        Location MyLocation { get; }
     }
 }
