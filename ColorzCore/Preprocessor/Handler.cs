@@ -23,7 +23,8 @@ namespace ColorzCore.Preprocessor
             { "ifdef", new IfDefinedDirective() },
             { "ifndef", new IfNotDefinedDirective() },
             { "else", new ElseDirective() },
-            { "endif", new EndIfDirective() }
+            { "endif", new EndIfDirective() },
+            { "define", new DefineDirective() }
         };
 
         public static Maybe<ILineNode> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)

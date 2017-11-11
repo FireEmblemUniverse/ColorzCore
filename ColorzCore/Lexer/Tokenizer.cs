@@ -78,7 +78,7 @@ namespace ColorzCore.Lexer
                         continue;
                     }
                 }
-                if (Char.IsSeparator(nextChar))
+                if (Char.IsWhiteSpace(nextChar) && nextChar != '\n')
                 {
                     curCol++;
                     continue;
@@ -252,7 +252,7 @@ namespace ColorzCore.Lexer
                                 continue;
                             }
                         }
-                        string restOfWord = new Regex("\\S+").Match(line, curCol, endOffs - curCol).Value;
+                        string restOfWord = new Regex("\\G\\S+").Match(line, curCol, endOffs - curCol).Value;
                         yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, restOfWord);
                         curCol += restOfWord.Length;
                         continue;

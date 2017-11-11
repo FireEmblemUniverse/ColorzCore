@@ -53,30 +53,13 @@ namespace ColorzCore.Preprocessor.Directives
                     p.Error(signature.MyLocation, "Empty macro definition."); //TODO: Make location info better?
                     return new Nothing<ILineNode>();
                 }
-                switch (parameters[1].Type)
+
+                Maybe<IList<Token>> toRepl = TokenizeParam(p, parameters[1]);
+                if (!toRepl.IsNothing)
                 {
-                    case ParamType.STRING:
-                        //TODO: Tokenize
-                        break;
-                    case ParamType.MACRO:
-                        try
-                        {
-                            IList<Token> myBody = new List<Token>(((MacroInvocationNode)parameters[1]).ExpandMacro());
-                            p.Macros[name][myParams.Count] = new Macro(myParams, myBody);
-                        }
-                        catch (KeyNotFoundException)
-                        {
-                            MacroInvocationNode asMacro = (MacroInvocationNode)parameters[1];
-                            p.Error(asMacro.MyLocation, "Undefined macro: " + asMacro.Name);
-                        }
-                        break;
-                    case ParamType.LIST:
-                        ListNode n = (ListNode)parameters[1];
-                        p.Macros[name][myParams.Count] = new Macro(myParams, new List<Token>(n.ToTokens()));
-                        break;
-                    case ParamType.ATOM:
-                        //TODO
-                        break;
+                    if (!p.Macros.ContainsKey(name))
+                        p.Macros[name] = new Dictionary<int, Macro>();
+                    p.Macros[name][myParams.Count] = new Macro(myParams, toRepl.FromJust);
                 }
             }
             else
@@ -85,7 +68,20 @@ namespace ColorzCore.Preprocessor.Directives
                 Maybe<string> maybeIdentifier;
                 if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
                 {
-                    return null; //TODO
+                    //TODO: Check for valid definition name.
+                    string name = maybeIdentifier.FromJust;
+                    if (parameters.Count == 2)
+                    {
+                        Maybe<IList<Token>> toRepl = TokenizeParam(p, parameters[1]);
+                        if (!toRepl.IsNothing)
+                        {
+                            p.Definitions[name] = new Definition(toRepl.FromJust);
+                        }
+                    }
+                    else
+                    {
+                        p.Definitions[name] = new Definition();
+                    }
                 }
                 else
                 {
@@ -93,6 +89,34 @@ namespace ColorzCore.Preprocessor.Directives
                 }
             }
             return new Nothing<ILineNode>();
+        }
+        private Maybe<IList<Token>> TokenizeParam(EAParser p, IParamNode param)
+        {
+
+            switch (param.Type)
+            {
+                case ParamType.STRING:
+                    //TODO: Tokenize
+                    break;
+                case ParamType.MACRO:
+                    try
+                    {
+                        IList<Token> myBody = new List<Token>(((MacroInvocationNode)param).ExpandMacro());
+                        return new Just<IList<Token>>(myBody);
+                    }
+                    catch (KeyNotFoundException)
+                    {
+                        MacroInvocationNode asMacro = (MacroInvocationNode)param;
+                        p.Error(asMacro.MyLocation, "Undefined macro: " + asMacro.Name);
+                    }
+                    break;
+                case ParamType.LIST:
+                    ListNode n = (ListNode)param;
+                    return new Just<IList<Token>>(new List<Token>(n.ToTokens()));
+                case ParamType.ATOM:
+                    return new Just<IList<Token>>(new List<Token>(((IAtomNode)param).ToTokens()));
+            }
+            return new Nothing<IList<Token>>();
         }
     }
 }

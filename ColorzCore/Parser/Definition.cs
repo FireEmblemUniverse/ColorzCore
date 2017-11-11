@@ -12,6 +12,11 @@ namespace ColorzCore.Parser
     {
         private IList<Token> replacement;
 
+        public Definition()
+        {
+            replacement = new List<Token>();
+        }
+
         public Definition(IList<Token> defn)
         {
             replacement = defn;

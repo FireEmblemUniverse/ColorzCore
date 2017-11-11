@@ -546,6 +546,7 @@ namespace ColorzCore.Parser
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) ;
+            if (tokens.Current.Type == TokenType.SEMICOLON) tokens.MoveNext();
         }
         private void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
