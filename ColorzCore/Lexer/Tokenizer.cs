@@ -11,7 +11,7 @@ namespace ColorzCore.Lexer
     class Tokenizer
     {
         public const int MAX_ID_LENGTH = 64;
-        private static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)($|\\s)");
+        private static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)");
         private static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
         private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
         private static readonly Regex winPathnameRegex = new Regex(String.Format("\\G([^ \\{0}]|\\ |\\\\)+", Process(Path.GetInvalidPathChars())));
@@ -231,9 +231,13 @@ namespace ColorzCore.Lexer
                             if (numMatch.Success)
                             {
                                 string match = numMatch.Value;
-                                yield return new Token(TokenType.NUMBER, fileName, lineNum, curCol, match);
-                                curCol += match.Length;
-                                continue;
+                                //Verify that next token isn't start of an identifier
+                                if (curCol + match.Length >= endOffs || (!Char.IsLetter(line[curCol + match.Length]) && line[curCol + match.Length] != '_'))
+                                {
+                                    yield return new Token(TokenType.NUMBER, fileName, lineNum, curCol, match.TrimEnd());
+                                    curCol += match.Length;
+                                    continue;
+                                }
                             }
                             Match directiveMatch = preprocDirectiveRegex.Match(line, curCol, Math.Min(MAX_ID_LENGTH + 1, endOffs - curCol));
                             if (directiveMatch.Success)
@@ -281,6 +285,14 @@ namespace ColorzCore.Lexer
                 yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
                 curLine++;
             }
+        }
+        public IEnumerable<Token> Tokenize(FileStream fs)
+        {
+            BufferedStream inputStream = new BufferedStream(fs);
+            foreach (Token t in Tokenize(inputStream, fs.Name))
+                yield return t;
+            inputStream.Close();
+            fs.Close();
         }
 
         private string UnescapeString(string param)

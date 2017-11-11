@@ -26,5 +26,33 @@ namespace ColorzCore.Parser.AST
             }
             return temp;
         }
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append('[');
+            for(int i=0; i<interior.Count; i++)
+            {
+                sb.Append(interior[i].Evaluate());
+                if(i < interior.Count - 1)
+                    sb.Append(',');
+            }
+            sb.Append('[');
+            return sb.ToString();
+        }
+
+        public string PrettyPrint()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append('[');
+            for (int i = 0; i < interior.Count; i++)
+            {
+                sb.Append(interior[i].PrettyPrint());
+                if (i < interior.Count - 1)
+                    sb.Append(',');
+            }
+            sb.Append(']');
+            return sb.ToString();
+        }
     }
 }

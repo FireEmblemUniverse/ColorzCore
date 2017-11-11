@@ -11,9 +11,9 @@ namespace ColorzCore.Parser.AST
     {
         private EAParser p;
         private Token invokeToken;
-        private IList<IParamNode> parameters;
+        private IList<IList<Token>> parameters;
 
-        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IParamNode> parameters)
+        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters)
         {
             this.invokeToken = invokeTok;
             this.parameters = parameters;
@@ -25,6 +25,29 @@ namespace ColorzCore.Parser.AST
         public byte[] ToBytes()
         {
             return new byte[0]{ }; //This should be OK?
+        }
+
+        public string PrettyPrint()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(invokeToken.Content);
+            sb.Append('(');
+            for(int i=0; i<parameters.Count; i++)
+            {
+                foreach (Token t in parameters[i])
+                {
+                    sb.Append(t.Content);
+                }
+                if (i < parameters.Count - 1)
+                    sb.Append(',');
+            }
+            sb.Append(')');
+            return sb.ToString();
+        }
+
+        public IEnumerator<Token> ExpandMacro()
+        {
+            return p.Macros[invokeToken.Content][parameters.Count].ApplyMacro(invokeToken, parameters);
         }
     }
 }

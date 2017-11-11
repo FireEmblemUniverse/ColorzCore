@@ -16,5 +16,10 @@ namespace ColorzCore.Parser.AST
         }
 
         public int Size => data.Length;
+
+        public string PrettyPrint(int indentation)
+        {
+            return String.Format("Raw Data Block of Length {0}", Size);
+        }
     }
 }

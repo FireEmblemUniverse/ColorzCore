@@ -39,6 +39,11 @@ namespace ColorzCore.Parser.AST
             return new Just<string>(identifier.Content);
         }
 
+        public override string PrettyPrint()
+        {
+            return identifier.Content;
+        }
+
         public class UndefinedIdentifierException : Exception
         {
             public Token CausedError { get; set; }

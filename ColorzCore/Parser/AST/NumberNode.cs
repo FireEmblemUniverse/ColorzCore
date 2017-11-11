@@ -38,5 +38,10 @@ namespace ColorzCore.Parser.AST
                 return Convert.ToInt32(numString);
             }
         }
+        
+        public override string PrettyPrint()
+        {
+            return number.Content;
+        }
     }
 }

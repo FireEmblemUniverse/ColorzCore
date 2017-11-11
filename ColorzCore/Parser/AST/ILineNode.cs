@@ -9,5 +9,6 @@ namespace ColorzCore.Parser.AST
     interface ILineNode
     {
         int Size { get; }
+        string PrettyPrint(int indentation);
     }
 }

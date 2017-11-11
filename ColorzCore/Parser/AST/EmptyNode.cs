@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,7 +33,16 @@ namespace ColorzCore.Parser.AST
         {
             return "Empty node.";
         }
-
+        public string PrettyPrint()
+        {
+            return ToString();
+        }
+        
+        public override string PrettyPrint(int indentation)
+        {
+            return new StringBuilder().Append(' ', indentation).Append(ToString()).ToString();
+        }
+        
         public Maybe<string> GetIdentifier()
         {
             return new Nothing<string>();

@@ -41,5 +41,47 @@ namespace ColorzCore.Parser.AST
 		{
             return Operators[op.Type](left.Evaluate(), right.Evaluate());
 		}
+
+        public override string PrettyPrint()
+        {
+            StringBuilder sb = new StringBuilder(left.PrettyPrint());
+            switch(op.Type)
+            {
+                case TokenType.MUL_OP:
+                    sb.Append("*");
+                    break;
+                case TokenType.DIV_OP:
+                    sb.Append("/");
+                    break;
+                case TokenType.ADD_OP:
+                    sb.Append("+");
+                    break;
+                case TokenType.SUB_OP:
+                    sb.Append("-");
+                    break;
+                case TokenType.LSHIFT_OP:
+                    sb.Append("<<");
+                    break;
+                case TokenType.RSHIFT_OP:
+                    sb.Append(">>");
+                    break;
+                case TokenType.SIGNED_RSHIFT_OP:
+                    sb.Append(">>>");
+                    break;
+                case TokenType.AND_OP:
+                    sb.Append("&");
+                    break;
+                case TokenType.XOR_OP:
+                    sb.Append("^");
+                    break;
+                case TokenType.OR_OP:
+                    sb.Append("|");
+                    break;
+                default:
+                    break;
+            }
+            sb.Append(right.PrettyPrint());
+            return sb.ToString();
+        }
     }
 }

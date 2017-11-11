@@ -26,5 +26,9 @@ namespace ColorzCore.Parser.AST
         {
             return myString;
         }
+        public string PrettyPrint()
+        {
+            return '"' + ToString() + '"';
+        }
     }
 }

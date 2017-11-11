@@ -29,9 +29,8 @@ namespace ColorzCore.Preprocessor.Directives
                     string pathname = existantFile.FromJust;
 
                     FileStream inputFile = new FileStream(pathname, FileMode.Open);
-                    BufferedStream inputStream = new BufferedStream(inputFile);
                     Tokenizer newFileTokenizer = new Tokenizer();
-                    tokens.PrependEnumerator(newFileTokenizer.Tokenize(inputStream, pathname).GetEnumerator());
+                    tokens.PrependEnumerator(newFileTokenizer.Tokenize(inputFile).GetEnumerator());
                     return new Left<Maybe<ILineNode>, string>(new Nothing<ILineNode>());
                 }
                 catch(Exception)

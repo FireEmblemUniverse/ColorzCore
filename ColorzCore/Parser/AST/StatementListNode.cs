@@ -19,5 +19,16 @@ namespace ColorzCore.Parser.AST
             {
                 return Statements.Sum((StatementNode n) => n.Size);
             } }
+        public string PrettyPrint(int indentation)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append(' ', indentation);
+            foreach (StatementNode n in Statements)
+            {
+                sb.Append(n.PrettyPrint(0));
+                sb.Append(';');
+            }
+            return sb.ToString();
+        }
     }
 }

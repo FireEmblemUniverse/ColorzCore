@@ -10,7 +10,6 @@ namespace ColorzCore.Parser.AST
 {
     abstract class StatementNode : ILineNode
     {
-        public Token Raw { get; }
         public IList<IParamNode> Parameters { get; }
 
         protected StatementNode(IList<IParamNode> parameters)
@@ -20,17 +19,6 @@ namespace ColorzCore.Parser.AST
 
         public abstract int Size { get; }
 
-        /*
-        public override string ToString()
-        {
-            StringBuilder sb = new StringBuilder(Raw.Content);
-            sb.Append(' ');
-            foreach(IParamNode n in Parameters)
-            {
-                sb.Append(n.ToString());
-            }
-            return sb.ToString();
-        }
-        */
+        public abstract string PrettyPrint(int indentation);
     }
 }

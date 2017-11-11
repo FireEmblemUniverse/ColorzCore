@@ -58,9 +58,9 @@ namespace ColorzCore.Parser
         {
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
             tokens.MoveNext();
-            while(!tokens.EOS)
+            while (!tokens.EOS)
             {
-                if(tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
+                if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                     yield return ParseLine(tokens, GlobalScope);
             }
         }
@@ -70,7 +70,7 @@ namespace ColorzCore.Parser
             Location start = tokens.Current.Location;
             tokens.MoveNext();
             BlockNode temp = new BlockNode();
-            while(tokens.Current.Type != TokenType.CLOSE_BRACE && !tokens.EOS)
+            while (tokens.Current.Type != TokenType.CLOSE_BRACE && !tokens.EOS)
             {
                 temp.Children.Add(ParseLine(tokens, scopes));
             }
@@ -85,13 +85,13 @@ namespace ColorzCore.Parser
             Token head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
-            if(SpecialCodes.Contains(head.Content.ToUpper()))
+            if (SpecialCodes.Contains(head.Content.ToUpper()))
             {
                 //TODO: Handle this case
                 //return new SpecialActionNode(); ???
                 return new EmptyNode();
             }
-            else if(Raws.ContainsKey(head.Content))
+            else
             {
                 IList<IParamNode> parameters;
                 //TODO: Make intelligent to reject malformed parameters.
@@ -103,49 +103,73 @@ namespace ColorzCore.Parser
                 {
                     parameters = new List<IParamNode>();
                 }
-                StatementNode temp = new RawNode(Raws[head.Content], parameters);
-                currentOffset += temp.Size;
-                return temp;
+                if (Raws.ContainsKey(head.Content))
+                {
+                    StatementNode temp = new RawNode(Raws[head.Content], head, parameters);
+                    currentOffset += temp.Size;
+                    return temp;
+                }
+                else //TODO: Move outside of this else.
+                {
+                    Log(Errors, head.Location, "Unrecognized code: " + head.Content);
+                    return new RawNode(null, head, parameters); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
+                }
+            }
+        }
+
+        private IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
+        {
+            IList<IList<Token>> parameters = new List<IList<Token>>();
+            do
+            {
+                tokens.MoveNext();
+                List<Token> currentParam = new List<Token>();
+                while (tokens.Current.Type != TokenType.COMMA && tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE)
+                {
+                    currentParam.Add(tokens.Current);
+                    tokens.MoveNext();
+                }
+                parameters.Add(currentParam);
+            } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
+            if(tokens.Current.Type != TokenType.CLOSE_PAREN)
+            {
+                Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
             }
             else
             {
-                Log(Errors, head.Location, "Unrecognized code: " + head.Content);
-                return new EmptyNode(); //TODO - Nullable?
+                tokens.MoveNext();
             }
+            return parameters;
         }
 
         private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandMacros = true)
         {
-            IList<IParamNode> parameters = new List<IParamNode>();
-            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_PAREN)
+            IList<IParamNode> paramList = new List<IParamNode>();
+            while (tokens.Current.Type != TokenType.NEWLINE && !tokens.EOS)
             {
-                parameters.Add(ParseParam(tokens, scopes, expandMacros));
-                if(tokens.Current.Type == TokenType.COMMA)
-                    tokens.MoveNext();
+                paramList.Add(ParseParam(tokens, scopes, expandMacros));
             }
-            if(tokens.Current.Type == TokenType.CLOSE_PAREN)
-                tokens.MoveNext();
-            return parameters;
+            return paramList;
         }
-        
+
         private IParamNode ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandMacros = true)
         {
             Token head = tokens.Current;
-            switch(tokens.Current.Type)
+            switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(ParseAtomList(tokens, scopes));
+                    return new ListNode(ParseList(tokens, scopes));
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new StringNode(head.Content);
                 case TokenType.IDENTIFIER:
-                    if(!expandMacros)
+                    if (!expandMacros)
                     {
-                        if(tokens.MoveNext())
+                        if (tokens.MoveNext())
                         {
-                            if(tokens.Current.Type == TokenType.OPEN_PAREN)
+                            if (tokens.Current.Type == TokenType.OPEN_PAREN && !expandMacros)
                             {
-                                return new MacroInvocationNode(this, head, ParseParamList(tokens, scopes, expandMacros));
+                                return new MacroInvocationNode(this, head, ParseMacroParamList(tokens));
                             }
                             else
                             {
@@ -166,7 +190,7 @@ namespace ColorzCore.Parser
                     return ParseAtom(tokens, scopes);
             }
         }
-        
+
         private static readonly Dictionary<TokenType, int> precedences = new Dictionary<TokenType, int> {
             { TokenType.MUL_OP , 3 },
             { TokenType.DIV_OP , 3 },
@@ -177,104 +201,103 @@ namespace ColorzCore.Parser
             { TokenType.SIGNED_RSHIFT_OP , 5 },
             { TokenType.AND_OP , 8 },
             { TokenType.XOR_OP , 9 },
-            { TokenType.OR_OP , 10 }        
+            { TokenType.OR_OP , 10 }
         };
-        
-        
-        
+
+
+
         private IAtomNode ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            //TODO: Make (Atom) work for precedence.
             //Use Shift Reduce Parsing
             Token head = tokens.Current;
-            Stack<Either<IAtomNode,Token>> grammarSymbols = new Stack<Either<IAtomNode,Token>>();
+            Stack<Either<IAtomNode, Token>> grammarSymbols = new Stack<Either<IAtomNode, Token>>();
             bool ended = false;
-            while(!ended)
+            while (!ended)
             {
-                bool shift = false;
+                bool shift = false, lookingForAtom = grammarSymbols.Count == 0 || grammarSymbols.Peek().IsRight;
                 Token lookAhead = tokens.Current;
 
-                if (grammarSymbols.Count == 0)
+                if (!ended && !lookingForAtom) //Is already a complete node. Needs an operator of matching precedence and a node of matching prec to reduce.
                 {
-                    shift = true;
-                }
-                else
-                {
-                    Either<IAtomNode, Token> top = grammarSymbols.Peek();
-
-                    if (!ended && top.IsLeft) //Is already a complete node. Needs an operator of matching precedence and a node of matching prec to reduce.
+                    //Verify next symbol to be an operator.
+                    switch (lookAhead.Type)
                     {
-                        IAtomNode node = top.GetLeft;
-                        int treePrec = node.Precedence;
-                        if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
-                        {
-                            Reduce(grammarSymbols, precedences[lookAhead.Type]);
-                        }
-                        else
-                        {
-                            //Verify next symbol to be an operator.
-                            switch (lookAhead.Type)
+                        case TokenType.MUL_OP:
+                        case TokenType.DIV_OP:
+                        case TokenType.ADD_OP:
+                        case TokenType.SUB_OP:
+                        case TokenType.LSHIFT_OP:
+                        case TokenType.RSHIFT_OP:
+                        case TokenType.SIGNED_RSHIFT_OP:
+                        case TokenType.AND_OP:
+                        case TokenType.XOR_OP:
+                        case TokenType.OR_OP:
+                            IAtomNode node = grammarSymbols.Peek().GetLeft;
+                            int treePrec = node.Precedence;
+                            if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
                             {
-                                case TokenType.MUL_OP:
-                                case TokenType.DIV_OP:
-                                case TokenType.ADD_OP:
-                                case TokenType.SUB_OP:
-                                case TokenType.LSHIFT_OP:
-                                case TokenType.RSHIFT_OP:
-                                case TokenType.SIGNED_RSHIFT_OP:
-                                case TokenType.AND_OP:
-                                case TokenType.XOR_OP:
-                                case TokenType.OR_OP:
-                                    shift = true;
-                                    break;
-                                default:
-                                    ended = true;
-                                    break;
+                                Reduce(grammarSymbols, precedences[lookAhead.Type]);
                             }
-                        }
-                    }
-                    else if (!ended) //Is just an operator. Error if two operators in a row.
-                    {
-                        //Error if two operators in a row.
-                        switch (lookAhead.Type)
-                        {
-                            case TokenType.MUL_OP:
-                            case TokenType.DIV_OP:
-                            case TokenType.ADD_OP:
-                            case TokenType.SUB_OP:
-                            case TokenType.LSHIFT_OP:
-                            case TokenType.RSHIFT_OP:
-                            case TokenType.SIGNED_RSHIFT_OP:
-                            case TokenType.AND_OP:
-                            case TokenType.XOR_OP:
-                            case TokenType.OR_OP:
-                                //TODO: Log error
-                                IgnoreRestOfStatement(tokens);
-                                return new EmptyNode();
-                            case TokenType.IDENTIFIER:
-                            case TokenType.NUMBER:
-                                shift = true;
-                                break;
-                            default:
-                                ended = true;
-                                break;
-                        }
+                            shift = true;
+                            break;
+                        default:
+                            ended = true;
+                            break;
                     }
                 }
-                
-                if(shift)
+                else if (!ended) //Is just an operator. Error if two operators in a row.
                 {
-                    if(lookAhead.Type == TokenType.IDENTIFIER)
+                    //Error if two operators in a row.
+                    switch (lookAhead.Type)
+                    {
+                        case TokenType.IDENTIFIER:
+                        case TokenType.NUMBER:
+                            shift = true;
+                            break;
+                        case TokenType.OPEN_PAREN:
+                            tokens.MoveNext();
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(ParseAtom(tokens, scopes))));
+                            if (tokens.Current.Type != TokenType.CLOSE_PAREN)
+                            {
+                                Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
+                                return new EmptyNode();
+                            }
+                            tokens.MoveNext();
+                            break;
+                        case TokenType.COMMA:
+                            Log(Errors, lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
+                            IgnoreRestOfStatement(tokens);
+                            return new EmptyNode();
+                        case TokenType.MUL_OP:
+                        case TokenType.DIV_OP:
+                        case TokenType.ADD_OP:
+                        case TokenType.SUB_OP:
+                        case TokenType.LSHIFT_OP:
+                        case TokenType.RSHIFT_OP:
+                        case TokenType.SIGNED_RSHIFT_OP:
+                        case TokenType.AND_OP:
+                        case TokenType.XOR_OP:
+                        case TokenType.OR_OP:
+                        default:
+                            Log(Errors, lookAhead.Location, "Unexpeced token: " + lookAhead.Type);
+                            IgnoreRestOfStatement(tokens);
+                            return new EmptyNode();
+                    }
+                }
+
+                if (shift)
+                {
+                    if (lookAhead.Type == TokenType.IDENTIFIER)
                     {
                         if (ExpandIdentifier(tokens))
                             continue;
                         grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
                     }
-                    else if(lookAhead.Type == TokenType.NUMBER)
+                    else if (lookAhead.Type == TokenType.NUMBER)
                     {
                         grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
                     }
-                    else if(lookAhead.Type == TokenType.ERROR)
+                    else if (lookAhead.Type == TokenType.ERROR)
                     {
                         Log(Errors, lookAhead.Location, String.Format("Unexpected token: {0}", lookAhead.Content));
                         tokens.MoveNext();
@@ -288,11 +311,11 @@ namespace ColorzCore.Parser
                     continue;
                 }
             }
-            while(grammarSymbols.Count > 1)
+            while (grammarSymbols.Count > 1)
             {
                 Reduce(grammarSymbols, 1);
             }
-            if(grammarSymbols.Peek().IsRight)
+            if (grammarSymbols.Peek().IsRight)
             {
                 Log(Errors, grammarSymbols.Peek().GetRight.Location, "Unexpected token: " + grammarSymbols.Peek().GetRight.Type);
             }
@@ -307,32 +330,32 @@ namespace ColorzCore.Parser
          */
         private void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
         {
-            while(grammarSymbols.Count > 1 || grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
+            while (grammarSymbols.Count > 1 && grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
             {
                 //These shouldn't error...
                 IAtomNode r = grammarSymbols.Pop().GetLeft;
                 Token op = grammarSymbols.Pop().GetRight;
                 IAtomNode l = grammarSymbols.Pop().GetLeft;
-                
+
                 grammarSymbols.Push(new Left<IAtomNode, Token>(new OperatorNode(l, op, r, l.Precedence)));
             }
         }
-        
-        private IList<IAtomNode> ParseAtomList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+
+        private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             tokens.MoveNext();
             IList<IAtomNode> atoms = new List<IAtomNode>();
             do
             {
                 atoms.Add(ParseAtom(tokens, scopes));
-                if(tokens.Current.Type == TokenType.COMMA)
+                if (tokens.Current.Type == TokenType.COMMA)
                     tokens.MoveNext();
-            } while(tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_PAREN);
-            if (tokens.Current.Type == TokenType.CLOSE_PAREN)
+            } while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET);
+            if (tokens.Current.Type == TokenType.CLOSE_BRACKET)
                 tokens.MoveNext();
             return atoms;
         }
-        
+
         public ILineNode ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             if (IsIncluding)
@@ -349,10 +372,6 @@ namespace ColorzCore.Parser
                         if (ExpandIdentifier(tokens))
                         {
                             return ParseLine(tokens, scopes);
-                        }
-                        if (Raws.ContainsKey(nextToken.Content))
-                        {
-                            return new StatementListNode(ParseStatementList(tokens, scopes));
                         }
                         else
                         {
@@ -378,9 +397,8 @@ namespace ColorzCore.Parser
                             }
                             else
                             {
-                                Log(Errors, nextToken.Location, "Unrecognized code: " + nextToken.Content);
-                                IgnoreRestOfStatement(tokens);
-                                return new EmptyNode();
+                                tokens.PutBack(nextToken);
+                                return new StatementListNode(ParseStatementList(tokens, scopes));
                             }
                         }
                     case TokenType.OPEN_BRACE:
@@ -406,7 +424,7 @@ namespace ColorzCore.Parser
             {
                 bool hasNext = true;
                 while (tokens.Current.Type != TokenType.PREPROCESSOR_DIRECTIVE && (hasNext = tokens.MoveNext())) ;
-                if(hasNext)
+                if (hasNext)
                 {
                     return ParsePreprocessor(tokens, scopes);
                 }
@@ -423,11 +441,7 @@ namespace ColorzCore.Parser
             Token directiveName = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
-            IList<IParamNode> paramList = new List<IParamNode>();
-            while (tokens.Current.Type != TokenType.NEWLINE && !tokens.EOS)
-            {
-                paramList.Add(ParseParam(tokens, scopes, false));
-            }
+            IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
             Either<Maybe<ILineNode>, string> retVal = HandleDirective(this, directiveName, paramList, tokens);
             if (retVal.IsLeft)
             {
@@ -452,12 +466,12 @@ namespace ColorzCore.Parser
             do
             {
                 stmts.Add(ParseStatement(tokens, scopes));
-                if(tokens.Current.Type == TokenType.SEMICOLON)
+                if (tokens.Current.Type == TokenType.SEMICOLON)
                     tokens.MoveNext();
-            } while(tokens.Current.Type != TokenType.NEWLINE);
+            } while (tokens.Current.Type != TokenType.NEWLINE);
             return stmts;
         }
-        
+
         /***
          *   Precondition: tokens.Current.Type == TokenType.IDENTIFIER
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
@@ -467,39 +481,29 @@ namespace ColorzCore.Parser
         {
             bool ret = false;
             //Macros and Definitions.
-            if(Macros.ContainsKey(tokens.Current.Content))
+            if (Macros.ContainsKey(tokens.Current.Content))
             {
                 ExpandMacro(tokens);
                 ret = true;
-                if(tokens.Current.Type == TokenType.IDENTIFIER)
+                if (tokens.Current.Type == TokenType.IDENTIFIER)
                     ExpandIdentifier(tokens);
             }
-            else if(Definitions.ContainsKey(tokens.Current.Content))
+            else if (Definitions.ContainsKey(tokens.Current.Content))
             {
                 bool noteos = Definitions[tokens.Current.Content].ApplyDefinition(tokens);
-                if(noteos && tokens.Current.Type == TokenType.IDENTIFIER)
+                if (noteos && tokens.Current.Type == TokenType.IDENTIFIER)
                 {
                     ExpandIdentifier(tokens);
                 }
             }
-            
+
             return ret;
         }
 
         public void ExpandMacro(Token macro, MergeableGenerator<Token> tokens)
         {
-            IList<IList<Token>> parameters = new List<IList<Token>>();
-            do
-            {
-                tokens.MoveNext();
-                List<Token> currentParam = new List<Token>();
-                while (tokens.Current.Type != TokenType.COMMA && tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE)
-                {
-                    currentParam.Add(tokens.Current);
-                    tokens.MoveNext();
-                }
-            } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
-            if(Macros[macro.Content].ContainsKey(parameters.Count) && tokens.Current.Type == TokenType.CLOSE_PAREN)
+            IList<IList<Token>> parameters = ParseMacroParamList(tokens);
+            if (Macros[macro.Content].ContainsKey(parameters.Count) && tokens.Current.Type == TokenType.CLOSE_PAREN)
                 tokens.PrependEnumerator(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters));
             else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
             {
@@ -532,6 +536,19 @@ namespace ColorzCore.Parser
         private void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext()) ;
+        }
+
+        public void Clear()
+        {
+            Macros.Clear();
+            Definitions.Clear();
+            Raws.Clear();
+            Inclusion = ImmutableStack<bool>.Nil;
+            currentOffset = 0;
+            pastOffsets.Clear();
+            Messages.Clear();
+            Warnings.Clear();
+            Errors.Clear();
         }
     }
 }

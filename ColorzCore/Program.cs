@@ -17,7 +17,6 @@ namespace ColorzCore
         {
             string fileName = "../../testFile.event";
             FileStream inputFile = new FileStream(fileName, FileMode.Open);
-            BufferedStream inputStream = new BufferedStream(inputFile);
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
             Tokenizer myTokenizer = new Tokenizer();
@@ -32,22 +31,22 @@ namespace ColorzCore
             //Console.WriteLine(test.myEnums.Peek().Current.ToString());
 
             
-            foreach(ILineNode n in myParser.ParseAll(myTokenizer.Tokenize(inputStream, fileName)))
+            foreach(ILineNode n in myParser.ParseAll(myTokenizer.Tokenize(inputFile)))
             {
-                Console.WriteLine(n.ToString());
+                Console.WriteLine(n.PrettyPrint(0));
             }
-            
 
             foreach (string error in myParser.Errors)
             {
                 Console.Out.WriteLine(error);
             }
 
+            myParser.Clear();
+
             Console.WriteLine("Done.");
-            
+
             Console.In.ReadLine();
             
-            inputFile.Close();
         }
         /*
         private static EAInstance FirstPass(IEnumerable<Token> tokens)

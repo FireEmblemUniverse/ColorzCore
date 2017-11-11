@@ -30,5 +30,7 @@ namespace ColorzCore.Parser.AST
         {
             return new Nothing<string>();
         }
+
+        public abstract string PrettyPrint();
     }
 }
