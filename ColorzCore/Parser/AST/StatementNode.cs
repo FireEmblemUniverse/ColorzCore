@@ -1,4 +1,5 @@
 ﻿using ColorzCore.Lexer;
+using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,11 +8,19 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class StatementNode// : IASTNode
+    abstract class StatementNode : ILineNode
     {
-        public Token Raw { get; set; }
-        public IList<IParamNode> Parameters { get; set; }
+        public Token Raw { get; }
+        public IList<IParamNode> Parameters { get; }
 
+        protected StatementNode(IList<IParamNode> parameters)
+        {
+            Parameters = parameters;
+        }
+
+        public abstract int Size { get; }
+
+        /*
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder(Raw.Content);
@@ -22,5 +31,6 @@ namespace ColorzCore.Parser.AST
             }
             return sb.ToString();
         }
+        */
     }
 }

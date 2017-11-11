@@ -8,5 +8,6 @@ namespace ColorzCore.Parser.AST
 {
     interface ILineNode
     {
+        int Size { get; }
     }
 }

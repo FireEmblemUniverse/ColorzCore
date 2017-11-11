@@ -21,5 +21,10 @@ namespace ColorzCore.Parser.AST
         {
             return Encoding.ASCII.GetBytes(myString);
         }
+
+        public override string ToString()
+        {
+            return myString;
+        }
     }
 }

@@ -14,5 +14,10 @@ namespace ColorzCore.Parser.AST
         }
 
         public IList<StatementNode> Statements { get; }
+
+        public int Size { get
+            {
+                return Statements.Sum((StatementNode n) => n.Size);
+            } }
     }
 }

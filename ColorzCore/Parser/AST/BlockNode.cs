@@ -10,5 +10,11 @@ namespace ColorzCore.Parser.AST
     class BlockNode : ILineNode
     {
         public List<ILineNode> Children { get; }
+
+        public int Size {
+            get
+            {
+                return Children.Sum((ILineNode n) => n.Size);
+            } }
     }
 }

@@ -6,11 +6,16 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class EmptyNode : ILineNode, IAtomNode
+    class EmptyNode : StatementNode, ILineNode, IAtomNode
     {
+        public EmptyNode() : base(new List<IParamNode>())
+        { }
+
         public int Precedence => throw new NotImplementedException();
 
         public ParamType Type => throw new NotImplementedException();
+
+        public override int Size => 0;
 
         public int Evaluate()
         {
