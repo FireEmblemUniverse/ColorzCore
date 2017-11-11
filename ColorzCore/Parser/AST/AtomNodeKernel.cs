@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ColorzCore.DataTypes;
 
 namespace ColorzCore.Parser.AST
 {
@@ -23,6 +24,11 @@ namespace ColorzCore.Parser.AST
         public override string ToString()
         {
             return Evaluate().ToString();
+        }
+
+        public virtual Maybe<string> GetIdentifier()
+        {
+            return new Nothing<string>();
         }
     }
 }

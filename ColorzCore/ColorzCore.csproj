@@ -63,6 +63,7 @@
     <Compile Include="Parser\AST\ILineNode.cs" />
     <Compile Include="Parser\AST\IParamNode.cs" />
     <Compile Include="Parser\AST\ListNode.cs" />
+    <Compile Include="Parser\AST\MacroInvocationNode.cs" />
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParamType.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Parser\Definition.cs" />
     <Compile Include="Parser\Macro.cs" />
     <Compile Include="Parser\EAParser.cs" />
+    <Compile Include="Preprocessor\Directives\DefineDirective.cs" />
     <Compile Include="Preprocessor\Directives\ElseDirective.cs" />
     <Compile Include="Preprocessor\Directives\IDirective.cs" />
     <Compile Include="Preprocessor\Directives\EndIfDirective.cs" />

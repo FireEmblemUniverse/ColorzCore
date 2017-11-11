@@ -2,7 +2,7 @@ EAPROGRAM = [ LINE , { NEWLINE , LINE } ];
 
 LINE = PREPROCESSOR_COMMAND | LABEL | STATEMENT_LIST;
 
-PREPROCESSOR_COMMAND = "#include" , WIN_PATHNAME | "#incbin" , WIN_PATHNAME | "#" , IDENTIFIER , [PARAM_LIST]; //No whitespace between # and Identifier
+PREPROCESSOR_COMMAND = "#include" , WIN_PATHNAME | "#incbin" , WIN_PATHNAME | "#" , IDENTIFIER , { PARAM }; //No whitespace between # and Identifier
 WIN_PATHNAME = STRING | [^Path.GetInvalidPathChars()]+ //Note WIN_PATHNAME is a superset of NUMBER and IDENTIFIER
 
 LABEL = INDENTIFIER , COLON;

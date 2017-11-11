@@ -10,6 +10,7 @@ namespace ColorzCore.Parser.AST
     {
         ATOM,
         LIST,
-        STRING
+        STRING,
+        MACRO
     }
 }

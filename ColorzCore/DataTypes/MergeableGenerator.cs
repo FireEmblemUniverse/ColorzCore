@@ -15,7 +15,6 @@ namespace ColorzCore.DataTypes
         {
             myEnums = new Stack<IEnumerator<T>>();
             myEnums.Push(baseEnum.GetEnumerator());
-            Prime();
         }
 
         public T Current { get { return myEnums.Peek().Current; } }
@@ -26,7 +25,7 @@ namespace ColorzCore.DataTypes
                 if(myEnums.Count > 1)
                 {
                     myEnums.Pop();
-                    return MoveNext();
+                    return true;
                 }
                 else
                 {
@@ -41,13 +40,19 @@ namespace ColorzCore.DataTypes
         }
         public void PrependEnumerator(IEnumerator<T> nextEnum)
         {
+            if (EOS)
+                myEnums.Pop();
+            EOS = false;
             myEnums.Push(nextEnum);
             Prime();
-            EOS = false;
         }
-        private void Prime()
+        public void PutBack(T elem)
         {
-            myEnums.Peek().MoveNext();
+            this.PrependEnumerator(new List<T> { elem }.GetEnumerator());
+        }
+        private bool Prime()
+        {
+            return myEnums.Peek().MoveNext();
         }
     }
 }

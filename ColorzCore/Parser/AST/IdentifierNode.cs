@@ -34,6 +34,11 @@ namespace ColorzCore.Parser.AST
             throw new UndefinedIdentifierException(identifier);
         }
         
+        public override Maybe<string> GetIdentifier()
+        {
+            return new Just<string>(identifier.Content);
+        }
+
         public class UndefinedIdentifierException : Exception
         {
             public Token CausedError { get; set; }

@@ -34,7 +34,7 @@ namespace ColorzCore.Preprocessor
                 IDirective toExec = DIRECTIVE_DICT[directiveName];
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {
-                    if (toExec.MinParams <= parameters.Count && parameters.Count <= toExec.MaxParams)
+                    if (toExec.MinParams <= parameters.Count && (!toExec.MaxParams.HasValue || parameters.Count <= toExec.MaxParams))
                     {
                         return toExec.Execute(p, directive, parameters, tokens);
                     }

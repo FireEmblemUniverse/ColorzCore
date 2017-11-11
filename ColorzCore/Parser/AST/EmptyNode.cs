@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.DataTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,6 +31,11 @@ namespace ColorzCore.Parser.AST
         public override string ToString()
         {
             return "Empty node.";
+        }
+
+        public Maybe<string> GetIdentifier()
+        {
+            return new Nothing<string>();
         }
     }
 }

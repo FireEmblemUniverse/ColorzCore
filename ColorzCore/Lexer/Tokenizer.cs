@@ -261,6 +261,11 @@ namespace ColorzCore.Lexer
         {
             return TokenizePhrase(line, fileName, lineNum, 0, line.Length);
         }
+
+        /***
+         *   All Token streams end in a NEWLINE.
+         * 
+         */
         public IEnumerable<Token> Tokenize(BufferedStream input, string fileName)
         {
 
@@ -273,11 +278,8 @@ namespace ColorzCore.Lexer
                 {
                     yield return t;
                 }
-                if (!sr.EndOfStream)
-                {
-                    yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
-                    curLine++;
-                }
+                yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
+                curLine++;
             }
         }
 

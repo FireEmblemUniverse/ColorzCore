@@ -24,13 +24,13 @@ namespace ColorzCore.Preprocessor.Directives
             Maybe<string> identifier;
             foreach (IParamNode parameter in parameters)
             {
-                if(parameter.Type!=ParamType.ATOM && !(identifier = ((IAtomNode)parameter).GetIdentifier()).IsNothing)
+                if(parameter.Type==ParamType.ATOM && !(identifier = ((IAtomNode)parameter).GetIdentifier()).IsNothing)
                 {
                     flag &= !p.Macros.ContainsKey(identifier.FromJust) && !p.Definitions.ContainsKey(identifier.FromJust); //TODO: Built in definitions?
                 }
                 else
                 {
-                    return new Right<Maybe<ILineNode>, string>("Macro name must be an identifier.");
+                    return new Right<Maybe<ILineNode>, string>("Definition name must be an identifier.");
                 }
             }
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
