@@ -479,7 +479,7 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = ImmutableStack<Tuple<string,int>>.Nil, seenMacros = ImmutableStack<Tuple<string,int>>.Nil)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = ImmutableStack<string>.Nil, ImmutableStack<Tuple<string, int>> seenMacros = ImmutableStack<Tuple<string,int>>.Nil)
         {
             bool ret = false;
             //Macros and Definitions.
@@ -490,9 +490,9 @@ namespace ColorzCore.Parser
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                 if (tokens.Current.Type == TokenType.CLOSE_PAREN)
                 {
-                    if(Macros[macro.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(macro.Content, parameters.Count)))
+                    if(Macros[head.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(head.Content, parameters.Count)))
                     {
-                        tokens.PrependEnumerator(ExpandAll(Macros[macro.Content][parameters.Count].ApplyMacro(macro, parameters).GetEnumerator(), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string,int>(macro.Content, parameters.Count), seenMacros)));
+                        tokens.PrependEnumerator(ExpandAll(new List<Token>(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters)), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string,int>(head.Content, parameters.Count), seenMacros)).GetEnumerator());
                     }
                     else
                     {
@@ -505,7 +505,7 @@ namespace ColorzCore.Parser
                 }
                 else
                 {
-                    Error(macro.Location, "Incorrect number of parameters: " + parameters.Count);
+                    Error(head.Location, "Incorrect number of parameters: " + parameters.Count);
                 }
                 ret = true;
                 if (tokens.Current.Type == TokenType.IDENTIFIER)
@@ -527,11 +527,11 @@ namespace ColorzCore.Parser
         //Ideally, expand within the definitions themselves so that I only every have to substitute for the head.
         public IEnumerable<Token> ExpandAll(IList<Token> tokens, ImmutableStack<string> seenDefinitions, ImmutableStack<Tuple<string, int>> seenMacros)
         {
-            MergeableGenerator<Token> myGen = new MergeableGenerator<Token>(tokens.GetEnumerator());
+            MergeableGenerator<Token> myGen = new MergeableGenerator<Token>(tokens);
             while(!myGen.EOS)
             {
                 while(ExpandIdentifier(myGen, seenDefinitions, seenMacros)) ;
-                yield myGen.Current;
+                yield return myGen.Current;
                 myGen.MoveNext();
             }
         }

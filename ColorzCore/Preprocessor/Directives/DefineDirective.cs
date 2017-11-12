@@ -69,14 +69,14 @@ namespace ColorzCore.Preprocessor.Directives
                 if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
                 {
                     string name = maybeIdentifier.FromJust;
-                    if(!p.IsValidDefinitionName(name)
+                    if(!p.IsValidDefinitionName(name))
                     {
                         if (p.IsRawName(name))
                         {
-                            p.Error(signature.MyLocation, "Invalid redefinition: " + name);
+                            p.Error(parameters[0].MyLocation, "Invalid redefinition: " + name);
                         }
                         else
-                            p.Warning(signature.MyLocation, "Redefining " + name + '.');
+                            p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
                     }
                     if (parameters.Count == 2)
                     {
@@ -129,7 +129,7 @@ namespace ColorzCore.Preprocessor.Directives
         }
         private IList<Token> ExpandAllIdentifiers(EAParser p, Stack<Token> tokens, ImmutableStack<string> seenDefs, ImmutableStack<Tuple<string, int>> seenMacros)
         {
-            IList<Token> output = new List<Token>
+            IList<Token> output = new List<Token>();
             while(tokens.Count > 0)
             {
                 Token current = tokens.Pop();
@@ -137,7 +137,7 @@ namespace ColorzCore.Preprocessor.Directives
                 {
                     if(p.Macros.ContainsKey(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
                     {
-                        IList<IList<Token>> params = p.ParseMacroParamList(new MergeableGenerator(tokens.GetEnumerator())); //TODO: I don't like wrapping this in a gergeable generator..... Maybe interface the original better?
+                        IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a gergeable generator..... Maybe interface the original better?
                     }
                 } 
                 else
@@ -145,7 +145,7 @@ namespace ColorzCore.Preprocessor.Directives
                     output.Add(current);
                 }
             }
-        
+            return output;
         }
     }
 }
