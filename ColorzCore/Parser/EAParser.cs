@@ -54,7 +54,7 @@ namespace ColorzCore.Parser
             Inclusion = ImmutableStack<bool>.Nil;
         }
 
-        public bool IsRawName(string name)
+        public bool IsReservedName(string name)
         {
             return Raws.ContainsKey(name) || SpecialCodes.Contains(name);
         }
@@ -64,7 +64,11 @@ namespace ColorzCore.Parser
         }
         public bool IsValidMacroName(string name, int paramNum)
         {
-            return !(Macros.ContainsKey(name) && Macros[name].ContainsKey(paramNum)) && !IsRawName(name);
+            return !(Macros.ContainsKey(name) && Macros[name].ContainsKey(paramNum)) && !IsReservedName(name);
+        }
+        public bool IsValidLabelName(string name)
+        {
+            return !IsReservedName(name);
         }
         public IEnumerable<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
@@ -419,6 +423,10 @@ namespace ColorzCore.Parser
                                 if (scopes.Head.Labels.ContainsKey(nextToken.Content))
                                 {
                                     Log(Errors, nextToken.Location, "Label already in scope: " + nextToken.Content);
+                                }
+                                else if(!IsValidLabelName(nextToken.Content))
+                                {
+                                    Error(nextToken.Location, "Invalid label name " + nextToken.Content + '.');
                                 }
                                 else
                                 {

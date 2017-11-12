@@ -41,7 +41,7 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 if (!p.IsValidMacroName(name, myParams.Count))
                 {
-                    if (p.IsRawName(name))
+                    if (p.IsReservedName(name))
                     {
                         p.Error(signature.MyLocation, "Invalid redefinition: " + name);
                     }
@@ -71,7 +71,7 @@ namespace ColorzCore.Preprocessor.Directives
                     string name = maybeIdentifier.FromJust;
                     if(!p.IsValidDefinitionName(name))
                     {
-                        if (p.IsRawName(name))
+                        if (p.IsReservedName(name))
                         {
                             p.Error(parameters[0].MyLocation, "Invalid redefinition: " + name);
                         }
