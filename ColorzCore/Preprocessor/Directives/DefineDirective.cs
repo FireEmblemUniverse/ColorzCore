@@ -127,5 +127,25 @@ namespace ColorzCore.Preprocessor.Directives
             }
             return new Nothing<IList<Token>>();
         }
+        private IList<Token> ExpandAllIdentifiers(EAParser p, Stack<Token> tokens, ImmutableStack<string> seenDefs, ImmutableStack<Tuple<string, int>> seenMacros)
+        {
+            IList<Token> output = new List<Token>
+            while(tokens.Count > 0)
+            {
+                Token current = tokens.Pop();
+                if(current.Type == TokenType.IDENTIFIER)
+                {
+                    if(p.Macros.ContainsKey(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
+                    {
+                        IList<IList<Token>> params = p.ParseMacroParamList(new MergeableGenerator(tokens.GetEnumerator())); //TODO: I don't like wrapping this in a gergeable generator..... Maybe interface the original better?
+                    }
+                } 
+                else
+                {
+                    output.Add(current);
+                }
+            }
+        
+        }
     }
 }

@@ -127,7 +127,7 @@ namespace ColorzCore.Parser
             }
         }
 
-        private IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
+        public IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
         {
             IList<IList<Token>> parameters = new List<IList<Token>>();
             do
