@@ -152,17 +152,17 @@ namespace ColorzCore.Parser
             return parameters;
         }
 
-        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandMacros = true)
+        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             IList<IParamNode> paramList = new List<IParamNode>();
             while (tokens.Current.Type != TokenType.NEWLINE && !tokens.EOS)
             {
-                paramList.Add(ParseParam(tokens, scopes, expandMacros));
+                paramList.Add(ParseParam(tokens, scopes));
             }
             return paramList;
         }
 
-        private IParamNode ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandMacros = true)
+        private IParamNode ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             Token head = tokens.Current;
             switch (tokens.Current.Type)
@@ -173,27 +173,25 @@ namespace ColorzCore.Parser
                     tokens.MoveNext();
                     return new StringNode(head);
                 case TokenType.IDENTIFIER:
-                    if (!expandMacros)
+                    //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
+                    tokens.MoveNext();
+                    if (tokens.Current.Type == TokenType.OPEN_PAREN)
                     {
-                        if (tokens.MoveNext())
+                        IList<IList<Token>> param = ParseMacroParamList(tokens);
+                        if (Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
                         {
-                            if (tokens.Current.Type == TokenType.OPEN_PAREN && !expandMacros)
-                            {
-                                return new MacroInvocationNode(this, head, ParseMacroParamList(tokens));
-                            }
-                            else
-                            {
-                                tokens.PutBack(head);
-                                return ParseAtom(tokens, scopes);
-                            }
+                            tokens.PrependEnumerator(Macros[head.Content][param.Count].ApplyMacro(head, param).GetEnumerator());
+                            return ParseParam(tokens, scopes);
                         }
                         else
                         {
-                            return new IdentifierNode(head, scopes);
+                            //TODO: Smart errors if trying to redefine a macro with the same num of params.
+                            return new MacroInvocationNode(this, head, param);
                         }
                     }
                     else
                     {
+                        tokens.PutBack(head);
                         return ParseAtom(tokens, scopes);
                     }
                 default:
@@ -326,7 +324,7 @@ namespace ColorzCore.Parser
             }
             while (grammarSymbols.Count > 1)
             {
-                Reduce(grammarSymbols, 1);
+                Reduce(grammarSymbols, -1);
             }
             if (grammarSymbols.Peek().IsRight)
             {
@@ -454,7 +452,7 @@ namespace ColorzCore.Parser
             Token directiveName = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
-            IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
+            IList<IParamNode> paramList = ParseParamList(tokens, scopes);
             Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
             if (retVal.IsNothing)
                 return new EmptyNode();
@@ -496,12 +494,10 @@ namespace ColorzCore.Parser
                 tokens.MoveNext();
                 if (tokens.Current.Type == TokenType.OPEN_PAREN)
                 {
-
-
                     IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                     if (Macros[head.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(head.Content, parameters.Count)))
                     {
-                        tokens.PrependEnumerator(ExpandAll(new List<Token>(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters)), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string, int>(head.Content, parameters.Count), seenMacros)).GetEnumerator());
+                        tokens.PrependEnumerator(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters).GetEnumerator());
                     }
                     else
                     {
@@ -517,7 +513,6 @@ namespace ColorzCore.Parser
                     tokens.PutBack(head);
                 }
             }
-
             if (Definitions.ContainsKey(tokens.Current.Content))
             {
                 Token head = tokens.Current;
@@ -530,19 +525,6 @@ namespace ColorzCore.Parser
             }
 
             return ret;
-        }
-        
-        //TODO: Interface these better so they're not mutually recursive making new MergeableGenerators each loop
-        //Ideally, expand within the definitions themselves so that I only every have to substitute for the head.
-        public IEnumerable<Token> ExpandAll(IList<Token> tokens, ImmutableStack<string> seenDefinitions, ImmutableStack<Tuple<string, int>> seenMacros)
-        {
-            MergeableGenerator<Token> myGen = new MergeableGenerator<Token>(tokens);
-            while(!myGen.EOS)
-            {
-                while(ExpandIdentifier(myGen, seenDefinitions, seenMacros)) ;
-                yield return myGen.Current;
-                myGen.MoveNext();
-            }
         }
 
         private static void Log(IList<string> record, Location? causedError, string message)

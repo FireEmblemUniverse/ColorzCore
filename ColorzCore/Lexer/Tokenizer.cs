@@ -215,6 +215,7 @@ namespace ColorzCore.Lexer
                         else
                         {
                             //Try matching to identifier, then to number
+                            //TODO: Restrict Macro invocations to a MAYBE_MACRO that must preceed a (, with no whitespace.
                             Match idMatch = idRegex.Match(line, curCol, Math.Min(MAX_ID_LENGTH, endOffs - curCol));
                             if (idMatch.Success)
                             {
