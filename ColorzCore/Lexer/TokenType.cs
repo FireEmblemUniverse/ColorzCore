@@ -19,6 +19,7 @@ namespace ColorzCore.Lexer
         COMMA,
         MUL_OP,
         DIV_OP,
+        MOD_OP,
         ADD_OP,
         SUB_OP,
         LSHIFT_OP,

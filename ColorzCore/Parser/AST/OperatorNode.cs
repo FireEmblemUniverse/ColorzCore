@@ -16,6 +16,7 @@ namespace ColorzCore.Parser.AST
         public static readonly Dictionary<TokenType, BinaryIntOp> Operators = new Dictionary<TokenType, BinaryIntOp> {
                 { TokenType.MUL_OP , (x, y) => x*y },
                 { TokenType.DIV_OP , (x, y) => x/y },
+                { TokenType.MOD_OP , (x, y) => x%y },
                 { TokenType.ADD_OP , (x, y) => x+y },
                 { TokenType.SUB_OP , (x, y) => x-y },
                 { TokenType.LSHIFT_OP , (x, y) => x<<y },

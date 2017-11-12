@@ -41,7 +41,7 @@ namespace ColorzCore
                 Console.Out.WriteLine(error);
             }
 
-            myParser.Clear();
+            //myParser.Clear();
 
             Console.WriteLine("Done.");
 

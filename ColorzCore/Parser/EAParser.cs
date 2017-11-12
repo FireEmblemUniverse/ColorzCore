@@ -211,7 +211,8 @@ namespace ColorzCore.Parser
             { TokenType.SIGNED_RSHIFT_OP , 5 },
             { TokenType.AND_OP , 8 },
             { TokenType.XOR_OP , 9 },
-            { TokenType.OR_OP , 10 }
+            { TokenType.OR_OP , 10 },
+            { TokenType.MOD_OP , 3 }
         };
 
 
@@ -234,6 +235,7 @@ namespace ColorzCore.Parser
                     {
                         case TokenType.MUL_OP:
                         case TokenType.DIV_OP:
+                        case TokenType.MOD_OP:
                         case TokenType.ADD_OP:
                         case TokenType.SUB_OP:
                         case TokenType.LSHIFT_OP:
@@ -280,6 +282,7 @@ namespace ColorzCore.Parser
                             return new EmptyNode();
                         case TokenType.MUL_OP:
                         case TokenType.DIV_OP:
+                        case TokenType.MOD_OP:
                         case TokenType.ADD_OP:
                         case TokenType.SUB_OP:
                         case TokenType.LSHIFT_OP:
@@ -479,42 +482,48 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = ImmutableStack<string>.Nil, ImmutableStack<Tuple<string, int>> seenMacros = ImmutableStack<Tuple<string,int>>.Nil)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = null, ImmutableStack<Tuple<string, int>> seenMacros = null)
         {
+            if (seenDefinitions == null)
+                seenDefinitions = ImmutableStack<string>.Nil;
+            if (seenMacros == null)
+                seenMacros = ImmutableStack<Tuple<string, int>>.Nil;
             bool ret = false;
             //Macros and Definitions.
             if (Macros.ContainsKey(tokens.Current.Content))
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
-                IList<IList<Token>> parameters = ParseMacroParamList(tokens);
-                if (tokens.Current.Type == TokenType.CLOSE_PAREN)
+                if (tokens.Current.Type == TokenType.OPEN_PAREN)
                 {
-                    if(Macros[head.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(head.Content, parameters.Count)))
+
+
+                    IList<IList<Token>> parameters = ParseMacroParamList(tokens);
+                    if (Macros[head.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(head.Content, parameters.Count)))
                     {
-                        tokens.PrependEnumerator(ExpandAll(new List<Token>(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters)), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string,int>(head.Content, parameters.Count), seenMacros)).GetEnumerator());
+                        tokens.PrependEnumerator(ExpandAll(new List<Token>(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters)), seenDefinitions, new ImmutableStack<Tuple<string, int>>(new Tuple<string, int>(head.Content, parameters.Count), seenMacros)).GetEnumerator());
                     }
                     else
                     {
                         Error(head.Location, String.Format("No overload of {0} with {1} parameters, or recursive definition.", head.Content, parameters.Count));
                     }
-                }
-                else if (tokens.Current.Type != TokenType.CLOSE_PAREN)
-                {
-                    Error(tokens.Current.Location, "Unmatched open parenthesis.");
+                    ret = true;
+                    if (tokens.Current.Type == TokenType.IDENTIFIER)
+                        ExpandIdentifier(tokens);
+                    return ret;
                 }
                 else
                 {
-                    Error(head.Location, "Incorrect number of parameters: " + parameters.Count);
+                    tokens.PutBack(head);
                 }
-                ret = true;
-                if (tokens.Current.Type == TokenType.IDENTIFIER)
-                    ExpandIdentifier(tokens);
             }
-            else if (Definitions.ContainsKey(tokens.Current.Content))
+
+            if (Definitions.ContainsKey(tokens.Current.Content))
             {
-                bool noteos = Definitions[tokens.Current.Content].ApplyDefinition(tokens);
-                if (noteos && tokens.Current.Type == TokenType.IDENTIFIER)
+                Token head = tokens.Current;
+                tokens.MoveNext();
+                tokens.PrependEnumerator(Definitions[head.Content].ApplyDefinition(head).GetEnumerator());
+                if (!tokens.EOS && tokens.Current.Type == TokenType.IDENTIFIER)
                 {
                     ExpandIdentifier(tokens);
                 }

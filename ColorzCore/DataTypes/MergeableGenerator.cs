@@ -52,7 +52,8 @@ namespace ColorzCore.DataTypes
         }
         private bool Prime()
         {
-            return myEnums.Peek().MoveNext();
+            EOS = !myEnums.Peek().MoveNext();
+            return !EOS;
         }
         public IEnumerator<T> GetEnumerator()
         {

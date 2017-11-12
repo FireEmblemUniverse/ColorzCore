@@ -113,6 +113,9 @@ namespace ColorzCore.Lexer
                     case '*':
                         yield return new Token(TokenType.MUL_OP, fileName, lineNum, curCol+offset);
                         break;
+                    case '%':
+                        yield return new Token(TokenType.MOD_OP, fileName, lineNum, curCol + offset);
+                        break;
                     case ',':
                         yield return new Token(TokenType.COMMA, fileName, lineNum, curCol+offset);
                         break;

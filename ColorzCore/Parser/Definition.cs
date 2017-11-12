@@ -22,24 +22,12 @@ namespace ColorzCore.Parser
             replacement = defn;
         }
 
-        public bool ApplyDefinition(MergeableGenerator<Token> tokens)
+        public IEnumerable<Token> ApplyDefinition(Token toReplace)
         {
-            if(replacement.Count == 0)
+            for(int i=0; i<replacement.Count; i++)
             {
-                return tokens.MoveNext();
-            }
-            else
-            {
-                IList<Token> toPrepend = new List<Token>();
-                Token defLoc = tokens.Current;
-                for(int i=0; i<replacement.Count; i++)
-                {
-                    Location newLoc = new Location(defLoc.FileName, defLoc.LineNumber, defLoc.ColumnNumber + replacement[i].ColumnNumber - replacement[0].ColumnNumber);
-                    toPrepend.Add(new Token(replacement[i].Type, newLoc, replacement[i].Content));
-                }
-                tokens.MoveNext();
-                tokens.PrependEnumerator(toPrepend.GetEnumerator());
-                return true;
+                Location newLoc = new Location(toReplace.FileName, toReplace.LineNumber, toReplace.ColumnNumber + replacement[i].ColumnNumber - replacement[0].ColumnNumber);
+                yield return new Token(replacement[i].Type, newLoc, replacement[i].Content);
             }
         }
     }

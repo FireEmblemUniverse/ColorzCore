@@ -41,7 +41,7 @@ namespace ColorzCore.DataTypes
         public bool Contains(T toLookFor)
         {
             bool acc = false;
-            for(ImmutableStack<T> temp = this; !acc && !temp.IsEmpty; temp = temp.Tail) acc |= temp.Head == toLookFor;
+            for(ImmutableStack<T> temp = this; !acc && !temp.IsEmpty; temp = temp.Tail) acc |= temp.Head.Equals(toLookFor);
             return acc;
         }
     }

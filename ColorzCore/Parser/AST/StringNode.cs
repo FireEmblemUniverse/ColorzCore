@@ -12,7 +12,7 @@ namespace ColorzCore.Parser.AST
     {
         public Token MyToken { get; }
 
-        public Location MyLocation { get { return myToken.Location; } }
+        public Location MyLocation { get { return MyToken.Location; } }
         public ParamType Type { get { return ParamType.STRING; } }
 
         public StringNode(Token value)

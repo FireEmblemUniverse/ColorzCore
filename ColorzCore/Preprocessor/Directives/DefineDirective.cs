@@ -54,7 +54,7 @@ namespace ColorzCore.Preprocessor.Directives
                     return new Nothing<ILineNode>();
                 }
 
-                Maybe<IList<Token>> toRepl = TokenizeParam(p, parameters[1]);
+                Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1]);
                 if (!toRepl.IsNothing)
                 {
                     if (!p.Macros.ContainsKey(name))
@@ -80,7 +80,7 @@ namespace ColorzCore.Preprocessor.Directives
                     }
                     if (parameters.Count == 2)
                     {
-                        Maybe<IList<Token>> toRepl = TokenizeParam(p, parameters[1]);
+                        Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1]);
                         if (!toRepl.IsNothing)
                         {
                             p.Definitions[name] = new Definition(toRepl.FromJust);
@@ -98,7 +98,12 @@ namespace ColorzCore.Preprocessor.Directives
             }
             return new Nothing<ILineNode>();
         }
-        private Maybe<IList<Token>> TokenizeParam(EAParser p, IParamNode param)
+        delegate Maybe<IList<Token>> ExpParamType(EAParser p, IParamNode param);
+        private static ExpParamType ExpandParam = (EAParser p, IParamNode param) =>
+            TokenizeParam(p, param).Fmap<IEnumerable<Token>>( (IList<Token> l) => 
+            ExpandAllIdentifiers(p, new Queue<Token>(l), ImmutableStack<string>.Nil, ImmutableStack<Tuple<string, int>>.Nil)).Fmap(
+            (IEnumerable<Token> x) => (IList<Token>)new List<Token>(x));
+        private static Maybe<IList<Token>> TokenizeParam(EAParser p, IParamNode param)
         {
 
             switch (param.Type)
@@ -127,25 +132,44 @@ namespace ColorzCore.Preprocessor.Directives
             }
             return new Nothing<IList<Token>>();
         }
-        private IList<Token> ExpandAllIdentifiers(EAParser p, Stack<Token> tokens, ImmutableStack<string> seenDefs, ImmutableStack<Tuple<string, int>> seenMacros)
+        private static IEnumerable<Token> ExpandAllIdentifiers(EAParser p, Queue<Token> tokens, ImmutableStack<string> seenDefs, ImmutableStack<Tuple<string, int>> seenMacros)
         {
-            IList<Token> output = new List<Token>();
+            IEnumerable<Token> output = new List<Token>();
             while(tokens.Count > 0)
             {
-                Token current = tokens.Pop();
+                Token current = tokens.Dequeue();
                 if(current.Type == TokenType.IDENTIFIER)
                 {
                     if(p.Macros.ContainsKey(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
                     {
-                        IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a gergeable generator..... Maybe interface the original better?
+                        IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
+                        if (p.Macros[current.Content].ContainsKey(param.Count))
+                        {
+                            foreach(Token t in  p.Macros[current.Content][param.Count].ApplyMacro(current, param))
+                            {
+                                yield return t; 
+                            }
+                        }
+                        else
+                        {
+                            yield return current;
+                        }
+                    }
+                    else if(p.Definitions.ContainsKey(current.Content))
+                    {
+                        foreach (Token t in p.Definitions[current.Content].ApplyDefinition(current))
+                            yield return t;
+                    }
+                    else
+                    {
+                        yield return current;
                     }
                 } 
                 else
                 {
-                    output.Add(current);
+                    yield return current;
                 }
             }
-            return output;
         }
     }
 }
