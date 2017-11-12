@@ -11,7 +11,7 @@ using ColorzCore.Raws;
 using static ColorzCore.Preprocessor.Handler;
 using System.IO;
 
-//TODO: Use Maybe to cut down on the use of EmptyNode
+//TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
 namespace ColorzCore.Parser
 {
@@ -73,7 +73,12 @@ namespace ColorzCore.Parser
             while (!tokens.EOS)
             {
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
-                    yield return ParseLine(tokens, GlobalScope);
+                {
+                    Maybe<ILineNode> retVal = ParseLine(tokens, GlobalScope);
+                    if (!retVal.IsNothing)
+                        yield return retVal.FromJust;
+
+                }
             }
         }
 
@@ -82,9 +87,11 @@ namespace ColorzCore.Parser
             Location start = tokens.Current.Location;
             tokens.MoveNext();
             BlockNode temp = new BlockNode();
+            Maybe<ILineNode> x;
             while (tokens.Current.Type != TokenType.CLOSE_BRACE && !tokens.EOS)
             {
-                temp.Children.Add(ParseLine(tokens, scopes));
+                if (!(x = ParseLine(tokens, scopes)).IsNothing)
+                    temp.Children.Add(x.FromJust);
             }
             if (!tokens.EOS)
                 tokens.MoveNext();
@@ -99,6 +106,7 @@ namespace ColorzCore.Parser
             //TODO: Replace with real raw information, and error if not valid.
             IList<IParamNode> parameters;
             //TODO: Make intelligent to reject malformed parameters.
+            //TODO: Parse parameters after checking code validity.
             if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
             {
                 parameters = ParseParamList(tokens, scopes);
@@ -157,21 +165,24 @@ namespace ColorzCore.Parser
             IList<IParamNode> paramList = new List<IParamNode>();
             while (tokens.Current.Type != TokenType.NEWLINE && !tokens.EOS)
             {
-                paramList.Add(ParseParam(tokens, scopes));
+                Token head = tokens.Current;
+                ParseParam(tokens, scopes).IfJust(
+                    (IParamNode n) => paramList.Add(n),
+                    () => Error(head.Location, "Expected parameter."));
             }
             return paramList;
         }
 
-        private IParamNode ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<IParamNode> ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             Token head = tokens.Current;
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(head.Location, ParseList(tokens, scopes));
+                    return new Just<IParamNode>(new ListNode(head.Location, ParseList(tokens, scopes)));
                 case TokenType.STRING:
                     tokens.MoveNext();
-                    return new StringNode(head);
+                    return new Just<IParamNode>(new StringNode(head));
                 case TokenType.IDENTIFIER:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
                     tokens.MoveNext();
@@ -186,16 +197,16 @@ namespace ColorzCore.Parser
                         else
                         {
                             //TODO: Smart errors if trying to redefine a macro with the same num of params.
-                            return new MacroInvocationNode(this, head, param);
+                            return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
                         }
                     }
                     else
                     {
                         tokens.PutBack(head);
-                        return ParseAtom(tokens, scopes);
+                        return ParseAtom(tokens, scopes).Fmap((IAtomNode x) => (IParamNode)x);
                     }
                 default:
-                    return ParseAtom(tokens, scopes);
+                    return ParseAtom(tokens, scopes).Fmap((IAtomNode x) => (IParamNode)x);
             }
         }
 
@@ -215,7 +226,7 @@ namespace ColorzCore.Parser
 
 
 
-        private IAtomNode ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<IAtomNode> ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             //Use Shift Reduce Parsing
             Token head = tokens.Current;
@@ -266,18 +277,27 @@ namespace ColorzCore.Parser
                             break;
                         case TokenType.OPEN_PAREN:
                             tokens.MoveNext();
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, ParseAtom(tokens, scopes))));
+                            Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
                             if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                             {
                                 Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
-                                return new EmptyNode();
+                                return new Nothing<IAtomNode>();
                             }
-                            tokens.MoveNext();
-                            break;
+                            else if (interior.IsNothing)
+                            {
+                                Log(Errors, lookAhead.Location, "Expected expression inside paretheses. ");
+                                return new Nothing<IAtomNode>();
+                            }
+                            else
+                            {
+                                grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, interior.FromJust)));
+                                tokens.MoveNext();
+                                break;
+                            }
                         case TokenType.COMMA:
                             Log(Errors, lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
                             IgnoreRestOfStatement(tokens);
-                            return new EmptyNode();
+                            return new Nothing<IAtomNode>();
                         case TokenType.MUL_OP:
                         case TokenType.DIV_OP:
                         case TokenType.MOD_OP:
@@ -292,7 +312,7 @@ namespace ColorzCore.Parser
                         default:
                             Log(Errors, lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + '.');
                             IgnoreRestOfStatement(tokens);
-                            return new EmptyNode();
+                            return new Nothing<IAtomNode>();
                     }
                 }
 
@@ -312,7 +332,7 @@ namespace ColorzCore.Parser
                     {
                         Log(Errors, lookAhead.Location, String.Format("Unexpected token: {0}", lookAhead.Content));
                         tokens.MoveNext();
-                        return new EmptyNode();
+                        return new Nothing<IAtomNode>();
                     }
                     else
                     {
@@ -330,7 +350,7 @@ namespace ColorzCore.Parser
             {
                 Log(Errors, grammarSymbols.Peek().GetRight.Location, "Unexpected token: " + grammarSymbols.Peek().GetRight.Type);
             }
-            return grammarSymbols.Peek().GetLeft;
+            return new Just<IAtomNode>(grammarSymbols.Peek().GetLeft);
         }
 
         /***
@@ -354,27 +374,33 @@ namespace ColorzCore.Parser
 
         private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
+            Token head = tokens.Current;
             tokens.MoveNext();
             IList<IAtomNode> atoms = new List<IAtomNode>();
             do
             {
-                atoms.Add(ParseAtom(tokens, scopes));
+                Maybe<IAtomNode> res = ParseAtom(tokens, scopes);
+                res.IfJust(
+                    (IAtomNode n) => atoms.Add(n),
+                    () => Error(tokens.Current.Location, "Expected atomic value, got " + tokens.Current.Type + "."));
                 if (tokens.Current.Type == TokenType.COMMA)
                     tokens.MoveNext();
             } while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET);
             if (tokens.Current.Type == TokenType.CLOSE_BRACKET)
                 tokens.MoveNext();
+            else
+                Error(head.Location, "Unmatched open bracket.");
             return atoms;
         }
 
-        public ILineNode ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public Maybe<ILineNode> ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             if (IsIncluding)
             {
                 if (tokens.Current.Type == TokenType.NEWLINE)
                 {
                     tokens.MoveNext();
-                    return new EmptyNode();
+                    return new Nothing<ILineNode>();
                 }
                 Token nextToken = tokens.Current;
                 switch (nextToken.Type)
@@ -404,16 +430,16 @@ namespace ColorzCore.Parser
                                     Log(Errors, nextToken.Location, "Unexpected token " + tokens.Current.Type);
                                     IgnoreRestOfLine(tokens);
                                 }
-                                return new EmptyNode();
+                                return new Nothing<ILineNode>();
                             }
                             else
                             {
                                 tokens.PutBack(nextToken);
-                                return new StatementListNode(ParseStatementList(tokens, scopes));
+                                return new Just<ILineNode>(new StatementListNode(ParseStatementList(tokens, scopes)));
                             }
                         }
                     case TokenType.OPEN_BRACE:
-                        return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(scopes.Head.IncludedBy), scopes));
+                        return new Just<ILineNode>(ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(scopes.Head.IncludedBy), scopes)));
                     case TokenType.PREPROCESSOR_DIRECTIVE:
                         return ParsePreprocessor(tokens, scopes);
                     case TokenType.OPEN_BRACKET:
@@ -429,7 +455,7 @@ namespace ColorzCore.Parser
                         break;
                 }
                 IgnoreRestOfLine(tokens);
-                return new EmptyNode();
+                return new Nothing<ILineNode>();
             }
             else
             {
@@ -442,25 +468,21 @@ namespace ColorzCore.Parser
                 else
                 {
                     Log(Errors, null, String.Format("Missing {0} endif(s).", Inclusion.Count));
-                    return new EmptyNode();
+                    return new Nothing<ILineNode>();
                 }
             }
         }
 
-        private ILineNode ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<ILineNode> ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             Token directiveName = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParseParamList(tokens, scopes);
             Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
-            if (retVal.IsNothing)
-                return new EmptyNode();
-            else
-            {
+            if (!retVal.IsNothing)
                 currentOffset += retVal.FromJust.Size;
-                return retVal.FromJust;
-            }
+            return retVal;
         }
 
         private IList<StatementNode> ParseStatementList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)

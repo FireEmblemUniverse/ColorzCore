@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 namespace ColorzCore.DataTypes
 {
     public delegate R UnaryFunction<T,R>(T val);
+    public delegate R RConst<R>();
+    public delegate void TAction<T>(T val);
+    public delegate void NullaryAction();
     public delegate Maybe<R> MaybeAction<T, R>(T val);
 
 #pragma warning disable IDE1006 // Naming Styles
@@ -17,6 +20,8 @@ namespace ColorzCore.DataTypes
         T FromJust { get; }
         Maybe<R> Fmap<R>(UnaryFunction<T, R> f);
         Maybe<R> Bind<R>(MaybeAction<T, R> f);
+        R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing);
+        void IfJust(TAction<T> just, NullaryAction nothing);
     }
     public class Just<T> : Maybe<T>
     {
@@ -36,6 +41,14 @@ namespace ColorzCore.DataTypes
         {
             return f(FromJust);
         }
+        public R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing)
+        {
+            return just(FromJust);
+        }
+        public void IfJust(TAction<T> just, NullaryAction nothing)
+        {
+            just(FromJust);
+        }
     }
     public class Nothing<T> : Maybe<T>
     {
@@ -51,6 +64,14 @@ namespace ColorzCore.DataTypes
         public Maybe<R> Bind<R>(MaybeAction<T, R> f)
         {
             return new Nothing<R>();
+        }
+        public R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing)
+        {
+            return nothing();
+        }
+        public void IfJust(TAction<T> just, NullaryAction nothing)
+        {
+            nothing();
         }
     }
 

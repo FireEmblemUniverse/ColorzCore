@@ -56,7 +56,6 @@
     <Compile Include="Parser\AST\AtomNodeKernel.cs" />
     <Compile Include="Parser\AST\BlockNode.cs" />
     <Compile Include="Parser\AST\DataNode.cs" />
-    <Compile Include="Parser\AST\EmptyNode.cs" />
     <Compile Include="Parser\AST\IAtomNode.cs" />
     <Compile Include="Parser\AST\IdentifierNode.cs" />
     <Compile Include="Parser\AST\ILineNode.cs" />
