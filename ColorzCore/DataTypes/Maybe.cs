@@ -21,7 +21,7 @@ namespace ColorzCore.DataTypes
         Maybe<R> Fmap<R>(UnaryFunction<T, R> f);
         Maybe<R> Bind<R>(MaybeAction<T, R> f);
         R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing);
-        void IfJust(TAction<T> just, NullaryAction nothing);
+        void IfJust(TAction<T> just, NullaryAction nothing = null);
     }
     public class Just<T> : Maybe<T>
     {
@@ -71,7 +71,8 @@ namespace ColorzCore.DataTypes
         }
         public void IfJust(TAction<T> just, NullaryAction nothing)
         {
-            nothing();
+            if(nothing != null)
+                nothing();
         }
     }
 

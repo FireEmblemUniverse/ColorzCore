@@ -19,7 +19,7 @@ namespace ColorzCore.Parser
     {
         public Dictionary<string, Dictionary<int, Macro>> Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
-        public Dictionary<string, Raw> Raws { get; }
+        public Dictionary<string, IList<Raw>> Raws { get; }
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT" }; // TODO
         public ImmutableStack<Closure> GlobalScope { get; }
         public ImmutableStack<bool> Inclusion { get; set; }
@@ -40,17 +40,17 @@ namespace ColorzCore.Parser
                 return acc;
             } }
 
-        public EAParser()
+        public EAParser(Dictionary<string, IList,Raw>> raws)
         {
             GlobalScope = new ImmutableStack<Closure>(new Closure(""), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<int>();
             Messages = new List<string>();
             Warnings = new List<string>();
             Errors = new List<string>();
+            Raws = raws;
             currentOffset = 0;
             Macros = new Dictionary<string, Dictionary<int, Macro>>();
             Definitions = new Dictionary<string, Definition>();
-            Raws = new Dictionary<string, Raw>();
             Inclusion = ImmutableStack<bool>.Nil;
         }
 
@@ -70,8 +70,11 @@ namespace ColorzCore.Parser
         {
             return !IsReservedName(name);
         }
-        public IEnumerable<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
+        public IList<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
+            //TODO: Make BlockNode or EAProgramNode?
+            //Note must be strict to get all information on the closure before evaluating terms.
+            IList<ILineNode> myLines = new List<ILineNode>();
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
             tokens.MoveNext();
             while (!tokens.EOS)
@@ -79,11 +82,10 @@ namespace ColorzCore.Parser
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                 {
                     Maybe<ILineNode> retVal = ParseLine(tokens, GlobalScope);
-                    if (!retVal.IsNothing)
-                        yield return retVal.FromJust;
-
+                    retVal.IfJust( (ILineNode n) => myLines.Add(n));
                 }
             }
+            return myLines;
         }
 
         private BlockNode ParseBlock(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
@@ -128,6 +130,7 @@ namespace ColorzCore.Parser
             }
             else if (Raws.ContainsKey(head.Content))
             {
+                //TODO: Check for matches. Currently should type error.
                 StatementNode temp = new RawNode(Raws[head.Content], head, parameters);
                 currentOffset += temp.Size;
                 return temp;

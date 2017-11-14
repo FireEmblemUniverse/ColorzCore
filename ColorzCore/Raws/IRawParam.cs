@@ -12,7 +12,7 @@ namespace ColorzCore.Raws
         int Position { get; }
         int Length { get; }
         IParamShape Shape { get; }
-        IEnumerable<byte> Bytes { get; }
+        IEnumerable<byte> Fit(IParamNode input);
         /**
          * From Language.raws:
          * 

@@ -2,6 +2,7 @@
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -20,7 +21,7 @@ namespace ColorzCore
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
             Tokenizer myTokenizer = new Tokenizer();
-            EAParser myParser = new EAParser();
+            EAParser myParser = new EAParser(new Dictionary<string, IList<Raw>>());
 
             /*
             foreach (Token t in myTokenizer.Tokenize(inputStream, fileName))
