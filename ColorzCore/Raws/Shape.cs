@@ -30,7 +30,7 @@ namespace ColorzCore.Raws
             public ParamType Type => ParamType.LIST;
             public bool Fits(IParamShape target)
             {
-
+                return
             }
         }
 
