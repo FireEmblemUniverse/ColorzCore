@@ -23,12 +23,6 @@ namespace ColorzCore.Parser.AST
 
         public ParamType Type => ParamType.MACRO;
 
-        //TODO: Uh..... yeah.... I'll figure out a way to have this, later.
-        public byte[] ToBytes()
-        {
-            return new byte[0]{ }; //This should be OK?
-        }
-
         public string PrettyPrint()
         {
             StringBuilder sb = new StringBuilder();

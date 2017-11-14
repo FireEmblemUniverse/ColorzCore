@@ -40,7 +40,7 @@ namespace ColorzCore.Parser
                 return acc;
             } }
 
-        public EAParser(Dictionary<string, IList,Raw>> raws)
+        public EAParser(Dictionary<string, IList<Raw>> raws)
         {
             GlobalScope = new ImmutableStack<Closure>(new Closure(""), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<int>();
@@ -105,7 +105,7 @@ namespace ColorzCore.Parser
                 Log(Errors, start, "Unmatched brace.");
             return temp;
         }
-        private StatementNode ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             Token head = tokens.Current;
             tokens.MoveNext();
@@ -126,19 +126,29 @@ namespace ColorzCore.Parser
             {
                 //TODO: Handle this case
                 //return new SpecialActionNode(); ???
-                return new RawNode(null, head, parameters);
+                return new Just<StatementNode>(new RawNode(null, head, parameters));
             }
             else if (Raws.ContainsKey(head.Content))
             {
                 //TODO: Check for matches. Currently should type error.
-                StatementNode temp = new RawNode(Raws[head.Content], head, parameters);
-                currentOffset += temp.Size;
-                return temp;
+                foreach(Raw r in Raws[head.Content])
+                {
+                    if(r.Fits(parameters))
+                    {
+                        StatementNode temp = new RawNode(r, head, parameters);
+                        currentOffset += temp.Size;
+                        return new Just<StatementNode>(temp);
+                    }
+                }
+                //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
+                Error(head.Location, "Incorrect parameters in raw " + head.Content + '.');
+                IgnoreRestOfStatement(tokens);
+                return new Nothing<StatementNode>();
             }
             else //TODO: Move outside of this else.
             {
                 Log(Errors, head.Location, "Unrecognized code: " + head.Content);
-                return new RawNode(null, head, parameters); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
+                return new Just<StatementNode>(new RawNode(null, head, parameters)); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
             }
         }
 
@@ -501,7 +511,7 @@ namespace ColorzCore.Parser
             IList<StatementNode> stmts = new List<StatementNode>();
             do
             {
-                stmts.Add(ParseStatement(tokens, scopes));
+                ParseStatement(tokens, scopes).IfJust((StatementNode n) => stmts.Add(n));
                 if (tokens.Current.Type == TokenType.SEMICOLON)
                     tokens.MoveNext();
             } while (tokens.Current.Type != TokenType.NEWLINE);

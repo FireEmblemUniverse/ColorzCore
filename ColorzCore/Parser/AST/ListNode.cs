@@ -11,34 +11,24 @@ namespace ColorzCore.Parser.AST
     public class ListNode : IParamNode
     {
         public Location MyLocation { get; }
-        private IList<IAtomNode> interior;
+        public IList<IAtomNode> Interior { get; }
 
         public ParamType Type { get { return ParamType.LIST; } }
 
         public ListNode(Location startLocation, IList<IAtomNode> param)
         {
             MyLocation = startLocation;
-            interior = param;
-        }
-
-        public byte[] ToBytes()
-        {
-            byte[] temp = new byte[interior.Count];
-            for(int i=0; i<interior.Count; i++)
-            {
-                temp[i] = (byte) interior[i].Evaluate();
-            }
-            return temp;
+            Interior = param;
         }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
             sb.Append('[');
-            for(int i=0; i<interior.Count; i++)
+            for(int i=0; i<Interior.Count; i++)
             {
-                sb.Append(interior[i].Evaluate());
-                if(i < interior.Count - 1)
+                sb.Append(Interior[i].Evaluate());
+                if(i < Interior.Count - 1)
                     sb.Append(',');
             }
             sb.Append('[');
@@ -49,10 +39,10 @@ namespace ColorzCore.Parser.AST
         {
             StringBuilder sb = new StringBuilder();
             sb.Append('[');
-            for (int i = 0; i < interior.Count; i++)
+            for (int i = 0; i < Interior.Count; i++)
             {
-                sb.Append(interior[i].PrettyPrint());
-                if (i < interior.Count - 1)
+                sb.Append(Interior[i].PrettyPrint());
+                if (i < Interior.Count - 1)
                     sb.Append(',');
             }
             sb.Append(']');
@@ -62,7 +52,7 @@ namespace ColorzCore.Parser.AST
         {
             //Similar code to ParenthesizedAtom
             IList<IList<Token>> temp = new List<IList<Token>>();
-            foreach(IAtomNode n in interior)
+            foreach(IAtomNode n in Interior)
             {
                 temp.Add(new List<Token>(n.ToTokens()));
             }
@@ -83,5 +73,6 @@ namespace ColorzCore.Parser.AST
             }
             yield return new Token(TokenType.CLOSE_BRACKET, new Location(myEnd.file, myEnd.lineNum, myEnd.colNum + temp.Last().Last().Content.Length), "]");
         }
+        public int NumCoords { get { return Interior.Count; } }
     }
 }

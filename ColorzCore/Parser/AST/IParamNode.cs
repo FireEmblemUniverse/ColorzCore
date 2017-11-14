@@ -11,7 +11,6 @@ namespace ColorzCore.Parser.AST
     {
         string ToString(); //For use in other programs.
         ParamType Type { get; }
-        byte[] ToBytes();
         string PrettyPrint();
         Location MyLocation { get; }
     }

@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataBlock.cs" />
+    <Compile Include="DataTypes\Extension.cs" />
     <Compile Include="DataTypes\ImmutableStack.cs" />
     <Compile Include="DataTypes\Location.cs" />
     <Compile Include="DataTypes\Maybe.cs" />
@@ -88,7 +89,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IWritable.cs" />
+    <Compile Include="Raws\AtomicParam.cs" />
     <Compile Include="Raws\IRawParam.cs" />
+    <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />
     <Compile Include="Raws\Shape.cs" />
     <Compile Include="WritableInt.cs" />

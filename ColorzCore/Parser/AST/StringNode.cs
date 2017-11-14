@@ -20,7 +20,7 @@ namespace ColorzCore.Parser.AST
             MyToken = value;
         }
 
-        public byte[] ToBytes()
+        public IEnumerable<byte> ToBytes()
         {
             return Encoding.ASCII.GetBytes(ToString());
         }

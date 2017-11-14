@@ -16,12 +16,6 @@ namespace ColorzCore.Parser.AST
 
         public ParamType Type { get { return ParamType.ATOM; } }
 
-        public byte[] ToBytes()
-        {
-            int temp = this.Evaluate();
-            return new byte[4] { (byte)temp, (byte)(temp << 8), (byte)(temp << 16), (byte)(temp << 24) };
-        }
-
         public override string ToString()
         {
             return Evaluate().ToString();

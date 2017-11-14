@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.Parser.AST;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,7 +12,7 @@ namespace ColorzCore.Raws
         string Name { get; }
         int Position { get; }
         int Length { get; }
-        IParamShape Shape { get; }
+        bool Fits(IParamNode input);
         IEnumerable<byte> Fit(IParamNode input);
         /**
          * From Language.raws:
