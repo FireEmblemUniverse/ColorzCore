@@ -8,6 +8,11 @@ namespace ColorzCore.Raws
 {
     interface IRawParam
     {
+        string Name { get; }
+        int Position { get; }
+        int Length { get; }
+        IParamShape Shape { get; }
+        IEnumerable<byte> Bytes { get; }
         /**
          * From Language.raws:
          * 
