@@ -1,5 +1,6 @@
 ﻿using ColorzCore.Parser.AST;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,10 +11,10 @@ namespace ColorzCore.Raws
     interface IRawParam
     {
         string Name { get; }
-        int Position { get; }
+        int Position { get; } //Length and position in bits
         int Length { get; }
         bool Fits(IParamNode input);
-        IEnumerable<byte> Fit(IParamNode input);
+        void Set(BitArray data, IParamNode input);
         /**
          * From Language.raws:
          * 

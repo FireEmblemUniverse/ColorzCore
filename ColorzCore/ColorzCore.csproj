@@ -90,6 +90,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IWritable.cs" />
     <Compile Include="Raws\AtomicParam.cs" />
+    <Compile Include="Raws\Flag.cs" />
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />

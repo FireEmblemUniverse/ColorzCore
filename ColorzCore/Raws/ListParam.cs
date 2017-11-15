@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ColorzCore.Parser.AST;
 using ColorzCore.DataTypes;
+using System.Collections;
 
 namespace ColorzCore.Raws
 {
@@ -14,33 +15,32 @@ namespace ColorzCore.Raws
         public int Position { get; }
         public int Length { get; }
 
-        private int minCoords, maxCoords;
+        private int numCoords;
 
-        public ListParam(string name, int position, int length, int minCoords, int maxCoords)
+        public ListParam(string name, int position, int length, int numCoords)
         {
             Name = name;
             Position = position;
             Length = length;
-            this.minCoords = minCoords;
-            this.maxCoords = maxCoords;
+            this.numCoords = numCoords;
         }
 
-        public IEnumerable<byte> Fit(IParamNode input)
+        public void Set(BitArray data, IParamNode input)
         {
             int count = 0;
             IList<IAtomNode> interior = ((ListNode)input).Interior;
-            int bytesPerAtom = Length / maxCoords;
+            int bitsPerAtom = Length / numCoords;
             foreach(IAtomNode a in interior)
             {
                 int res = a.Evaluate();
-                for(int i=0; i<bytesPerAtom; i++, res >>= 8)
+                for(int i=0; i<bitsPerAtom; i++, res >>= 1)
                 {
-                    yield return (byte)res;
-                    count++;
+                    data[i + Position + count] = (res & 1) == 1;
                 }
+                count += bitsPerAtom;
             }
-            for(;count < Length; count++)
-                yield return 0;
+            for (; count < Length; count++)
+                data[Position + count] = false;
         }
 
         public bool Fits(IParamNode input)
@@ -48,7 +48,7 @@ namespace ColorzCore.Raws
             if (input.Type == ParamType.LIST)
             {
                 ListNode n = (ListNode)input;
-                return n.NumCoords >= minCoords && n.NumCoords <= maxCoords;
+                return n.NumCoords >= minCoords && n.NumCoords <= numCoords;
             }
             else
                 return false;

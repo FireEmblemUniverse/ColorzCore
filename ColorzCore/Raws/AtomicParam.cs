@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ColorzCore.Parser.AST;
 using ColorzCore.DataTypes;
+using System.Collections;
 
 namespace ColorzCore.Raws
 {
@@ -16,11 +17,25 @@ namespace ColorzCore.Raws
 
         public int Length { get; }
 
-        public IEnumerable<byte> Fit(IParamNode input)
+        private bool pointer;
+
+        public AtomicParam(string name, int position, int length, bool isPointer)
+        {
+            Name = name;
+            Position = position;
+            Length = length;
+            pointer = isPointer;
+        }
+
+        public void Set(BitArray data, IParamNode input)
         {
             int res = ((IAtomNode)input).Evaluate();
+            if (pointer)
+                res |= 0x08000000;
             byte[] resBytes = { (byte)res, (byte)(res << 8), (byte)(res << 16), (byte)(res << 24) };
-            return resBytes.Take(Length).PadTo<byte>(Length, 0);
+            BitArray bits = new BitArray(resBytes);
+            for (int i = Position; i < Position + Length; i++)
+                data[i] = bits[i - Position];
         }
 
         public bool Fits(IParamNode input)
