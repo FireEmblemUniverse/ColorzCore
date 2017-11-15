@@ -71,8 +71,7 @@ namespace ColorzCore.DataTypes
         }
         public void IfJust(TAction<T> just, NullaryAction nothing)
         {
-            if(nothing != null)
-                nothing();
+            nothing?.Invoke();
         }
     }
 

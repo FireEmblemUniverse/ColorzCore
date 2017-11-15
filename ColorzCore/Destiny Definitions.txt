@@ -1,0 +1,149 @@
+//ifndef guards
+#ifndef DESTINY_DEFINITIONS
+
+#define DESTINY_DEFINITIONS
+//For wizard stuff
+#ifndef VeinDefinitions
+    #define VeinDefinitions
+    #define Vein_Map_Sprite_Number 0x67 //Use the one after Light Rune for now
+    #define DragonVeinSFXID 0x57
+    #define DragonVeinTrapID 0x6
+    #define DragonVeinEffectTableOffset 0xF00000
+    #define VeinEffect(id, event) "ORG DragonVeinEffectTableOffset+0x4*id; POIN event"
+    #define Vein(XX,YY,EffectID) "BYTE DragonVeinTrapID XX YY EffectID 0x0 0x0"
+    
+    #define VeinActivation "EARTHQUAKE_START 0x0; MUSS DragonVeinSFXID; STAL 0x20; FlashWhite; STAL 0xC0; EARTHQUAKE_END; MURE 0x06; STAL 0x40"
+#endif
+
+#ifndef ItemTable
+  #define ItemTable 0x809B10
+#endif
+#ifndef DebuffTable
+    #define DebuffTable 0x203F100
+#endif
+#ifndef TextTable
+    #define TextTable 0x15D48C
+#endif
+#ifndef MugTable
+    #define MugTable 0x8ACBC4
+#endif
+
+#ifndef SongTableOffset
+  #define SongTableOffset  0x224470
+  #define SongTable(index,SongPointer,Group) "PUSH; ORG SongTableOffset+(8*index); POIN SongPointer; SHORT Group Group; POP"
+#endif
+
+
+#include "Text/Text Definitions.txt"
+#include "Events/Vein Definitions.txt"
+#include "Mugs and Graphics/Graphics Definitions.txt"
+#include "Table Definitions.txt"
+
+//Player
+#define Arch 0x01
+#define Ash 0x02
+#define Colorz 0x03
+#define Zim 0x04
+#define Ghast 0x05
+#define L95 0x06
+#define Ciraxis 0x07
+#define Tera 0x08
+#define Punk 0x09
+#define MC 0x0A
+#define Regent 0x0B
+#define Alusq 0x0C
+#define Fate 0x0D
+#define Bluid 0x0E
+#define BlueDruid 0xE
+#define Sentry 0x10
+#define Circles 0x11
+#define Tequila 0x12
+#define Cam 0x13
+#define Sety 0x14
+#define Blyvern 0x15
+#define Alfred 0x16
+#define Scorcher 0x17
+#define Nintenlord 0x18
+
+//Generics
+#define PrologueGeneric1 0x81
+#define PrologueGeneric2 0x82
+#define PrologueGeneric3 0x83
+#define ChOneGeneric1 0x84
+#define ChOneGeneric2 0x85
+#define ChOneGeneric3 0x86
+
+//Boss
+#define Batta 0x68
+#define Damas 0x46
+#define Gazga 0x4F
+//#define ch2 0x47
+//#define ch3 0x48
+//#define ch4 0x49
+//#define ch5 0x4A
+#define Onmi 0x4B
+//#define Ch7 0x4C
+#define Kaga 0x4D
+#define IntSys 0x4E
+
+//NPC
+
+//Classes
+#define NohrPrince 0x01
+#define HronPrince NohrPrince
+//#define Troubadour 0x4B
+#define Maid 0x2C
+#define Ninja 0x44
+#define PegasusMage 0x48
+#define Dawg 0x5B
+#define DarkMage Mage //Different class for Diviner? Monk?
+#define Lancer Soldier
+
+//Items
+//Placeholders
+//Salt
+#define BreakableIronSword Rapier
+#define BrassKatana SlimSword
+#define IronKatana IronSword
+#define SteelKatana SteelSword
+
+//Naginatas
+#define BrassNaginata SlimLance
+#define IronNaginata IronLance
+
+//Alcohol
+#define BronzeAxe IronAxe //For now... Use poisons in the future?
+#define BrassClub BronzeAxe
+#define IronClub SteelAxe
+
+//Swag
+#define BronzeBow IronBow //Also for now...
+#define BrassYumi BronzeBow
+
+//Japan
+#define RatSpirit Fire
+#define OxSpirit Thunder
+#define TigerSpirit Elfire
+
+#define Tinder Forblaze
+
+//Shurikens
+#define BrassShuriken Lightning
+#define IronShuriken Shine
+
+//Weed
+#define BloomFestal Heal
+#define SunFestal Mend
+#define MoonFestal Recover
+#define WaneFestal Physic
+#define GrandFestal Fortify
+#define Freeze Sleep
+
+//Stones
+#define Dragonstone 0xAA
+//#define Beaststone
+
+//Items
+#define Tonic 0xA2
+
+#endif

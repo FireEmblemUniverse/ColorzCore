@@ -34,6 +34,7 @@ namespace ColorzCore.Lexer
         STRING,
         WIN_PATHNAME,
         IDENTIFIER,
+        MAYBE_MACRO,
         ERROR //Catch-all for invalid characters.
     }
 }

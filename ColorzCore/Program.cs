@@ -22,6 +22,7 @@ namespace ColorzCore
             //FirstPass(Tokenizer.Tokenize(inputStream));
             Tokenizer myTokenizer = new Tokenizer();
             EAParser myParser = new EAParser(new Dictionary<string, IList<Raw>>());
+            myParser.Definitions["_FE8_"] = new Definition(); //For now, hardcode to assemble FE8.
 
             /*
             foreach (Token t in myTokenizer.Tokenize(inputStream, fileName))

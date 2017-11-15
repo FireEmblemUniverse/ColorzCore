@@ -26,7 +26,7 @@ namespace ColorzCore.Parser
         {
             for(int i=0; i<replacement.Count; i++)
             {
-                Location newLoc = new Location(toReplace.FileName, toReplace.LineNumber, toReplace.ColumnNumber + replacement[i].ColumnNumber - replacement[0].ColumnNumber);
+                Location newLoc = new Location(toReplace.FileName, toReplace.LineNumber, toReplace.ColumnNumber);
                 yield return new Token(replacement[i].Type, newLoc, replacement[i].Content);
             }
         }

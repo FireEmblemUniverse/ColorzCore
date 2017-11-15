@@ -19,6 +19,8 @@ namespace ColorzCore.Raws
         public HashSet<string> Game { get; }
         private IList<IRawParam> myParams;
         private IList<Tuple<int, int, int>> fixedParams; //position, length, value
+        private Maybe<int> terminatingList;
+        private bool repeatable;
 
         /***
          * Flags: 
@@ -60,7 +62,8 @@ namespace ColorzCore.Raws
           Forbids code from participating in disassembly.
   */
         
-        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams, IList<Tuple<int, int, int>> fixedParams)
+        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams, 
+            IList<Tuple<int, int, int>> fixedParams, Maybe<int> terminatingList, bool repeatable)
         {
             Name = name;
             Length = length;
@@ -69,11 +72,14 @@ namespace ColorzCore.Raws
             OffsetMod = offsetMod;
             myParams = varParams;
             this.fixedParams = fixedParams;
+            this.terminatingList = terminatingList;
+            this.repeatable = repeatable;
         }
         
         public static Raw CopyWithNewName(Raw baseRaw, string newName)
         {
-            return new Raw(newName, baseRaw.Length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, baseRaw.fixedParams);
+            return new Raw(newName, baseRaw.Length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, 
+                baseRaw.fixedParams, baseRaw.terminatingList, baseRaw.repeatable);
         }
         
         public static IList<Raw> ParseAllRaws(FileStream fs)
@@ -125,7 +131,13 @@ namespace ColorzCore.Raws
             }
             HashSet<string> game = flagDict.ContainsKey("game") ? new HashSet<string>(flagDict["game"].Values.GetLeft) : new HashSet<string>();
             int offsetMod = flagDict.ContainsKey("offsetMod") ? Int32.Parse(flagDict["offsetMod"].Values.GetLeft[0]) : 4;
-            return new Raw(name, lengthVal, Int16.Parse(code), offsetMod, game, parameters, fixedParams);
+            Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(Int32.Parse(flagDict["offsetMod"].Values.GetLeft[0])) : (Maybe<int>)new Nothing<int>();
+            bool repeatable = flagDict.ContainsKey("repeatable");
+            if((repeatable || !terminatingList.IsNothing) && (parameters.Count > 1) && fixedParams.Count > 0)
+            {
+                throw new Exception("Repeatable or terminatingList code with multiple parameters or fixed parameters.");
+            }
+            return new Raw(name, lengthVal, Int16.Parse(code), offsetMod, game, parameters, fixedParams, terminatingList, repeatable);
         } 
 
         public static Either<IRawParam, Tuple<int, int, int>> ParseParam(string paramLine, int indexMode)

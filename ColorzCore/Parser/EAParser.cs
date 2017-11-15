@@ -107,6 +107,7 @@ namespace ColorzCore.Parser
         }
         private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
+            while (ExpandIdentifier(tokens)) ;
             Token head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
@@ -177,20 +178,22 @@ namespace ColorzCore.Parser
             return parameters;
         }
 
-        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             IList<IParamNode> paramList = new List<IParamNode>();
-            while (tokens.Current.Type != TokenType.NEWLINE && !tokens.EOS)
+            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && !tokens.EOS)
             {
                 Token head = tokens.Current;
-                ParseParam(tokens, scopes).IfJust(
+                ParseParam(tokens, scopes, expandDefs).IfJust(
                     (IParamNode n) => paramList.Add(n),
                     () => Error(head.Location, "Expected parameter."));
             }
+            if (tokens.Current.Type == TokenType.SEMICOLON)
+                tokens.MoveNext();
             return paramList;
         }
 
-        private Maybe<IParamNode> ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<IParamNode> ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             Token head = tokens.Current;
             switch (tokens.Current.Type)
@@ -200,30 +203,23 @@ namespace ColorzCore.Parser
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new Just<IParamNode>(new StringNode(head));
-                case TokenType.IDENTIFIER:
+                case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
                     tokens.MoveNext();
-                    if (tokens.Current.Type == TokenType.OPEN_PAREN)
+                    IList<IList<Token>> param = ParseMacroParamList(tokens);
+                    if (!expandDefs && Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
                     {
-                        IList<IList<Token>> param = ParseMacroParamList(tokens);
-                        if (Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
-                        {
-                            tokens.PrependEnumerator(Macros[head.Content][param.Count].ApplyMacro(head, param).GetEnumerator());
-                            return ParseParam(tokens, scopes);
-                        }
-                        else
-                        {
-                            //TODO: Smart errors if trying to redefine a macro with the same num of params.
-                            return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
-                        }
+                        tokens.PrependEnumerator(Macros[head.Content][param.Count].ApplyMacro(head, param).GetEnumerator());
+                        return ParseParam(tokens, scopes);
                     }
                     else
                     {
-                        tokens.PutBack(head);
-                        return ParseAtom(tokens, scopes).Fmap((IAtomNode x) => (IParamNode)x);
+                        //TODO: Smart errors if trying to redefine a macro with the same num of params.
+                        return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
                     }
+                case TokenType.IDENTIFIER:
                 default:
-                    return ParseAtom(tokens, scopes).Fmap((IAtomNode x) => (IParamNode)x);
+                    return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
             }
         }
 
@@ -243,7 +239,7 @@ namespace ColorzCore.Parser
 
 
 
-        private Maybe<IAtomNode> ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<IAtomNode> ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             //Use Shift Reduce Parsing
             Token head = tokens.Current;
@@ -289,26 +285,37 @@ namespace ColorzCore.Parser
                     switch (lookAhead.Type)
                     {
                         case TokenType.IDENTIFIER:
+                        case TokenType.MAYBE_MACRO:
                         case TokenType.NUMBER:
                             shift = true;
                             break;
                         case TokenType.OPEN_PAREN:
-                            tokens.MoveNext();
-                            Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
-                            if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                             {
-                                Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
-                                return new Nothing<IAtomNode>();
-                            }
-                            else if (interior.IsNothing)
-                            {
-                                Log(Errors, lookAhead.Location, "Expected expression inside paretheses. ");
-                                return new Nothing<IAtomNode>();
-                            }
-                            else
-                            {
-                                grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, interior.FromJust)));
                                 tokens.MoveNext();
+                                Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
+                                if (tokens.Current.Type != TokenType.CLOSE_PAREN)
+                                {
+                                    Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
+                                    return new Nothing<IAtomNode>();
+                                }
+                                else if (interior.IsNothing)
+                                {
+                                    Log(Errors, lookAhead.Location, "Expected expression inside paretheses. ");
+                                    return new Nothing<IAtomNode>();
+                                }
+                                else
+                                {
+                                    grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, interior.FromJust)));
+                                    tokens.MoveNext();
+                                    break;
+                                }
+                            }
+                        case TokenType.SUB_OP:
+                            {
+                                //Assume unary negation.
+                                tokens.MoveNext();
+                                Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
+                                grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); //TODO: The nothing case.
                                 break;
                             }
                         case TokenType.COMMA:
@@ -319,7 +326,6 @@ namespace ColorzCore.Parser
                         case TokenType.DIV_OP:
                         case TokenType.MOD_OP:
                         case TokenType.ADD_OP:
-                        case TokenType.SUB_OP:
                         case TokenType.LSHIFT_OP:
                         case TokenType.RSHIFT_OP:
                         case TokenType.SIGNED_RSHIFT_OP:
@@ -335,10 +341,11 @@ namespace ColorzCore.Parser
 
                 if (shift)
                 {
-                    if (lookAhead.Type == TokenType.IDENTIFIER)
+                    if (lookAhead.Type == TokenType.IDENTIFIER || lookAhead.Type == TokenType.MAYBE_MACRO)
                     {
-                        if (ExpandIdentifier(tokens))
+                        if (expandDefs && ExpandIdentifier(tokens))
                             continue;
+                        else if (!expandDefs) ; //TODO: Parse a MacroInvocationNode if next is ()?
                         grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
                     }
                     else if (lookAhead.Type == TokenType.NUMBER)
@@ -423,6 +430,7 @@ namespace ColorzCore.Parser
                 switch (nextToken.Type)
                 {
                     case TokenType.IDENTIFIER:
+                    case TokenType.MAYBE_MACRO:
                         if (ExpandIdentifier(tokens))
                         {
                             return ParseLine(tokens, scopes);
@@ -499,7 +507,7 @@ namespace ColorzCore.Parser
             Token directiveName = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
-            IList<IParamNode> paramList = ParseParamList(tokens, scopes);
+            IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
             Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
             if (!retVal.IsNothing)
                 currentOffset += retVal.FromJust.Size;
@@ -519,52 +527,35 @@ namespace ColorzCore.Parser
         }
 
         /***
-         *   Precondition: tokens.Current.Type == TokenType.IDENTIFIER
+         *   Precondition: tokens.Current.Type == TokenType.IDENTIFIER || MAYBE_MACRO
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<string> seenDefinitions = null, ImmutableStack<Tuple<string, int>> seenMacros = null)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens)
         {
-            if (seenDefinitions == null)
-                seenDefinitions = ImmutableStack<string>.Nil;
-            if (seenMacros == null)
-                seenMacros = ImmutableStack<Tuple<string, int>>.Nil;
             bool ret = false;
             //Macros and Definitions.
-            if (Macros.ContainsKey(tokens.Current.Content))
+            if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsKey(tokens.Current.Content))
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
-                if (tokens.Current.Type == TokenType.OPEN_PAREN)
+                IList<IList<Token>> parameters = ParseMacroParamList(tokens);
+                if (Macros[head.Content].ContainsKey(parameters.Count))
                 {
-                    IList<IList<Token>> parameters = ParseMacroParamList(tokens);
-                    if (Macros[head.Content].ContainsKey(parameters.Count) && !seenMacros.Contains(new Tuple<string, int>(head.Content, parameters.Count)))
-                    {
-                        tokens.PrependEnumerator(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters).GetEnumerator());
-                    }
-                    else
-                    {
-                        Error(head.Location, String.Format("No overload of {0} with {1} parameters, or recursive definition.", head.Content, parameters.Count));
-                    }
-                    ret = true;
-                    if (tokens.Current.Type == TokenType.IDENTIFIER)
-                        ExpandIdentifier(tokens);
-                    return ret;
+                    tokens.PrependEnumerator(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters).GetEnumerator());
                 }
                 else
                 {
-                    tokens.PutBack(head);
+                    Error(head.Location, String.Format("No overload of {0} with {1} parameters.", head.Content, parameters.Count));
                 }
+                return true;
             }
             if (Definitions.ContainsKey(tokens.Current.Content))
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
                 tokens.PrependEnumerator(Definitions[head.Content].ApplyDefinition(head).GetEnumerator());
-                if (!tokens.EOS && tokens.Current.Type == TokenType.IDENTIFIER)
-                {
-                    ExpandIdentifier(tokens);
-                }
+                return true;
             }
 
             return ret;

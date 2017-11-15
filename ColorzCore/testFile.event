@@ -1,7 +1,7 @@
 ﻿//Made by CrazyColorz5 of Fire Emblem Universe
 //Based off of Camtech75's Skeleton
 #include EAstdlib.event
-#include "../Destiny Definitions.txt"
+#include "Destiny Definitions.txt"
 #define BACKWARDS_COMPATIBILITY
 
 #define SaveSuspend "ASMC 0xB5D5D"

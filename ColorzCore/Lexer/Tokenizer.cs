@@ -220,8 +220,12 @@ namespace ColorzCore.Lexer
                             if (idMatch.Success)
                             {
                                 string match = idMatch.Value;
-                                yield return new Token(TokenType.IDENTIFIER, fileName, lineNum, curCol, match);
+                                int idCol = curCol;
                                 curCol += match.Length;
+                                if (curCol < endOffs && line[curCol] == '(')
+                                    yield return new Token(TokenType.MAYBE_MACRO, fileName, lineNum, idCol, match);
+                                else 
+                                    yield return new Token(TokenType.IDENTIFIER, fileName, lineNum, idCol, match);
                                 if (curCol < endOffs && (Char.IsLetterOrDigit(line[curCol]) | line[curCol] == '_'))
                                 {
                                     Match idMatch2 = new Regex("[a-zA-Z0-9_]+").Match(line, curCol, endOffs - curCol);

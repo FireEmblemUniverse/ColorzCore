@@ -63,6 +63,7 @@
     <Compile Include="Parser\AST\IParamNode.cs" />
     <Compile Include="Parser\AST\ListNode.cs" />
     <Compile Include="Parser\AST\MacroInvocationNode.cs" />
+    <Compile Include="Parser\AST\NegationNode.cs" />
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParamType.cs" />
