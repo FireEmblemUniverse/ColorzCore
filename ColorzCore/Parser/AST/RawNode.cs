@@ -19,7 +19,7 @@ namespace ColorzCore.Parser.AST
             myRaw = raw;
         }
 
-        public override int Size => myRaw.Length;
+        public override int Size => myRaw.LengthBytes(Parameters.Count);
 
         public override string PrettyPrint(int indentation)
         {

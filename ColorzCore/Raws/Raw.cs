@@ -13,9 +13,9 @@ namespace ColorzCore.Raws
     class Raw
     {
         public string Name { get; }
-        public int Length { get; }
+        private int length { get; }
         public short Code { get; }
-        public int OffsetMod { get; } //TODO: Repeatable, terminating list
+        public int OffsetMod { get; }
         public HashSet<string> Game { get; }
         private IList<IRawParam> myParams;
         private IList<Tuple<int, int, int>> fixedParams; //position, length, value
@@ -66,7 +66,7 @@ namespace ColorzCore.Raws
             IList<Tuple<int, int, int>> fixedParams, Maybe<int> terminatingList, bool repeatable)
         {
             Name = name;
-            Length = length;
+            this.length = length;
             Code = code;
             Game = game;
             OffsetMod = offsetMod;
@@ -78,7 +78,7 @@ namespace ColorzCore.Raws
         
         public static Raw CopyWithNewName(Raw baseRaw, string newName)
         {
-            return new Raw(newName, baseRaw.Length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, 
+            return new Raw(newName, baseRaw.length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, 
                 baseRaw.fixedParams, baseRaw.terminatingList, baseRaw.repeatable);
         }
         
@@ -88,7 +88,7 @@ namespace ColorzCore.Raws
             IList<Raw> myRaws = new List<Raw>();
             try
             {
-                while (true)
+                while (!r.EndOfStream)
                 {
                     myRaws.Add(ParseRaw(r));
                 }
@@ -104,63 +104,85 @@ namespace ColorzCore.Raws
             do
             {
                 rawLine = r.ReadLine();
-            } while(rawLine.Length == 0 || rawLine[0] == '#');
-            string[] parts = rawLine.Split(',');
+                if (rawLine != null && (rawLine.Trim().Length == 0 || rawLine[0] == '#'))
+                    continue;
+                else
+                    break;
+            } while(rawLine != null);
+            if (rawLine == null)
+                throw new EndOfStreamException();
+            if (Char.IsWhiteSpace(rawLine[0]))
+                throw new Exception("Raw not at start of line.");
+            string[] parts = rawLine.Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             string name = parts[0].Trim();
             string code = parts[1].Trim();
             string length = parts[2].Trim();
             string flags = parts.Length == 4 ? parts[3].Trim() : "";
             Dictionary<string, Flag> flagDict = ParseFlags(flags);
-            int indexMode = flagDict.ContainsKey("indexMode") ? Int32.Parse(flagDict["indexMode"].Values.GetLeft[0]) : 1;
-            int lengthVal = indexMode * Int32.Parse(name);
+            int indexMode = flagDict.ContainsKey("indexMode") ? flagDict["indexMode"].Values.GetLeft[0].ToInt() : 1;
+            int lengthVal = indexMode * length.ToInt();
             IList<IRawParam> parameters = new List<IRawParam>();
             IList<Tuple<int, int, int>> fixedParams = new List<Tuple<int, int, int>>();
-            while((rawLine = r.ReadLine()).Length > 0)
+            while(!r.EndOfStream)
             {
-                if (rawLine[0] == '#')
+                int nextChar = r.Peek();
+                if (nextChar == '#')
+                {
+                    r.ReadLine();
                     continue;
-                Either<IRawParam, Tuple<int, int, int>> possiblyParam = ParseParam(rawLine, indexMode);
-                if (possiblyParam.IsLeft)
-                    parameters.Add(possiblyParam.GetLeft);
+                }
+                if (Char.IsWhiteSpace((char)nextChar) && (rawLine = r.ReadLine()).Trim().Length > 0)
+                {
+                    Either<IRawParam, Tuple<int, int, int>> possiblyParam = ParseParam(rawLine, indexMode);
+                    if (possiblyParam.IsLeft)
+                        parameters.Add(possiblyParam.GetLeft);
+                    else
+                        fixedParams.Add(possiblyParam.GetRight);
+                }
                 else
-                    fixedParams.Add(possiblyParam.GetRight);
+                    break;
             }
             if(!flagDict.ContainsKey("unsafe"))
             {
                 //TODO: Check for parameter offset collisions
             }
-            HashSet<string> game = flagDict.ContainsKey("game") ? new HashSet<string>(flagDict["game"].Values.GetLeft) : new HashSet<string>();
-            int offsetMod = flagDict.ContainsKey("offsetMod") ? Int32.Parse(flagDict["offsetMod"].Values.GetLeft[0]) : 4;
-            Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(Int32.Parse(flagDict["offsetMod"].Values.GetLeft[0])) : (Maybe<int>)new Nothing<int>();
+            HashSet<string> game = flagDict.ContainsKey("game") ? new HashSet<string>(flagDict["game"].Values.GetLeft) : 
+                flagDict.ContainsKey("language") ? new HashSet<string>(flagDict["language"].Values.GetLeft) : new HashSet<string>();
+            int offsetMod = flagDict.ContainsKey("offsetMod") ? flagDict["offsetMod"].Values.GetLeft[0].ToInt() : 4;
+            Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(flagDict["offsetMod"].Values.GetLeft[0].ToInt()) : (Maybe<int>)new Nothing<int>();
+            if(!terminatingList.IsNothing && code.ToInt() != 0)
+            {
+                throw new Exception("TerminatingList with code nonzero.");
+            }
             bool repeatable = flagDict.ContainsKey("repeatable");
             if((repeatable || !terminatingList.IsNothing) && (parameters.Count > 1) && fixedParams.Count > 0)
             {
                 throw new Exception("Repeatable or terminatingList code with multiple parameters or fixed parameters.");
             }
-            return new Raw(name, lengthVal, Int16.Parse(code), offsetMod, game, parameters, fixedParams, terminatingList, repeatable);
+            return new Raw(name, lengthVal, (short)(code.ToInt()), offsetMod, game, parameters, fixedParams, terminatingList, repeatable);
         } 
 
         public static Either<IRawParam, Tuple<int, int, int>> ParseParam(string paramLine, int indexMode)
         {
             if (!Char.IsWhiteSpace(paramLine[0]))
                 throw new Exception("Raw param does not start with whitespace.");
-            string[] parts = paramLine.Trim().Split(',');
+            string[] parts = paramLine.Trim().Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             string name = parts[0];
             string position = parts[1];
             string length = parts[2];
             string flags = parts.Length == 4 ? parts[3].Trim() : "";
             Dictionary<string, Flag> flagDict = ParseFlags(flags);
-            int positionBits = Int32.Parse(position) * indexMode;
-            int lengthBits = Int32.Parse(length);
+            int positionBits = position.ToInt() * indexMode;
+            int lengthBits = length.ToInt() * indexMode;
 
             if(flagDict.ContainsKey("fixed"))
             {
-                return new Right<IRawParam, Tuple<int, int, int>>(new Tuple<int, int, int>(positionBits, lengthBits, Int32.Parse(name)));
+                return new Right<IRawParam, Tuple<int, int, int>>(new Tuple<int, int, int>(positionBits, lengthBits, name.ToInt()));
             }
             if(flagDict.ContainsKey("coordinate") || flagDict.ContainsKey("coordinates"))
             {
                 Either<IList<string>, Tuple<int, int>> coordNum = (flagDict.ContainsKey("coordinate") ? flagDict["coordinate"] : flagDict["coordinates"]).Values;
-                int nCoords = coordNum.IsLeft ? coordNum.GetLeft.Max((string s) => Int32.Parse(s)) : Math.Max(coordNum.GetRight.Item1, coordNum.GetRight.Item2);
+                int nCoords = coordNum.IsLeft ? coordNum.GetLeft.Max((string s) => s.ToInt()) : Math.Max(coordNum.GetRight.Item1, coordNum.GetRight.Item2);
                 return new Left<IRawParam, Tuple<int, int, int>>(new ListParam(name, positionBits, lengthBits, nCoords));
             }
             bool pointer = flagDict.ContainsKey("pointer");
@@ -170,32 +192,56 @@ namespace ColorzCore.Raws
         private static Dictionary<string, Flag> ParseFlags(string flags)
         {
             Dictionary<string, Flag> temp = new Dictionary<string, Flag>();
-            string[] parts = flags.Split(' ');
-            foreach(string flag in parts)
+            if (flags.Length > 0)
             {
-                if (flag[0] != '-')
-                    throw new Exception("Flag does not start with '-'");
-                string withoutDash = flag.Substring(1);
-                if(withoutDash.Contains(':'))
+                string[] parts = flags.Split(new char[1] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (string flag in parts)
                 {
-                    string[] parts2 = withoutDash.Split(':');
-                    string flagName = parts2[0];
-                    if(parts2.Length == 2 && withoutDash.Contains('-'))
+                    if (flag[0] != '-')
+                        throw new Exception("Flag does not start with '-'");
+                    string withoutDash = flag.Substring(1);
+                    if (withoutDash.Contains(':'))
                     {
-                        string[] parts3 = parts2[1].Split('-');
-                        temp[flagName] = new Flag(Int32.Parse(parts3[0]), Int32.Parse(parts3[1]));
+                        string[] parts2 = withoutDash.Split(new char[1] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                        string flagName = parts2[0];
+                        if (parts2.Length == 2 && withoutDash.Contains('-'))
+                        {
+                            string[] parts3 = parts2[1].Split(new char[1] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+                            temp[flagName] = new Flag(parts3[0].ToInt(), parts3[1].ToInt());
+                        }
+                        else
+                        {
+                            temp[flagName] = new Flag(new List<string>(parts2.Skip(1)));
+                        }
                     }
                     else
                     {
-                        temp[flagName] = new Flag(new List<string>(parts2.Skip(1)));
+                        temp[withoutDash] = new Flag();
                     }
-                }
-                else
-                {
-                    temp[withoutDash] = new Flag();
                 }
             }
             return temp;
+        }
+
+        public int LengthBits(int paramCount)
+        {
+            if (repeatable)
+            {
+                return length * paramCount;
+            }
+            else if (!terminatingList.IsNothing)
+            {
+                return myParams[0].Length * (paramCount + 1);
+            }
+            else
+            {
+                return length;
+            }
+
+        }
+        public int LengthBytes(int paramCount)
+        {
+            return (LengthBits(paramCount) + 7) / 8;
         }
 
         public bool Fits(IList<IParamNode> parameters)
@@ -207,17 +253,24 @@ namespace ColorzCore.Raws
                         return false;
                 return true;
             }
-            else
-                return false;
+            else if(repeatable || !terminatingList.IsNothing)
+            {
+                foreach (IParamNode p in parameters)
+                    if (!myParams[0].Fits(p))
+                        return false;
+                return true;
+            }
+            return false;
         }
         
         /* Precondition: params fits the shape of this raw's params. */
         public byte[] GetBytes(IList<IParamNode> parameters)
         {
+            BitArray data = new BitArray(0);
             //Represent a code's bytes as a list/array of its length.
-            if(!repeatable && terminatingList.IsNothing)
+            if (!repeatable && terminatingList.IsNothing)
             {
-                BitArray data = new BitArray(Length);
+                data.Length = length;
                 if (Code != 0)
                 {
                     int temp = Code;
@@ -238,21 +291,42 @@ namespace ColorzCore.Raws
                         data[i] = (val & 1) == 1;
                     }
                 }
-                byte[] myBytes = new byte[(Length + 7) / 8];
-                data.CopyTo(myBytes, 0);
-                return myBytes;
             }
             else if(repeatable)
             {
-                
-            
+                foreach(IParamNode p in parameters)
+                {
+                    BitArray localData = new BitArray(length);
+                    if (Code != 0)
+                    {
+                        int temp = Code;
+                        for (int i = 0; i < 0x10; i++, temp >>= 1)
+                        {
+                            data[i] = (temp & 1) == 1;
+                        }
+                    }
+                    myParams[0].Set(localData, p);
+                    data.Append(localData);
+                }
             }
             else
             {
                 //Is a terminatingList.
                 int terminator = terminatingList.FromJust;
-                
+                for (int i=0; i<parameters.Count; i++)
+                {
+                    BitArray localData = new BitArray(myParams[0].Length);
+                    myParams[0].Set(data, parameters[i]);
+                    data.Append(localData);
+                }
+                BitArray term = new BitArray(myParams[0].Length);
+                ((AtomicParam)myParams[0]).Set(term, terminator);
+                data.Append(term);
             }
+            byte[] myBytes = new byte[(data.Length + 7) / 8];
+            data.CopyTo(myBytes, 0);
+            return myBytes;
         }
+        
     }
 }

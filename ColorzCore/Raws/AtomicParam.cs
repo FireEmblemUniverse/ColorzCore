@@ -29,7 +29,10 @@ namespace ColorzCore.Raws
 
         public void Set(BitArray data, IParamNode input)
         {
-            int res = ((IAtomNode)input).Evaluate();
+            Set(data, ((IAtomNode)input).Evaluate());
+        }
+        public void Set(BitArray data, int res)
+        {
             if (pointer)
                 res |= 0x08000000;
             byte[] resBytes = { (byte)res, (byte)(res << 8), (byte)(res << 16), (byte)(res << 24) };
@@ -37,7 +40,6 @@ namespace ColorzCore.Raws
             for (int i = Position; i < Position + Length; i++)
                 data[i] = bits[i - Position];
         }
-
         public bool Fits(IParamNode input)
         {
             return input.Type == ParamType.ATOM;

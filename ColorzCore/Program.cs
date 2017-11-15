@@ -16,13 +16,14 @@ namespace ColorzCore
     {
         static void Main(string[] args)
         {
-            string fileName = "../../testFile.event";
+            string fileName = "testFile.event";
+            string game = "FE8";
             FileStream inputFile = new FileStream(fileName, FileMode.Open);
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
             Tokenizer myTokenizer = new Tokenizer();
-            EAParser myParser = new EAParser(new Dictionary<string, IList<Raw>>());
-            myParser.Definitions["_FE8_"] = new Definition(); //For now, hardcode to assemble FE8.
+            EAParser myParser = new EAParser(ProcessRaws(game, LoadAllRaws()));
+            myParser.Definitions['_'+game+'_'] = new Definition(); //For now, hardcode to assemble FE8.
 
             /*
             foreach (Token t in myTokenizer.Tokenize(inputStream, fileName))
@@ -50,16 +51,32 @@ namespace ColorzCore
             Console.In.ReadLine();
             
         }
-        /*
-        private static EAInstance FirstPass(IEnumerable<Token> tokens)
+        private static IList<Raw> LoadAllRaws()
         {
+            string folder = "Language Raws";
+            string extension = ".txt";
 
-
-
-
-
-            throw new NotImplementedException();
+            DirectoryInfo directoryInfo = new DirectoryInfo(folder);
+            folder = Path.GetFullPath(folder);
+            FileInfo[] files = directoryInfo.GetFiles("*" + extension, SearchOption.AllDirectories);
+            IEnumerable<Raw> allRaws = new List<Raw>();
+            foreach (FileInfo fileInfo in files)
+            {
+                FileStream fs = new FileStream(fileInfo.FullName, FileMode.Open);
+                allRaws = allRaws.Concat(Raw.ParseAllRaws(fs));
+                fs.Close();
+            }
+            return new List<Raw>(allRaws);
         }
-        */
+        private static Dictionary<string, IList<Raw>> ProcessRaws(string game, IList<Raw> allRaws)
+        {
+            Dictionary<string, IList<Raw>> retVal = new Dictionary<string, IList<Raw>>();
+            foreach(Raw r in allRaws)
+            {
+                if (r.Game.Contains(game))
+                    retVal.AddTo(r.Name, r);
+            }
+            return retVal;
+        }
     }
 }

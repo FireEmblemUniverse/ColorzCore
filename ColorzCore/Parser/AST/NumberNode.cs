@@ -22,23 +22,7 @@ namespace ColorzCore.Parser.AST
 		
 		public override int Evaluate()
         {
-            string numString = number.Content;
-            if(numString.StartsWith("$"))
-            {
-                return Convert.ToInt32(numString.Substring(1), 16);
-            }
-            else if(numString.StartsWith("0x"))
-            {
-                return Convert.ToInt32(numString.Substring(2), 16);
-            }
-            else if(numString.EndsWith("b"))
-            {
-                return Convert.ToInt32(numString.Substring(0, numString.Length-1), 2);
-            }
-            else
-            {
-                return Convert.ToInt32(numString);
-            }
+            return number.Content.ToInt();
         }
         
         public override string PrettyPrint()
