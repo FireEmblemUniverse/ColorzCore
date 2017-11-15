@@ -48,7 +48,7 @@ namespace ColorzCore.Raws
             if (input.Type == ParamType.LIST)
             {
                 ListNode n = (ListNode)input;
-                return n.NumCoords >= minCoords && n.NumCoords <= numCoords;
+                return n.NumCoords <= numCoords;
             }
             else
                 return false;
