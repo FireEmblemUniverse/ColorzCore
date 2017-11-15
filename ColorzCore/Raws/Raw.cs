@@ -215,30 +215,44 @@ namespace ColorzCore.Raws
         public byte[] GetBytes(IList<IParamNode> parameters)
         {
             //Represent a code's bytes as a list/array of its length.
-            BitArray data = new BitArray(Length);
-            if (Code != 0)
+            if(!repeatable && terminatingList.IsNothing)
             {
-                int temp = Code;
-                for(int i = 0; i < 0x10; i++, temp >>= 1)
+                BitArray data = new BitArray(Length);
+                if (Code != 0)
                 {
-                    data[i] = (temp & 1) == 1;
+                    int temp = Code;
+                    for(int i = 0; i < 0x10; i++, temp >>= 1)
+                    {
+                        data[i] = (temp & 1) == 1;
+                    }
                 }
-            }
-            for (int i=0; i<myParams.Count; i++)
-            {
-                myParams[i].Set(data, parameters[i]);
-            }
-            foreach(Tuple<int, int, int> fp in fixedParams)
-            {
-                int val = fp.Item3;
-                for(int i = fp.Item1; i<fp.Item1+fp.Item2; i++, val >>= 1)
+                for (int i=0; i<myParams.Count; i++)
                 {
-                    data[i] = (val & 1) == 1;
+                    myParams[i].Set(data, parameters[i]);
                 }
+                foreach(Tuple<int, int, int> fp in fixedParams)
+                {
+                    int val = fp.Item3;
+                    for(int i = fp.Item1; i<fp.Item1+fp.Item2; i++, val >>= 1)
+                    {
+                        data[i] = (val & 1) == 1;
+                    }
+                }
+                byte[] myBytes = new byte[(Length + 7) / 8];
+                data.CopyTo(myBytes, 0);
+                return myBytes;
             }
-            byte[] myBytes = new byte[(Length + 7) / 8];
-            data.CopyTo(myBytes, 0);
-            return myBytes;
+            else if(repeatable)
+            {
+                
+            
+            }
+            else
+            {
+                //Is a terminatingList.
+                int terminator = terminatingList.FromJust;
+                
+            }
         }
     }
 }
