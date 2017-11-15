@@ -76,6 +76,22 @@ namespace ColorzCore.Raws
             return new Raw(newName, baseRaw.Length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, baseRaw.fixedParams);
         }
         
+        public static IList<Raw> ParseAllRaws(FileStream fs)
+        {
+            StreamReader r = new StreamReader(fs);
+            IList<Raw> myRaws = new List<Raw>();
+            try
+            {
+                while (true)
+                {
+                    myRaws.Add(ParseRaw(r));
+                }
+            }
+            catch (EndOfStreamException) { }
+            catch (Exception e) { throw e; }
+            return myRaws;
+        }
+
         public static Raw ParseRaw(StreamReader r) {
             //Since the writer of the raws is expected to know what they're doing, I'm going to be a lot more lax with error messages and graceful failure.
             string rawLine;
