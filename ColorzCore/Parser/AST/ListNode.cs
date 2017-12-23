@@ -31,7 +31,7 @@ namespace ColorzCore.Parser.AST
                 if(i < Interior.Count - 1)
                     sb.Append(',');
             }
-            sb.Append('[');
+            sb.Append(']');
             return sb.ToString();
         }
 

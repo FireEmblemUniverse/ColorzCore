@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         public Dictionary<string, Dictionary<int, Macro>> Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT" }; // TODO
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" }; // TODO
         public ImmutableStack<Closure> GlobalScope { get; }
         public ImmutableStack<bool> Inclusion { get; set; }
         //public Closure GlobalClosure { get; }
@@ -129,10 +129,10 @@ namespace ColorzCore.Parser
                 //return new SpecialActionNode(); ???
                 return new Just<StatementNode>(new RawNode(null, head, parameters));
             }
-            else if (Raws.ContainsKey(head.Content))
+            else if (Raws.ContainsKey(head.Content.ToUpper()))
             {
                 //TODO: Check for matches. Currently should type error.
-                foreach(Raw r in Raws[head.Content])
+                foreach(Raw r in Raws[head.Content.ToUpper()])
                 {
                     if(r.Fits(parameters))
                     {
@@ -178,15 +178,17 @@ namespace ColorzCore.Parser
             return parameters;
         }
 
-        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
+        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandFirstDef = true)
         {
             IList<IParamNode> paramList = new List<IParamNode>();
+            bool first = true;
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && !tokens.EOS)
             {
                 Token head = tokens.Current;
-                ParseParam(tokens, scopes, expandDefs).IfJust(
+                ParseParam(tokens, scopes, expandFirstDef || !first).IfJust(
                     (IParamNode n) => paramList.Add(n),
                     () => Error(head.Location, "Expected parameter."));
+                first = false;
             }
             if (tokens.Current.Type == TokenType.SEMICOLON)
                 tokens.MoveNext();
@@ -207,7 +209,7 @@ namespace ColorzCore.Parser
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
                     tokens.MoveNext();
                     IList<IList<Token>> param = ParseMacroParamList(tokens);
-                    if (!expandDefs && Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
+                    if (expandDefs && Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
                     {
                         tokens.PrependEnumerator(Macros[head.Content][param.Count].ApplyMacro(head, param).GetEnumerator());
                         return ParseParam(tokens, scopes);
@@ -341,12 +343,16 @@ namespace ColorzCore.Parser
 
                 if (shift)
                 {
-                    if (lookAhead.Type == TokenType.IDENTIFIER || lookAhead.Type == TokenType.MAYBE_MACRO)
+                    if (lookAhead.Type == TokenType.IDENTIFIER)
                     {
                         if (expandDefs && ExpandIdentifier(tokens))
                             continue;
-                        else if (!expandDefs) ; //TODO: Parse a MacroInvocationNode if next is ()?
                         grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
+                    }
+                    else if (lookAhead.Type == TokenType.MAYBE_MACRO)
+                    {
+                        ExpandIdentifier(tokens);
+                        continue;
                     }
                     else if (lookAhead.Type == TokenType.NUMBER)
                     {

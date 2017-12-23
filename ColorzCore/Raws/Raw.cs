@@ -13,7 +13,7 @@ namespace ColorzCore.Raws
     class Raw
     {
         public string Name { get; }
-        private int length { get; }
+        private int length;
         public short Code { get; }
         public int OffsetMod { get; }
         public HashSet<string> Game { get; }
@@ -90,7 +90,14 @@ namespace ColorzCore.Raws
             {
                 while (!r.EndOfStream)
                 {
-                    myRaws.Add(ParseRaw(r));
+                    Raw temp = ParseRaw(r);
+                    myRaws.Add(temp);
+                    if (temp.Name[0] != '_')
+                    {
+                        //TODO: Make implicit inclusion of _0xDEAD codes etc
+                        //Raw temp2 = Raw.CopyWithNewName(temp, '_0x')
+                        ;
+                    }
                 }
             }
             catch (EndOfStreamException) { }
@@ -114,7 +121,7 @@ namespace ColorzCore.Raws
             if (Char.IsWhiteSpace(rawLine[0]))
                 throw new Exception("Raw not at start of line.");
             string[] parts = rawLine.Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            string name = parts[0].Trim();
+            string name = parts[0].Trim().ToUpper(); //Note all raws implicitly have all uppercase names -- this is to allow for case-insensitive comparison down the line. TODO: Make case sensitivity a requirement?
             string code = parts[1].Trim();
             string length = parts[2].Trim();
             string flags = parts.Length == 4 ? parts[3].Trim() : "";

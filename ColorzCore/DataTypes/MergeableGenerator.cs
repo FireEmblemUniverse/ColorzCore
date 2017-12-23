@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    public class MergeableGenerator<T>
+    public class MergeableGenerator<T>: IEnumerable<T>
     {
         private Stack<IEnumerator<T>> myEnums;
         public bool EOS { get; private set; }
@@ -42,7 +42,6 @@ namespace ColorzCore.DataTypes
         {
             if (EOS)
                 myEnums.Pop();
-            EOS = false;
             myEnums.Push(nextEnum);
             Prime();
         }
@@ -52,12 +51,26 @@ namespace ColorzCore.DataTypes
         }
         private bool Prime()
         {
-            EOS = !myEnums.Peek().MoveNext() && myEnums.Count == 1;
+            if (!myEnums.Peek().MoveNext())
+            {
+                myEnums.Pop();
+                EOS = myEnums.Count == 1;
+            }
+            else
+                EOS = false;
             return !EOS;
         }
-        public IEnumerator<T> GetEnumerator()
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
             while(!EOS) {
+                yield return this.Current;
+                this.MoveNext();
+            }
+        }
+        public IEnumerator GetEnumerator()
+        {
+            while (!EOS)
+            {
                 yield return this.Current;
                 this.MoveNext();
             }
