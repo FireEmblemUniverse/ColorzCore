@@ -1,15 +1,12 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
-using ColorzCore.Preprocessor;
-using ColorzCore.DataTypes;
+using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ColorzCore.Raws;
-using static ColorzCore.Preprocessor.Handler;
 using System.IO;
+using System.Text;
+using static ColorzCore.Preprocessor.Handler;
 
 //TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
