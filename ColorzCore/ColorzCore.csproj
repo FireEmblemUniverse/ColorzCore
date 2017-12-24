@@ -43,13 +43,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataTypes\CaseInsensitiveString.cs" />
-    <Compile Include="IO\DataBlock.cs" />
+    <Compile Include="EAInterpreter.cs" />
     <Compile Include="DataTypes\Extension.cs" />
     <Compile Include="DataTypes\ImmutableStack.cs" />
     <Compile Include="DataTypes\Location.cs" />
     <Compile Include="DataTypes\Maybe.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
-    <Compile Include="IO\EAInstance.cs" />
     <Compile Include="DataTypes\Either.cs" />
     <Compile Include="IO\IOUtility.cs" />
     <Compile Include="Lexer\Token.cs" />
@@ -91,13 +90,11 @@
     <Compile Include="Preprocessor\Handler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="IO\IWritable.cs" />
     <Compile Include="Raws\AtomicParam.cs" />
     <Compile Include="Raws\Flag.cs" />
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />
-    <Compile Include="IO\WritableInt.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

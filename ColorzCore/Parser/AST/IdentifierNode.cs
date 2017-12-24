@@ -42,7 +42,14 @@ namespace ColorzCore.Parser.AST
 
         public override string PrettyPrint()
         {
-            return identifier.Content;
+            try
+            {
+                return "0x"+Evaluate().ToString("X");
+            }
+            catch (UndefinedIdentifierException)
+            {
+                return identifier.Content;
+            }
         }
 
         public override IEnumerable<Token> ToTokens() { yield return identifier; }

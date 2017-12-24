@@ -19,7 +19,7 @@ namespace ColorzCore.Parser
         }
         public override int GetLabel(string label)
         {
-            if (label == "CURRENTOFFSET")
+            if (label.ToUpper() == "CURRENTOFFSET")
                 return enclosing.CurrentOffset;
             else
                 return base.GetLabel(label);

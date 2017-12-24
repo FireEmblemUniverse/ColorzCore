@@ -20,7 +20,9 @@ namespace ColorzCore.Parser
         public Dictionary<string, Dictionary<int, Macro>> Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" }; // TODO
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" };
+        //TODO: Built in macros.
+        //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
         public ImmutableStack<Closure> GlobalScope { get; }
         public int CurrentOffset { get; private set; }
         public ImmutableStack<bool> Inclusion { get; set; }
