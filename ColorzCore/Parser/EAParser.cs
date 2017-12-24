@@ -22,12 +22,12 @@ namespace ColorzCore.Parser
         public Dictionary<string, IList<Raw>> Raws { get; }
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" }; // TODO
         public ImmutableStack<Closure> GlobalScope { get; }
+        public int CurrentOffset { get; private set; }
         public ImmutableStack<bool> Inclusion { get; set; }
-        //public Closure GlobalClosure { get; }
 
 
-        private int currentOffset;
         private Stack<int> pastOffsets;
+        private IList<Tuple<int, int>> protectedRegions;
 
         public IList<string> Messages { get; }
         public IList<string> Warnings { get; }
@@ -42,13 +42,14 @@ namespace ColorzCore.Parser
 
         public EAParser(Dictionary<string, IList<Raw>> raws)
         {
-            GlobalScope = new ImmutableStack<Closure>(new Closure(""), ImmutableStack<Closure>.Nil);
+            GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<int>();
+            protectedRegions = new List<Tuple<int, int>>();
             Messages = new List<string>();
             Warnings = new List<string>();
             Errors = new List<string>();
             Raws = raws;
-            currentOffset = 0;
+            CurrentOffset = 0;
             Macros = new Dictionary<string, Dictionary<int, Macro>>();
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
@@ -56,11 +57,11 @@ namespace ColorzCore.Parser
 
         public bool IsReservedName(string name)
         {
-            return Raws.ContainsKey(name) || SpecialCodes.Contains(name);
+            return Raws.ContainsKey(name.ToUpper()) || SpecialCodes.Contains(name.ToUpper());
         }
         public bool IsValidDefinitionName(string name)
         {
-            return !(Definitions.ContainsKey(name) || Raws.ContainsKey(name) || SpecialCodes.Contains(name));
+            return !(Definitions.ContainsKey(name) || IsReservedName(name));
         }
         public bool IsValidMacroName(string name, int paramNum)
         {
@@ -102,7 +103,7 @@ namespace ColorzCore.Parser
             if (!tokens.EOS)
                 tokens.MoveNext();
             else
-                Log(Errors, start, "Unmatched brace.");
+                Error(start, "Unmatched brace.");
             return temp;
         }
         private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
@@ -125,9 +126,119 @@ namespace ColorzCore.Parser
 
             if (SpecialCodes.Contains(head.Content.ToUpper()))
             {
-                //TODO: Handle this case
-                //return new SpecialActionNode(); ???
-                return new Just<StatementNode>(new RawNode(null, head, parameters));
+                switch(head.Content.ToUpper())
+                {
+                    case "ORG":
+                        if (parameters.Count != 1)
+                            Error(head.Location, "Incorrect number of parameters in ORG: " + parameters.Count);
+                        else
+                        {
+                            parameters[0].TryEvaluate().Case(
+                                (int temp) =>
+                                {
+                                    if (temp > 0x2000000)
+                                        Error(parameters[0].MyLocation, "Tried to set offset to 0x" + temp.ToString("X"));
+                                    else
+                                        CurrentOffset = temp;
+                                },
+                                (string err) => { Error(parameters[0].MyLocation, err); });
+                        }
+                        break;
+                    case "PUSH":
+                        if (parameters.Count != 0)
+                            Error(head.Location, "Incorrect number of parameters in PUSH: " + parameters.Count);
+                        else
+                            pastOffsets.Push(CurrentOffset);
+                        break;
+                    case "POP":
+                        if (parameters.Count != 0)
+                            Error(head.Location, "Incorrect number of parameters in POP: " + parameters.Count);
+                        else if (pastOffsets.Count == 0)
+                            Error(head.Location, "POP without matching PUSH.");
+                        else
+                            CurrentOffset = pastOffsets.Pop();
+                        break;
+                    case "MESSAGE":
+                        Message(head.Location, PrettyPrintParams(parameters));
+                        break;
+                    case "WARNING":
+                        Warning(head.Location, PrettyPrintParams(parameters));
+                        break;
+                    case "ERROR":
+                        Error(head.Location, PrettyPrintParams(parameters));
+                        break;
+                    case "ASSERT":
+                        if (parameters.Count != 1)
+                            Error(head.Location, "Incorrect number of parameters in ASSERT: " + parameters.Count);
+                        else
+                            parameters[0].TryEvaluate().Case(
+                                (int temp) =>
+                                {
+                                    if (temp < 0)
+                                        Error(parameters[0].MyLocation, "Assertion error: " + temp);
+                                },
+                                (string err) =>
+                                {
+                                    Error(parameters[0].MyLocation, err);
+                                });
+                        break;
+                    case "PROTECT":
+                        if (parameters.Count == 1)
+                            parameters[0].TryEvaluate().Case(
+                                (int temp) =>
+                                {
+                                    protectedRegions.Add(new Tuple<int, int>(temp, 4));
+                                },
+                                (string err) =>
+                                {
+                                    Error(parameters[0].MyLocation, err);
+                                });
+                        else if (parameters.Count == 2)
+                        {
+                            int start = 0, end = 0;
+                            bool errorOccurred = false;
+                            parameters[0].TryEvaluate().Case(
+                                (int temp) => { start = temp; },
+                                (string err) =>
+                                {
+                                    Error(parameters[0].MyLocation, err);
+                                    errorOccurred = true;
+                                });
+                            parameters[1].TryEvaluate().Case(
+                                (int temp) => { end = temp; },
+                                (string err) =>
+                                {
+                                    Error(parameters[1].MyLocation, err);
+                                    errorOccurred = true;
+                                });
+                            if (!errorOccurred)
+                            {
+                                int length = end - start;
+                                if (length > 0)
+                                    protectedRegions.Add(new Tuple<int, int>(start, length));
+                                else
+                                    Warning(head.Location, "Protected region not valid (end offset not after start offset). No region protected.");
+                            }
+                        }
+                        else
+                            Error(head.Location, "Incorrect number of parameters in PROTECT: " + parameters.Count);
+                        break;
+                    case "ALIGN":
+                        if (parameters.Count != 1)
+                            Error(head.Location, "Incorrect number of parameters in ALIGN: " + parameters.Count);
+                        else
+                            parameters[0].TryEvaluate().Case(
+                                (int temp) =>
+                                {
+                                    CurrentOffset = CurrentOffset % temp != 0 ? CurrentOffset + temp - CurrentOffset % temp : CurrentOffset;
+                                },
+                                (string err) =>
+                                {
+                                    Error(parameters[0].MyLocation, err);
+                                });
+                        break;
+                }
+                return new Nothing<StatementNode>();
             }
             else if (Raws.ContainsKey(head.Content.ToUpper()))
             {
@@ -136,8 +247,8 @@ namespace ColorzCore.Parser
                 {
                     if(r.Fits(parameters))
                     {
-                        StatementNode temp = new RawNode(r, head, parameters);
-                        currentOffset += temp.Size;
+                        StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
+                        CurrentOffset += temp.Size;
                         return new Just<StatementNode>(temp);
                     }
                 }
@@ -149,7 +260,7 @@ namespace ColorzCore.Parser
             else //TODO: Move outside of this else.
             {
                 Log(Errors, head.Location, "Unrecognized code: " + head.Content);
-                return new Just<StatementNode>(new RawNode(null, head, parameters)); //TODO - Return Empty later, but for now, return this to ensure correct AST generation
+                return new Nothing<StatementNode>();
             }
         }
 
@@ -447,7 +558,7 @@ namespace ColorzCore.Parser
                             if (tokens.Current.Type == TokenType.COLON)
                             {
                                 tokens.MoveNext();
-                                if (scopes.Head.Labels.ContainsKey(nextToken.Content))
+                                if (scopes.Head.HasLocalLabel(nextToken.Content))
                                 {
                                     Log(Errors, nextToken.Location, "Label already in scope: " + nextToken.Content);
                                 }
@@ -457,7 +568,7 @@ namespace ColorzCore.Parser
                                 }
                                 else
                                 {
-                                    scopes.Head.Labels.Add(nextToken.Content, currentOffset);
+                                    scopes.Head.AddLabel(nextToken.Content, CurrentOffset);
                                 }
 
                                 if (tokens.Current.Type != TokenType.NEWLINE)
@@ -474,7 +585,7 @@ namespace ColorzCore.Parser
                             }
                         }
                     case TokenType.OPEN_BRACE:
-                        return new Just<ILineNode>(ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(scopes.Head.IncludedBy), scopes)));
+                        return new Just<ILineNode>(ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(), scopes)));
                     case TokenType.PREPROCESSOR_DIRECTIVE:
                         return ParsePreprocessor(tokens, scopes);
                     case TokenType.OPEN_BRACKET:
@@ -516,7 +627,7 @@ namespace ColorzCore.Parser
             IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
             Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
             if (!retVal.IsNothing)
-                currentOffset += retVal.FromJust.Size;
+                CurrentOffset += retVal.FromJust.Size;
             return retVal;
         }
 
@@ -602,11 +713,34 @@ namespace ColorzCore.Parser
             Definitions.Clear();
             Raws.Clear();
             Inclusion = ImmutableStack<bool>.Nil;
-            currentOffset = 0;
+            CurrentOffset = 0;
             pastOffsets.Clear();
             Messages.Clear();
             Warnings.Clear();
             Errors.Clear();
+        }
+
+        private string PrettyPrintParams(IList<IParamNode> parameters)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach(IParamNode parameter in parameters)
+            {
+                sb.Append(parameter.PrettyPrint());
+                sb.Append(' ');
+            }
+            return sb.ToString();
+        }
+
+        private bool IsProtected(int offset, int length)
+        {
+            foreach (Tuple<int, int> protectedRegion in protectedRegions)
+            {
+                //They intersect if the last offset in the given region is after the start of this one
+                //and the first offset in the given region is before the last of this one
+                if (offset + length > protectedRegion.Item1 && offset < protectedRegion.Item1 + protectedRegion.Item2)
+                    return true;
+            }
+            return false;
         }
     }
 }

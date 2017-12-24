@@ -4,13 +4,23 @@ namespace ColorzCore.Parser
 {
     public class Closure
     {
-        public Dictionary<string, int> Labels { get; }
-        public string IncludedBy {get; }
+        private Dictionary<string, int> Labels { get; }
 
-        public Closure(string includedBy)
+        public Closure()
         {
             Labels = new Dictionary<string, int>();
-            IncludedBy = includedBy;
+        }
+        public virtual bool HasLocalLabel(string label)
+        {
+            return Labels.ContainsKey(label);
+        }
+        public virtual int GetLabel(string label)
+        {
+            return Labels[label];
+        }
+        public void AddLabel(string label, int value)
+        {
+            Labels[label] = value;
         }
     }
 }

@@ -34,5 +34,10 @@ namespace ColorzCore.Parser.AST
             return '"' + ToString() + '"';
         }
         public IEnumerable<Token> ToTokens() { yield return MyToken; }
+
+        public Either<int, string> TryEvaluate()
+        {
+            return new Right<int, string>("Expected atomic parameter.");
+        }
     }
 }

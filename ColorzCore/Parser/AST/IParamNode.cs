@@ -13,5 +13,6 @@ namespace ColorzCore.Parser.AST
         ParamType Type { get; }
         string PrettyPrint();
         Location MyLocation { get; }
+        Either<int, string> TryEvaluate();
     }
 }

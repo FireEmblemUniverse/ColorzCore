@@ -12,11 +12,13 @@ namespace ColorzCore.Parser.AST
     {
         private Raw myRaw;
         private Token myToken;
+        private int offset;
 
-        public RawNode(Raw raw, Token t, IList<IParamNode> paramList) : base(paramList)
+        public RawNode(Raw raw, Token t, int offset, IList<IParamNode> paramList) : base(paramList)
         {
             myToken = t;
             myRaw = raw;
+            this.offset = offset;
         }
 
         public override int Size => myRaw.LengthBytes(Parameters.Count);

@@ -45,6 +45,12 @@ namespace ColorzCore.Parser.AST
         {
             return p.Macros[invokeToken.Content][Parameters.Count].ApplyMacro(invokeToken, Parameters);
         }
+
+        public Either<int, string> TryEvaluate()
+        {
+            return new Right<int, string>("Expected atomic parameter.");
+        }
+
         public string Name { get { return invokeToken.Content; } }
 
         public Location MyLocation { get { return invokeToken.Location; } }

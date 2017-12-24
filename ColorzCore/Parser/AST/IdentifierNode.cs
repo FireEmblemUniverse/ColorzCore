@@ -27,8 +27,8 @@ namespace ColorzCore.Parser.AST
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)
             {
-                if(temp.Head.Labels.ContainsKey(identifier.Content))
-                    return temp.Head.Labels[identifier.Content];
+                if(temp.Head.HasLocalLabel(identifier.Content))
+                    return temp.Head.GetLabel(identifier.Content);
                 else
                     temp = temp.Tail;
             }

@@ -73,6 +73,12 @@ namespace ColorzCore.Parser.AST
             }
             yield return new Token(TokenType.CLOSE_BRACKET, new Location(myEnd.file, myEnd.lineNum, myEnd.colNum + temp.Last().Last().Content.Length), "]");
         }
+
+        public Either<int, string> TryEvaluate()
+        {
+            return new Right<int, string>("Expected atomic parameter.");
+        }
+
         public int NumCoords { get { return Interior.Count; } }
     }
 }

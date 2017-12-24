@@ -41,7 +41,7 @@ namespace ColorzCore
 
             foreach (string error in myParser.Errors)
             {
-                Console.Out.WriteLine(error);
+                Console.Out.WriteLine("ERROR: " + error);
             }
 
             //myParser.Clear();

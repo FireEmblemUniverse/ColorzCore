@@ -29,5 +29,18 @@ namespace ColorzCore.Parser.AST
         public abstract string PrettyPrint();
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
+
+        public Either<int, string> TryEvaluate()
+        {
+            try
+            {
+                int res = this.Evaluate();
+                return new Left<int, string>(res);
+            }
+            catch (IdentifierNode.UndefinedIdentifierException e)
+            {
+                return new Right<int, string>("Unrecognized identifier: " + e.CausedError.Content);
+            }
+        }
     }
 }

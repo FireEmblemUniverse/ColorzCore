@@ -39,7 +39,7 @@ namespace ColorzCore.Preprocessor.Directives
                         myParams.Add(l1[0]);
                     }
                 }
-                if (!p.IsValidMacroName(name, myParams.Count))
+                /* if (!p.IsValidMacroName(name, myParams.Count))
                 {
                     if (p.IsReservedName(name))
                     {
@@ -47,7 +47,9 @@ namespace ColorzCore.Preprocessor.Directives
                     }
                     else
                         p.Warning(signature.MyLocation, "Redefining " + name + '.');
-                }
+                }*/
+                if(p.Macros.ContainsKey(name) && p.Macros[name].ContainsKey(myParams.Count))
+                    p.Warning(signature.MyLocation, "Redefining " + name + '.');
                 if (parameters.Count != 2)
                 {
                     p.Error(signature.MyLocation, "Empty macro definition."); //TODO: Make location info better?
@@ -69,7 +71,7 @@ namespace ColorzCore.Preprocessor.Directives
                 if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
                 {
                     string name = maybeIdentifier.FromJust;
-                    if(!p.IsValidDefinitionName(name))
+                    /* if(!p.IsValidDefinitionName(name))
                     {
                         if (p.IsReservedName(name))
                         {
@@ -77,7 +79,9 @@ namespace ColorzCore.Preprocessor.Directives
                         }
                         else
                             p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
-                    }
+                    } */
+                    if(p.Definitions.ContainsKey(name))
+                        p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
                     if (parameters.Count == 2)
                     {
                         Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1]);
