@@ -21,7 +21,24 @@ namespace ColorzCore.Parser
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
         public ImmutableStack<Closure> GlobalScope { get; }
-        public int CurrentOffset { get; private set; }
+        public int CurrentOffset { get { return CurrentOffset; } private set
+            {
+                if (value > 0x2000000)
+                {
+                    if (validOffset) //Error only the first time.
+                    {
+                        Error(head == null ? new Location?() : head.Location, "Invalid offset: " + value.ToString("X"));
+                        validOffset = false;
+                    }
+                }
+                else
+                {
+                    currentOffset = value;
+                    validOffset = true;
+                }
+            }
+
+        }
         public ImmutableStack<bool> Inclusion { get; set; }
 
 
@@ -38,6 +55,9 @@ namespace ColorzCore.Parser
                     acc &= temp.Head;
                 return acc;
             } }
+        private bool validOffset;
+        private int currentOffset;
+        private Token head;
 
         public EAParser(Dictionary<string, IList<Raw>> raws)
         {
@@ -49,6 +69,7 @@ namespace ColorzCore.Parser
             Errors = new List<string>();
             Raws = raws;
             CurrentOffset = 0;
+            validOffset = true;
             Macros = new Dictionary<string, Dictionary<int, Macro>>();
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
@@ -108,7 +129,7 @@ namespace ColorzCore.Parser
         private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             while (ExpandIdentifier(tokens)) ;
-            Token head = tokens.Current;
+            head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
             IList<IParamNode> parameters;
@@ -294,7 +315,7 @@ namespace ColorzCore.Parser
             bool first = true;
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && !tokens.EOS)
             {
-                Token head = tokens.Current;
+                head = tokens.Current;
                 ParseParam(tokens, scopes, expandFirstDef || !first).IfJust(
                     (IParamNode n) => paramList.Add(n),
                     () => Error(head.Location, "Expected parameter."));
@@ -307,7 +328,7 @@ namespace ColorzCore.Parser
 
         private Maybe<IParamNode> ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
-            Token head = tokens.Current;
+            head = tokens.Current;
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
@@ -354,7 +375,7 @@ namespace ColorzCore.Parser
         private Maybe<IAtomNode> ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             //Use Shift Reduce Parsing
-            Token head = tokens.Current;
+            head = tokens.Current;
             Stack<Either<IAtomNode, Token>> grammarSymbols = new Stack<Either<IAtomNode, Token>>();
             bool ended = false;
             while (!ended)
@@ -514,7 +535,7 @@ namespace ColorzCore.Parser
 
         private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            Token head = tokens.Current;
+            head = tokens.Current;
             tokens.MoveNext();
             IList<IAtomNode> atoms = new List<IAtomNode>();
             do
@@ -542,8 +563,8 @@ namespace ColorzCore.Parser
                     tokens.MoveNext();
                     return new Nothing<ILineNode>();
                 }
-                Token nextToken = tokens.Current;
-                switch (nextToken.Type)
+                head = tokens.Current;
+                switch (head.Type)
                 {
                     case TokenType.IDENTIFIER:
                     case TokenType.MAYBE_MACRO:
@@ -557,29 +578,29 @@ namespace ColorzCore.Parser
                             if (tokens.Current.Type == TokenType.COLON)
                             {
                                 tokens.MoveNext();
-                                if (scopes.Head.HasLocalLabel(nextToken.Content))
+                                if (scopes.Head.HasLocalLabel(head.Content))
                                 {
-                                    Log(Errors, nextToken.Location, "Label already in scope: " + nextToken.Content);
+                                    Log(Errors, head.Location, "Label already in scope: " + head.Content);
                                 }
-                                else if(!IsValidLabelName(nextToken.Content))
+                                else if(!IsValidLabelName(head.Content))
                                 {
-                                    Error(nextToken.Location, "Invalid label name " + nextToken.Content + '.');
+                                    Error(head.Location, "Invalid label name " + head.Content + '.');
                                 }
                                 else
                                 {
-                                    scopes.Head.AddLabel(nextToken.Content, CurrentOffset);
+                                    scopes.Head.AddLabel(head.Content, CurrentOffset);
                                 }
 
                                 if (tokens.Current.Type != TokenType.NEWLINE)
                                 {
-                                    Log(Errors, nextToken.Location, "Unexpected token " + tokens.Current.Type);
+                                    Log(Errors, head.Location, "Unexpected token " + tokens.Current.Type);
                                     IgnoreRestOfLine(tokens);
                                 }
                                 return new Nothing<ILineNode>();
                             }
                             else
                             {
-                                tokens.PutBack(nextToken);
+                                tokens.PutBack(head);
                                 return new Just<ILineNode>(new StatementListNode(ParseStatementList(tokens, scopes)));
                             }
                         }
@@ -588,15 +609,15 @@ namespace ColorzCore.Parser
                     case TokenType.PREPROCESSOR_DIRECTIVE:
                         return ParsePreprocessor(tokens, scopes);
                     case TokenType.OPEN_BRACKET:
-                        Log(Errors, nextToken.Location, "Unexpected list literal.");
+                        Log(Errors, head.Location, "Unexpected list literal.");
                         break;
                     case TokenType.NUMBER:
                     case TokenType.OPEN_PAREN:
-                        Log(Errors, nextToken.Location, "Unexpected mathematical expression.");
+                        Log(Errors, head.Location, "Unexpected mathematical expression.");
                         break;
                     default:
                         tokens.MoveNext();
-                        Log(Errors, nextToken.Location, String.Format("Unexpected token: {0}: {1}", nextToken.Type, nextToken.Content));
+                        Log(Errors, head.Location, String.Format("Unexpected token: {0}: {1}", head.Type, head.Content));
                         break;
                 }
                 IgnoreRestOfLine(tokens);
@@ -620,11 +641,11 @@ namespace ColorzCore.Parser
 
         private Maybe<ILineNode> ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            Token directiveName = tokens.Current;
+            head = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
-            Maybe<ILineNode> retVal = HandleDirective(this, directiveName, paramList, tokens);
+            Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
                 CurrentOffset += retVal.FromJust.Size;
             return retVal;
@@ -653,7 +674,7 @@ namespace ColorzCore.Parser
             //Macros and Definitions.
             if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsKey(tokens.Current.Content))
             {
-                Token head = tokens.Current;
+                head = tokens.Current;
                 tokens.MoveNext();
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                 if (Macros[head.Content].ContainsKey(parameters.Count))
@@ -668,7 +689,7 @@ namespace ColorzCore.Parser
             }
             if (Definitions.ContainsKey(tokens.Current.Content))
             {
-                Token head = tokens.Current;
+                head = tokens.Current;
                 tokens.MoveNext();
                 tokens.PrependEnumerator(Definitions[head.Content].ApplyDefinition(head).GetEnumerator());
                 return true;
