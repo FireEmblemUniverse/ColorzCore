@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.IO;
+using ColorzCore.Lexer;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -20,5 +21,6 @@ namespace ColorzCore.Parser.AST
         public abstract int Size { get; }
 
         public abstract string PrettyPrint(int indentation);
+        public abstract void WriteData(ROM rom);
     }
 }

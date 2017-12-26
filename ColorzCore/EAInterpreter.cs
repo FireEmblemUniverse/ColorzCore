@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -12,62 +13,69 @@ namespace ColorzCore
     //Class to excapsulate all steps in EA script interpretation.
     class EAInterpreter
     {
-        private static readonly string RAWS_FOLDER = "Language Raws";
-        private static readonly string RAWS_EXTENSION = ".txt"; 
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
-        private string game;
+        private string game, iFile;
+        private Stream sin;
+        private FileStream fout;
+        private TextWriter serr;
 
-        public EAInterpreter(string game)
+        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr)
         {
             this.game = game;
-            allRaws = ProcessRaws(game, LoadAllRaws());
+            allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+            this.sin = sin;
+            this.fout = fout;
+            this.serr = serr;
+            iFile = inFileName;
         }
 
-        public void Interpret(TextWriter outStream, string fileName)
+        public void Interpret()
         {
             myParser = new EAParser(allRaws);
             myParser.Definitions['_' + game + '_'] = new Definition();
-
-            FileStream inputFile = new FileStream(fileName, FileMode.Open);
+            
             Tokenizer t = new Tokenizer();
+            ROM myROM = new ROM(fout);
 
-            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(inputFile)));
-
-            //foreach (ILineNode l in lines)
-            //    outStream.WriteLine(l.PrettyPrint(0));
+            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(new BufferedStream(sin), iFile)));
+            
 
             //TODO: sort them by file/line
             foreach (string message in myParser.Messages)
             {
-                outStream.WriteLine("MESSAGE: " + message);
+                serr.WriteLine("MESSAGE: " + message);
             }
             foreach (string warning in myParser.Warnings)
             {
-                outStream.WriteLine("WARNING: " + warning);
+                serr.WriteLine("WARNING: " + warning);
             }
             foreach (string error in myParser.Errors)
             {
-                outStream.WriteLine("ERROR: " + error);
+                serr.WriteLine("ERROR: " + error);
             }
 
             //TODO: -WError flag?
             if(myParser.Errors.Count == 0)
             {
-
+                foreach(ILineNode line in lines)
+                {
+                    line.WriteData(myROM);
+                }
+                myROM.WriteROM();
             }
             else
             {
-                outStream.WriteLine("Errors occurred; no changes written.");
+                serr.WriteLine("Errors occurred; no changes written.");
             }
         }
 
-        private static IList<Raw> LoadAllRaws()
+        private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
         {
             string folder;
-            DirectoryInfo directoryInfo = new DirectoryInfo(RAWS_FOLDER);
-            folder = Path.GetFullPath(RAWS_FOLDER);
-            FileInfo[] files = directoryInfo.GetFiles("*" + RAWS_EXTENSION, SearchOption.AllDirectories);
+            DirectoryInfo directoryInfo = new DirectoryInfo(rawsFolder);
+            folder = Path.GetFullPath(rawsFolder);
+            FileInfo[] files = directoryInfo.GetFiles("*" + rawsExtension, SearchOption.AllDirectories);
             IEnumerable<Raw> allRaws = new List<Raw>();
             foreach (FileInfo fileInfo in files)
             {

@@ -51,6 +51,7 @@
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="DataTypes\Either.cs" />
     <Compile Include="IO\IOUtility.cs" />
+    <Compile Include="IO\ROM.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
     <Compile Include="Lexer\TokenType.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="Parser\Definition.cs" />
     <Compile Include="Parser\Macro.cs" />
     <Compile Include="Parser\EAParser.cs" />
+    <Compile Include="Preprocessor\Directives\UndefineDirective.cs" />
     <Compile Include="Preprocessor\Directives\DefineDirective.cs" />
     <Compile Include="Preprocessor\Directives\ElseDirective.cs" />
     <Compile Include="Preprocessor\Directives\IDirective.cs" />

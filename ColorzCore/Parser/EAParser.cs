@@ -5,6 +5,7 @@ using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using static ColorzCore.Preprocessor.Handler;
 
@@ -21,7 +22,7 @@ namespace ColorzCore.Parser
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
         public ImmutableStack<Closure> GlobalScope { get; }
-        public int CurrentOffset { get { return CurrentOffset; } private set
+        public int CurrentOffset { get { return currentOffset; } private set
             {
                 if (value > 0x2000000)
                 {
@@ -57,7 +58,7 @@ namespace ColorzCore.Parser
             } }
         private bool validOffset;
         private int currentOffset;
-        private Token head;
+        private Token head; //TODO: Make this make sense
 
         public EAParser(Dictionary<string, IList<Raw>> raws)
         {
@@ -268,7 +269,7 @@ namespace ColorzCore.Parser
                     if(r.Fits(parameters))
                     {
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
-                        CurrentOffset += temp.Size;
+                        CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
                         return new Just<StatementNode>(temp);
                     }
                 }
@@ -287,18 +288,23 @@ namespace ColorzCore.Parser
         public IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
         {
             IList<IList<Token>> parameters = new List<IList<Token>>();
+            int parenNestings = 0;
             do
             {
                 tokens.MoveNext();
                 List<Token> currentParam = new List<Token>();
-                while (tokens.Current.Type != TokenType.COMMA && tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE)
+                while (tokens.Current.Type != TokenType.COMMA && !(parenNestings == 0 && tokens.Current.Type == TokenType.CLOSE_PAREN) && tokens.Current.Type != TokenType.NEWLINE)
                 {
+                    if (tokens.Current.Type == TokenType.CLOSE_PAREN)
+                        parenNestings--;
+                    else if (tokens.Current.Type == TokenType.OPEN_PAREN)
+                        parenNestings++;
                     currentParam.Add(tokens.Current);
                     tokens.MoveNext();
                 }
                 parameters.Add(currentParam);
             } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
-            if(tokens.Current.Type != TokenType.CLOSE_PAREN)
+            if(tokens.Current.Type != TokenType.CLOSE_PAREN || parenNestings != 0)
             {
                 Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
             }
@@ -315,7 +321,7 @@ namespace ColorzCore.Parser
             bool first = true;
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && !tokens.EOS)
             {
-                head = tokens.Current;
+                Token head = tokens.Current;
                 ParseParam(tokens, scopes, expandFirstDef || !first).IfJust(
                     (IParamNode n) => paramList.Add(n),
                     () => Error(head.Location, "Expected parameter."));
@@ -326,9 +332,22 @@ namespace ColorzCore.Parser
             return paramList;
         }
 
+        private IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        {
+            IList<IParamNode> temp = ParseParamList(tokens, scopes, false);
+            for(int i=0; i<temp.Count; i++)
+            {
+                if(temp[i].Type == ParamType.STRING && ((StringNode)temp[i]).IsValidIdentifier())
+                {
+                    temp[i] = ((StringNode)temp[i]).ToIdentifier(scopes);
+                }
+            }
+            return temp;
+        }
+
         private Maybe<IParamNode> ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
-            head = tokens.Current;
+            Token head = tokens.Current;
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
@@ -375,7 +394,7 @@ namespace ColorzCore.Parser
         private Maybe<IAtomNode> ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             //Use Shift Reduce Parsing
-            head = tokens.Current;
+            Token head = tokens.Current;
             Stack<Either<IAtomNode, Token>> grammarSymbols = new Stack<Either<IAtomNode, Token>>();
             bool ended = false;
             while (!ended)
@@ -400,7 +419,7 @@ namespace ColorzCore.Parser
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
                             IAtomNode node = grammarSymbols.Peek().GetLeft;
-                            int treePrec = node.Precedence;
+                            int treePrec = GetLowestPrecedence(grammarSymbols);
                             if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
                             {
                                 Reduce(grammarSymbols, precedences[lookAhead.Type]);
@@ -448,6 +467,11 @@ namespace ColorzCore.Parser
                                 //Assume unary negation.
                                 tokens.MoveNext();
                                 Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
+                                if(interior.IsNothing)
+                                {
+                                    Log(Errors, lookAhead.Location, "Expected expression after negation. ");
+                                    return new Nothing<IAtomNode>();
+                                }
                                 grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); //TODO: The nothing case.
                                 break;
                             }
@@ -466,7 +490,7 @@ namespace ColorzCore.Parser
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
                         default:
-                            Log(Errors, lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + '.');
+                            Log(Errors, lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + ": " + lookAhead.Content + '.');
                             IgnoreRestOfStatement(tokens);
                             return new Nothing<IAtomNode>();
                     }
@@ -478,7 +502,10 @@ namespace ColorzCore.Parser
                     {
                         if (expandDefs && ExpandIdentifier(tokens))
                             continue;
-                        grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
+                        if (lookAhead.Content.ToUpper() == "CURRENTOFFSET")
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead, CurrentOffset)));
+                        else
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
                     }
                     else if (lookAhead.Type == TokenType.MAYBE_MACRO)
                     {
@@ -533,9 +560,18 @@ namespace ColorzCore.Parser
             }
         }
 
+        private int GetLowestPrecedence(Stack<Either<IAtomNode, Token>> grammarSymbols)
+        {
+            int minPrec = 11; //TODO: Note that this is the largest possible value.
+            foreach (Either<IAtomNode, Token> e in grammarSymbols)
+                e.Case((IAtomNode n) => { minPrec = Math.Min(minPrec, n.Precedence); },
+                    (Token t) => { minPrec = Math.Min(minPrec, precedences[t.Type]); });
+            return minPrec;
+        }
+
         private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            head = tokens.Current;
+            Token head = tokens.Current;
             tokens.MoveNext();
             IList<IAtomNode> atoms = new List<IAtomNode>();
             do
@@ -644,7 +680,7 @@ namespace ColorzCore.Parser
             head = tokens.Current;
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
-            IList<IParamNode> paramList = ParseParamList(tokens, scopes, false);
+            IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
             Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
                 CurrentOffset += retVal.FromJust.Size;
@@ -674,7 +710,7 @@ namespace ColorzCore.Parser
             //Macros and Definitions.
             if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsKey(tokens.Current.Content))
             {
-                head = tokens.Current;
+                Token head = tokens.Current;
                 tokens.MoveNext();
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                 if (Macros[head.Content].ContainsKey(parameters.Count))
@@ -689,7 +725,7 @@ namespace ColorzCore.Parser
             }
             if (Definitions.ContainsKey(tokens.Current.Content))
             {
-                head = tokens.Current;
+                Token head = tokens.Current;
                 tokens.MoveNext();
                 tokens.PrependEnumerator(Definitions[head.Content].ApplyDefinition(head).GetEnumerator());
                 return true;

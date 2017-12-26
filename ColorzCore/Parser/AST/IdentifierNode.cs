@@ -59,5 +59,10 @@ namespace ColorzCore.Parser.AST
                 this.CausedError = causedError;
             }
         }
+
+        public override string ToString()
+        {
+            return identifier.Content;
+        }
     }
 }

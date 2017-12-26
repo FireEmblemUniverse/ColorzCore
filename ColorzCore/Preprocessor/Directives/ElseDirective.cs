@@ -23,7 +23,7 @@ namespace ColorzCore.Preprocessor.Directives
             if (p.Inclusion.IsEmpty)
                 p.Error(self.Location, "No matching if[n]def.");
             else
-                p.Inclusion = new ImmutableStack<bool>(p.Inclusion.Head, p.Inclusion.Tail);
+                p.Inclusion = new ImmutableStack<bool>(!p.Inclusion.Head, p.Inclusion.Tail);
             return new Nothing<ILineNode>();
         }
     }

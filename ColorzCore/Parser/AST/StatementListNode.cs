@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.IO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -29,6 +30,13 @@ namespace ColorzCore.Parser.AST
                 sb.Append(';');
             }
             return sb.ToString();
+        }
+        public void WriteData(ROM rom)
+        {
+            foreach (StatementNode child in Statements)
+            {
+                child.WriteData(rom);
+            }
         }
     }
 }

@@ -25,5 +25,16 @@ namespace ColorzCore.IO
                 return new Just<string>(newFile);
             return new Nothing<string>();
         }
+
+        public static string UnescapeString(string param)
+        {
+            StringBuilder sb = new StringBuilder(param);
+            return sb.Replace("\\t", "\t").Replace("\\n", "\n").Replace("\\\\", "\\").Replace("\\r", "\r").ToString();
+        }
+        public static string UnescapePath(string param)
+        {
+            StringBuilder sb = new StringBuilder(param);
+            return sb.Replace("\\ ", " ").Replace("\\\\", "\\").ToString();
+        }
     }
 }

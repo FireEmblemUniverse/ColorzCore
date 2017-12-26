@@ -32,7 +32,7 @@ namespace ColorzCore.Preprocessor.Directives
                         /*if (l1.Count == 0)
                             p.Error(l1[0].Location, "Missing parameter."); //TODO: This shouldn't be reached?
                         else*/
-                        p.Error(l1[0].Location, "Macro parameters must be identifiers.");
+                        p.Error(l1[0].Location, "Macro parameters must be identifiers (got " + l1[0].Content + ").");
                     }
                     else
                     {
@@ -97,7 +97,7 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 else
                 {
-                    p.Error(parameters[0].MyLocation, "Definition names must be identifiers.");
+                    p.Error(parameters[0].MyLocation, "Definition names must be identifiers (got " + parameters[0].ToString() + ").");
                 }
             }
             return new Nothing<ILineNode>();

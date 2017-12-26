@@ -309,7 +309,7 @@ namespace ColorzCore.Raws
                         int temp = Code;
                         for (int i = 0; i < 0x10; i++, temp >>= 1)
                         {
-                            data[i] = (temp & 1) == 1;
+                            localData[i] = (temp & 1) == 1;
                         }
                     }
                     myParams[0].Set(localData, p);

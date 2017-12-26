@@ -18,7 +18,7 @@ namespace ColorzCore.Parser.AST
 
         public override string ToString()
         {
-            return Evaluate().ToString();
+            return Evaluate().ToString("X");
         }
 
         public virtual Maybe<string> GetIdentifier()

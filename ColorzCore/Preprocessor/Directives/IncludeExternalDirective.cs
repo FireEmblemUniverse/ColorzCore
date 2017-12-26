@@ -29,6 +29,7 @@ namespace ColorzCore.Preprocessor.Directives
             //from http://stackoverflow.com/a/206347/1644720
             // Start the child process.
             System.Diagnostics.Process p = new System.Diagnostics.Process();
+            p.StartInfo.RedirectStandardError = true;
             // Redirect the output stream of the child process.
             p.StartInfo.WorkingDirectory = Path.GetDirectoryName(self.FileName);
             p.StartInfo.UseShellExecute = false;
@@ -36,18 +37,9 @@ namespace ColorzCore.Preprocessor.Directives
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.FileName = validFile.FromJust;
             StringBuilder argumentBuilder = new StringBuilder();
-            for (int i = 0; i < parameters.Count; i++)
+            for (int i = 1; i < parameters.Count; i++)
             {
-                if (parameters[i].Type == ParamType.STRING)
-                {
-                    argumentBuilder.Append('"');
-                    argumentBuilder.Append(parameters[i].ToString());
-                    argumentBuilder.Append('"');
-                }
-                else
-                {
-                    argumentBuilder.Append(parameters[i].ToString());
-                }
+                argumentBuilder.Append(parameters[i].PrettyPrint());
                 argumentBuilder.Append(' ');
             }
             argumentBuilder.Append("--to-stdout");
@@ -70,9 +62,9 @@ namespace ColorzCore.Preprocessor.Directives
             }
             else if (output.Length >= 7 && Encoding.ASCII.GetString(output.Take(7).ToArray()) == "ERROR: ")
             {
-                parse.Error(self.Location, Encoding.ASCII.GetString(output.Take(7).ToArray()));
+                parse.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
             }
-            return new Just<ILineNode>(new DataNode(output));
+            return new Just<ILineNode>(new DataNode(parse.CurrentOffset, output));
         }
 
         private string GetFileName(string toolName)
@@ -81,9 +73,9 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 case PlatformID.Unix:
                 case PlatformID.MacOSX:
-                    return "\"./Tools/" + toolName + "\"";
+                    return "./Tools/" + toolName;
                 default:
-                    return "\".\\Tools\\" + toolName + ".exe\"";
+                    return ".\\Tools\\" + toolName + ".exe";
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    public class ImmutableStack<T>
+    public class ImmutableStack<T> : IEnumerable<T>
     {
         private Maybe<Tuple<T, ImmutableStack<T>>> member;
         bool cachedCount = false;
@@ -43,6 +44,26 @@ namespace ColorzCore.DataTypes
             bool acc = false;
             for(ImmutableStack<T> temp = this; !acc && !temp.IsEmpty; temp = temp.Tail) acc |= temp.Head.Equals(toLookFor);
             return acc;
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            ImmutableStack<T> temp = this;
+            while(!temp.IsEmpty)
+            {
+                yield return temp.Head;
+                temp = temp.Tail;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            ImmutableStack<T> temp = this;
+            while (!temp.IsEmpty)
+            {
+                yield return temp.Head;
+                temp = temp.Tail;
+            }
         }
     }
 }

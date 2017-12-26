@@ -11,6 +11,7 @@ namespace ColorzCore.Parser.AST
     public class NumberNode : AtomNodeKernel
     {
         private Token number;
+        private int value;
 
         public override Location MyLocation => number.Location;
         public override int Precedence { get { return 11; } }
@@ -18,11 +19,17 @@ namespace ColorzCore.Parser.AST
 		public NumberNode(Token num)
 		{
             number = num;
-		}
+            value = number.Content.ToInt(); 
+        }
+        public NumberNode(Token text, int value)
+        {
+            number = text;
+            this.value = value;
+        }
 		
 		public override int Evaluate()
         {
-            return number.Content.ToInt();
+            return value;
         }
         
         public override string PrettyPrint()

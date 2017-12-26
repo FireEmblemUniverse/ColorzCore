@@ -36,18 +36,9 @@ namespace ColorzCore.Preprocessor.Directives
             p.StartInfo.CreateNoWindow = true;
             p.StartInfo.FileName = validFile.FromJust;
             StringBuilder argumentBuilder = new StringBuilder();
-            for (int i = 0; i < parameters.Count; i++)
+            for (int i = 1; i < parameters.Count; i++)
             {
-                if (parameters[i].Type == ParamType.STRING)
-                {
-                    argumentBuilder.Append('"');
-                    argumentBuilder.Append(parameters[i].ToString());
-                    argumentBuilder.Append('"');
-                }
-                else
-                {
-                    argumentBuilder.Append(parameters[i].ToString());
-                }
+                argumentBuilder.Append(parameters[i].PrettyPrint());
                 argumentBuilder.Append(' ');
             }
             argumentBuilder.Append("--to-stdout");
@@ -70,7 +61,7 @@ namespace ColorzCore.Preprocessor.Directives
             }
             else if (output.Length >= 7 && Encoding.ASCII.GetString(output.Take(7).ToArray()) == "ERROR: ")
             {
-                parse.Error(self.Location, Encoding.ASCII.GetString(output.Take(7).ToArray()));
+                parse.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
             }
             else
             {

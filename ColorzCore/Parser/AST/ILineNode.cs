@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.IO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,5 +11,6 @@ namespace ColorzCore.Parser.AST
     {
         int Size { get; }
         string PrettyPrint(int indentation);
+        void WriteData(ROM rom);
     }
 }

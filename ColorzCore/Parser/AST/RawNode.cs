@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.IO;
+using ColorzCore.Lexer;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,10 @@ namespace ColorzCore.Parser.AST
                 sb.Append(n.PrettyPrint());
             }
             return sb.ToString();
+        }
+        public override void WriteData(ROM rom)
+        {
+            rom.WriteTo(offset, myRaw.GetBytes(Parameters));
         }
     }
 }

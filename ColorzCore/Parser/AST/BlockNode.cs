@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,13 +10,18 @@ namespace ColorzCore.Parser.AST
 {
     class BlockNode : ILineNode
     {
-        public List<ILineNode> Children { get; }
+        public IList<ILineNode> Children { get; }
 
         public int Size {
             get
             {
                 return Children.Sum((ILineNode n) => n.Size);
             } }
+
+        public BlockNode()
+        {
+            Children = new List<ILineNode>();
+        }
 
         public string PrettyPrint(int indentation)
         {
@@ -31,6 +37,14 @@ namespace ColorzCore.Parser.AST
             sb.Append(' ', indentation);
             sb.Append('}');
             return sb.ToString();
+        }
+
+        public void WriteData(ROM rom)
+        {
+            foreach(ILineNode child in Children)
+            {
+                child.WriteData(rom);
+            }
         }
     }
 }

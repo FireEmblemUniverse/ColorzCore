@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ColorzCore.IO;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,10 +9,12 @@ namespace ColorzCore.Parser.AST
 {
     class DataNode : ILineNode
     {
+        private int offset;
         private byte[] data;
 
-        public DataNode(byte[] data)
+        public DataNode(int offset, byte[] data)
         {
+            this.offset = offset;
             this.data = data;
         }
 
@@ -20,6 +23,11 @@ namespace ColorzCore.Parser.AST
         public string PrettyPrint(int indentation)
         {
             return String.Format("Raw Data Block of Length {0}", Size);
+        }
+        
+        public void WriteData(ROM rom)
+        {
+            rom.WriteTo(offset, data);
         }
     }
 }

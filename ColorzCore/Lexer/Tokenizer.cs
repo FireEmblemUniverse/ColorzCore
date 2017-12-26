@@ -5,18 +5,20 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ColorzCore.IO;
 
 namespace ColorzCore.Lexer
 {
     class Tokenizer
     {
         public const int MAX_ID_LENGTH = 64;
-        private static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)");
-        private static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
-        private static readonly Regex stringRegex = new Regex("\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
-        private static readonly Regex winPathnameRegex = new Regex(String.Format("\\G([^ \\{0}]|\\ |\\\\)+", Process(Path.GetInvalidPathChars())));
-        private static readonly Regex preprocDirectiveRegex = new Regex("\\G(#[a-zA-Z_][a-zA-Z0-9_]*)");
-        
+        public static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)");
+        public static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
+        public static readonly Regex stringRegex = new Regex("\\G(([^\\\"]|\\\\\\\")*)"); //"\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
+        public static readonly Regex winPathnameRegex = new Regex(String.Format("\\G([^ \\{0}]|\\ |\\\\)+", Process(Path.GetInvalidPathChars())));
+        public static readonly Regex preprocDirectiveRegex = new Regex("\\G(#[a-zA-Z_][a-zA-Z0-9_]*)");
+        public static readonly Regex wordRegex = new Regex("\\G([^\\s]+)");
+
         private static string Process(char[] chars)
         {
             StringBuilder sb = new StringBuilder();
@@ -58,7 +60,7 @@ namespace ColorzCore.Lexer
         
         public IEnumerable<Token> TokenizePhrase(string line, string fileName, int lineNum, int startOffs, int endOffs, int offset = 0)
         {
-            bool afterInclude = false;
+            bool afterInclude = false, afterDirective = false, afterWhitespace = false;
 
             int curCol = startOffs;
             while (curCol < endOffs)
@@ -81,6 +83,7 @@ namespace ColorzCore.Lexer
                 if (Char.IsWhiteSpace(nextChar) && nextChar != '\n')
                 {
                     curCol++;
+                    afterWhitespace = true;
                     continue;
                 }
 
@@ -140,7 +143,18 @@ namespace ColorzCore.Lexer
                         yield return new Token(TokenType.ADD_OP, fileName, lineNum, curCol+offset);
                         break;
                     case '-':
-                        yield return new Token(TokenType.SUB_OP, fileName, lineNum, curCol+offset);
+                        if (afterWhitespace && afterDirective)
+                        {
+                            Match wsDelimited = wordRegex.Match(line, curCol, Math.Min(260, endOffs - curCol));
+                            if (wsDelimited.Success)
+                            {
+                                string match = wsDelimited.Value;
+                                yield return new Token(TokenType.STRING, fileName, lineNum, curCol, IOUtility.UnescapePath(match));
+                                curCol += match.Length;
+                                continue;
+                            }
+                        }
+                        yield return new Token(TokenType.SUB_OP, fileName, lineNum, curCol + offset);
                         break;
                     case '&':
                         yield return new Token(TokenType.AND_OP, fileName, lineNum, curCol+offset);
@@ -156,7 +170,7 @@ namespace ColorzCore.Lexer
                             curCol++;
                             Match quoteInterior = stringRegex.Match(line, curCol, endOffs - curCol);
                             string match = quoteInterior.Value;
-                            yield return new Token(TokenType.STRING, fileName, lineNum, curCol, UnescapeString(match));
+                            yield return new Token(TokenType.STRING, fileName, lineNum, curCol, /*IOUtility.UnescapeString(*/match/*)*/);
                             curCol += match.Length;
                             if (curCol == endOffs || line[curCol] != '\"')
                             {
@@ -206,7 +220,7 @@ namespace ColorzCore.Lexer
                             if (winPath.Success)
                             {
                                 string match = winPath.Value;
-                                yield return new Token(TokenType.STRING, fileName, lineNum, curCol, UnescapePath(match));
+                                yield return new Token(TokenType.STRING, fileName, lineNum, curCol, IOUtility.UnescapePath(match));
                                 curCol += match.Length;
                                 afterInclude = false;
                                 continue;
@@ -257,6 +271,7 @@ namespace ColorzCore.Lexer
                                 {
                                     afterInclude = true;
                                 }
+                                afterDirective = true;
                                 continue;
                             }
                         }
@@ -267,6 +282,7 @@ namespace ColorzCore.Lexer
                 }
                 curCol++;
                 afterInclude = false;
+                afterWhitespace = false;
             }
         }
         public IEnumerable<Token> TokenizeLine(string line, string fileName, int lineNum, int offset = 0)
@@ -301,17 +317,6 @@ namespace ColorzCore.Lexer
                 yield return t;
             inputStream.Close();
             fs.Close();
-        }
-
-        private string UnescapeString(string param)
-        {
-            StringBuilder sb = new StringBuilder(param);
-            return sb.Replace("\\t", "\t").Replace("\\n", "\n").Replace("\\\\", "\\").Replace("\\r", "\r").ToString();
-        }
-        private string UnescapePath(string param)
-        {
-            StringBuilder sb = new StringBuilder(param);
-            return sb.Replace("\\ ", " ").Replace("\\\\", "\\").ToString();
         }
     }
 }

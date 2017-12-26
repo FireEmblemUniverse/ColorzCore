@@ -27,8 +27,7 @@ namespace ColorzCore.Preprocessor.Directives
                 try
                 {
                     string pathname = existantFile.FromJust;
-
-                    return new Just<ILineNode>(new DataNode(File.ReadAllBytes(pathname)));
+                    return new Just<ILineNode>(new DataNode(p.CurrentOffset, File.ReadAllBytes(pathname)));
                 }
                 catch (Exception)
                 {

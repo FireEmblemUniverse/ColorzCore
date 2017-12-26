@@ -35,7 +35,7 @@ namespace ColorzCore.Raws
         {
             if (pointer)
                 res |= 0x08000000;
-            byte[] resBytes = { (byte)res, (byte)(res << 8), (byte)(res << 16), (byte)(res << 24) };
+            byte[] resBytes = { (byte)res, (byte)(res >> 8), (byte)(res >> 16), (byte)(res >> 24) };
             BitArray bits = new BitArray(resBytes);
             for (int i = Position; i < Position + Length; i++)
                 data[i] = bits[i - Position];
