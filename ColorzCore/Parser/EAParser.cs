@@ -90,7 +90,8 @@ namespace ColorzCore.Parser
         }
         public bool IsValidLabelName(string name)
         {
-            return !IsReservedName(name);
+            return true;//!IsReservedName(name);
+            //TODO?
         }
         public IList<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
@@ -294,7 +295,9 @@ namespace ColorzCore.Parser
             {
                 tokens.MoveNext();
                 List<Token> currentParam = new List<Token>();
-                while (tokens.Current.Type != TokenType.COMMA && !(parenNestings == 0 && tokens.Current.Type == TokenType.CLOSE_PAREN) && tokens.Current.Type != TokenType.NEWLINE)
+                while (
+                    !(parenNestings == 0 && (tokens.Current.Type == TokenType.CLOSE_PAREN || tokens.Current.Type == TokenType.COMMA))
+                    && tokens.Current.Type != TokenType.NEWLINE)
                 {
                     if (tokens.Current.Type == TokenType.CLOSE_PAREN)
                         parenNestings--;
@@ -371,6 +374,10 @@ namespace ColorzCore.Parser
                         return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
                     }
                 case TokenType.IDENTIFIER:
+                    if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens))
+                        return ParseParam(tokens, scopes, expandDefs);
+                    else
+                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
                 default:
                     return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
             }
@@ -616,7 +623,7 @@ namespace ColorzCore.Parser
                                 tokens.MoveNext();
                                 if (scopes.Head.HasLocalLabel(head.Content))
                                 {
-                                    Log(Errors, head.Location, "Label already in scope: " + head.Content);
+                                    Warning(head.Location, "Label already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
                                 }
                                 else if(!IsValidLabelName(head.Content))
                                 {

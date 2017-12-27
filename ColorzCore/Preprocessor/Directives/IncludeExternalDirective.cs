@@ -7,6 +7,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.IO;
 using System.IO;
 
 namespace ColorzCore.Preprocessor.Directives
@@ -19,12 +20,13 @@ namespace ColorzCore.Preprocessor.Directives
 
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            Maybe<string> validFile = IO.IOUtility.FindFile(self.FileName, GetFileName(parameters[0].ToString()));
+            Maybe<string> validFile = IO.IOUtility.FindFile(self.FileName, IOUtility.GetToolPath(parameters[0].ToString()));
             if (validFile.IsNothing)
             {
                 parse.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
                 return new Nothing<ILineNode>();
             }
+            //TODO: abstract out all this running stuff into a method so I don't have code duplication with inctext
 
             //from http://stackoverflow.com/a/206347/1644720
             // Start the child process.
@@ -69,18 +71,6 @@ namespace ColorzCore.Preprocessor.Directives
                 parse.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
             }
             return new Just<ILineNode>(new DataNode(parse.CurrentOffset, output));
-        }
-
-        private string GetFileName(string toolName)
-        {
-            switch (Environment.OSVersion.Platform)
-            {
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                    return "./Tools/" + toolName;
-                default:
-                    return ".\\Tools\\" + toolName + ".exe";
-            }
         }
     }
 }

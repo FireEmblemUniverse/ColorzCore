@@ -156,7 +156,7 @@ namespace ColorzCore.Raws
             HashSet<string> game = flagDict.ContainsKey("game") ? new HashSet<string>(flagDict["game"].Values.GetLeft) : 
                 flagDict.ContainsKey("language") ? new HashSet<string>(flagDict["language"].Values.GetLeft) : new HashSet<string>();
             int offsetMod = flagDict.ContainsKey("offsetMod") ? flagDict["offsetMod"].Values.GetLeft[0].ToInt() : 4;
-            Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(flagDict["offsetMod"].Values.GetLeft[0].ToInt()) : (Maybe<int>)new Nothing<int>();
+            Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(flagDict["terminatingList"].Values.GetLeft[0].ToInt()) : (Maybe<int>)new Nothing<int>();
             if(!terminatingList.IsNothing && code.ToInt() != 0)
             {
                 throw new Exception("TerminatingList with code nonzero.");
@@ -323,7 +323,7 @@ namespace ColorzCore.Raws
                 for (int i=0; i<parameters.Count; i++)
                 {
                     BitArray localData = new BitArray(myParams[0].Length);
-                    myParams[0].Set(data, parameters[i]);
+                    myParams[0].Set(localData, parameters[i]);
                     data.Append(localData);
                 }
                 BitArray term = new BitArray(myParams[0].Length);

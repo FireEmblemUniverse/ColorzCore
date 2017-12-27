@@ -50,13 +50,13 @@ namespace ColorzCore.Preprocessor.Directives
                 }*/
                 if(p.Macros.ContainsKey(name) && p.Macros[name].ContainsKey(myParams.Count))
                     p.Warning(signature.MyLocation, "Redefining " + name + '.');
+                Maybe<IList<Token>> toRepl;
                 if (parameters.Count != 2)
                 {
-                    p.Error(signature.MyLocation, "Empty macro definition."); //TODO: Make location info better?
-                    return new Nothing<ILineNode>();
+                    toRepl = new Just<IList<Token>>(new List<Token>());
                 }
-
-                Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
+                else
+                    toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
                 if (!toRepl.IsNothing)
                 {
                     if (!p.Macros.ContainsKey(name))

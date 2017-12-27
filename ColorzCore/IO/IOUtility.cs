@@ -36,5 +36,16 @@ namespace ColorzCore.IO
             StringBuilder sb = new StringBuilder(param);
             return sb.Replace("\\ ", " ").Replace("\\\\", "\\").ToString();
         }
+        public static string GetToolPath(string toolName)
+        {
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Unix:
+                case PlatformID.MacOSX:
+                    return "./Tools/" + toolName;
+                default:
+                    return ".\\Tools\\" + toolName + ".exe";
+            }
+        }
     }
 }
