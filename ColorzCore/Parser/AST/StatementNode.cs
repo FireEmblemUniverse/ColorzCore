@@ -22,5 +22,16 @@ namespace ColorzCore.Parser.AST
 
         public abstract string PrettyPrint(int indentation);
         public abstract void WriteData(ROM rom);
+
+        public void Simplify()
+        {
+            for(int i=0; i<Parameters.Count; i++)
+            {
+                if(Parameters[i].Type == ParamType.ATOM)
+                {
+                    Parameters[i] = ((IAtomNode)Parameters[i]).Simplify();
+                }
+            }
+        }
     }
 }

@@ -52,5 +52,22 @@ namespace ColorzCore.Parser.AST
             }
             yield return new Token(TokenType.CLOSE_PAREN, new Location(myEnd.file, myEnd.lineNum, myEnd.colNum + temp.Last().Content.Length), "(");
         }
+
+        public override bool CanEvaluate()
+        {
+            return inner.CanEvaluate();
+        }
+
+        public override IAtomNode Simplify()
+        {
+            inner = inner.Simplify();
+            if(CanEvaluate())
+            {
+                return new NumberNode(MyLocation, Evaluate());
+            } else
+            {
+                return this;
+            }
+        }
     }
 }

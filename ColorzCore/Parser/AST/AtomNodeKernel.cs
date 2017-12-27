@@ -18,7 +18,7 @@ namespace ColorzCore.Parser.AST
 
         public override string ToString()
         {
-            return Evaluate().ToString("X");
+            return "0x"+Evaluate().ToString("X");
         }
 
         public virtual Maybe<string> GetIdentifier()
@@ -26,7 +26,10 @@ namespace ColorzCore.Parser.AST
             return new Nothing<string>();
         }
 
-        public abstract string PrettyPrint();
+        public virtual string PrettyPrint()
+        {
+            return ToString(); //TODO: Mark abstract
+        }
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
@@ -42,5 +45,7 @@ namespace ColorzCore.Parser.AST
                 return new Right<int, string>("Unrecognized identifier: " + e.CausedError.Content);
             }
         }
+        public abstract bool CanEvaluate();
+        public abstract IAtomNode Simplify();
     }
 }

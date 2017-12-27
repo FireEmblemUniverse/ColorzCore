@@ -10,32 +10,42 @@ namespace ColorzCore.Parser.AST
 {
     public class NumberNode : AtomNodeKernel
     {
-        private Token number;
         private int value;
 
-        public override Location MyLocation => number.Location;
+        public override Location MyLocation { get; }
         public override int Precedence { get { return 11; } }
 
 		public NumberNode(Token num)
 		{
-            number = num;
-            value = number.Content.ToInt(); 
+            MyLocation = num.Location;
+            value = num.Content.ToInt(); 
         }
         public NumberNode(Token text, int value)
         {
-            number = text;
+            MyLocation = text.Location;
             this.value = value;
         }
-		
-		public override int Evaluate()
+        public NumberNode(Location loc, int value)
+        {
+            MyLocation = loc;
+            this.value = value;
+        }
+
+        public override int Evaluate()
         {
             return value;
         }
         
-        public override string PrettyPrint()
+        public override IEnumerable<Token> ToTokens () { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
+
+        public override bool CanEvaluate()
         {
-            return number.Content;
+            return true;
         }
-        public override IEnumerable<Token> ToTokens () { yield return number; }
+
+        public override IAtomNode Simplify()
+        {
+            return this;
+        }
     }
 }

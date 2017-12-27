@@ -56,7 +56,7 @@ namespace ColorzCore.Preprocessor.Directives
                     return new Nothing<ILineNode>();
                 }
 
-                Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1]);
+                Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
                 if (!toRepl.IsNothing)
                 {
                     if (!p.Macros.ContainsKey(name))
@@ -84,7 +84,7 @@ namespace ColorzCore.Preprocessor.Directives
                         p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
                     if (parameters.Count == 2)
                     {
-                        Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1]);
+                        Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1], Enumerable.Empty<string>());
                         if (!toRepl.IsNothing)
                         {
                             p.Definitions[name] = new Definition(toRepl.FromJust);
@@ -102,10 +102,10 @@ namespace ColorzCore.Preprocessor.Directives
             }
             return new Nothing<ILineNode>();
         }
-        delegate Maybe<IList<Token>> ExpParamType(EAParser p, IParamNode param);
-        private static ExpParamType ExpandParam = (EAParser p, IParamNode param) =>
+        delegate Maybe<IList<Token>> ExpParamType(EAParser p, IParamNode param, IEnumerable<string> myParams);
+        private static ExpParamType ExpandParam = (EAParser p, IParamNode param, IEnumerable<string> myParams) =>
             TokenizeParam(p, param).Fmap<IEnumerable<Token>>( (IList<Token> l) => 
-            ExpandAllIdentifiers(p, new Queue<Token>(l), ImmutableStack<string>.Nil, ImmutableStack<Tuple<string, int>>.Nil)).Fmap(
+            ExpandAllIdentifiers(p, new Queue<Token>(l), ImmutableStack<string>.FromEnumerable(myParams), ImmutableStack<Tuple<string, int>>.Nil)).Fmap(
             (IEnumerable<Token> x) => (IList<Token>)new List<Token>(x));
         private static Maybe<IList<Token>> TokenizeParam(EAParser p, IParamNode param)
         {
@@ -147,19 +147,26 @@ namespace ColorzCore.Preprocessor.Directives
                     if(p.Macros.ContainsKey(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
                     {
                         IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
-                        if (p.Macros[current.Content].ContainsKey(param.Count))
+                        if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros[current.Content].ContainsKey(param.Count))
                         {
                             foreach(Token t in  p.Macros[current.Content][param.Count].ApplyMacro(current, param))
                             {
                                 yield return t; 
                             }
                         }
+                        else if(seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)))
+                        {
+                            yield return current;
+                            foreach (IList<Token> l in param)
+                                foreach (Token t in l)
+                                    yield return t;
+                        }
                         else
                         {
                             yield return current;
                         }
                     }
-                    else if(p.Definitions.ContainsKey(current.Content))
+                    else if(!seenDefs.Contains(current.Content) && p.Definitions.ContainsKey(current.Content))
                     {
                         foreach (Token t in p.Definitions[current.Content].ApplyDefinition(current))
                             yield return t;

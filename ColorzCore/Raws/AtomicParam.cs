@@ -33,7 +33,7 @@ namespace ColorzCore.Raws
         }
         public void Set(BitArray data, int res)
         {
-            if (pointer)
+            if (pointer && res != 0)
                 res |= 0x08000000;
             byte[] resBytes = { (byte)res, (byte)(res >> 8), (byte)(res >> 16), (byte)(res >> 24) };
             BitArray bits = new BitArray(resBytes);

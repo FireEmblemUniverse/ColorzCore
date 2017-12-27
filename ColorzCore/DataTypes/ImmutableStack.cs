@@ -65,5 +65,10 @@ namespace ColorzCore.DataTypes
                 temp = temp.Tail;
             }
         }
+
+        public static ImmutableStack<T> FromEnumerable(IEnumerable<T> content)
+        {
+            return content.Reverse().Aggregate(Nil, (ImmutableStack<T> acc, T elem) => new ImmutableStack<T>(elem, acc));
+        }
     }
 }

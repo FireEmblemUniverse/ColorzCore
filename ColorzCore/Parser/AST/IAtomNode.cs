@@ -15,5 +15,7 @@ namespace ColorzCore.Parser.AST
 		int Evaluate();
         Maybe<string> GetIdentifier();
         IEnumerable<Token> ToTokens();
+        bool CanEvaluate();
+        IAtomNode Simplify();
     }
 }

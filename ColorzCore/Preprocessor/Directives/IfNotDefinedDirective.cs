@@ -14,7 +14,7 @@ namespace ColorzCore.Preprocessor.Directives
     {
         public int MinParams => 1;
 
-        public int? MaxParams => null;
+        public int? MaxParams => 1;
 
         public bool RequireInclusion => false;
 

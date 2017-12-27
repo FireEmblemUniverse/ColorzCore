@@ -2,6 +2,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ColorzCore.Parser.AST
 {
@@ -64,5 +65,19 @@ namespace ColorzCore.Parser.AST
         {
             return identifier.Content;
         }
+
+        public override bool CanEvaluate()
+        {
+            return Enumerable.Any(scope, (Closure c) => c.HasLocalLabel(identifier.Content));
+        }
+
+        public override IAtomNode Simplify()
+        {
+            if (!CanEvaluate())
+                return this;
+            else
+                return new NumberNode(identifier, Evaluate());
+        }
+
     }
 }

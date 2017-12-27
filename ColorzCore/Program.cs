@@ -7,7 +7,6 @@ namespace ColorzCore
     {
         static void Main(string[] args)
         {
-            foreach(string arg in args) Console.WriteLine(arg);
             if(args.Length < 2)
             {
                 Console.WriteLine("Required parameters missing.");

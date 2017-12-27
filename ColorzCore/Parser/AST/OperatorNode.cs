@@ -99,5 +99,20 @@ namespace ColorzCore.Parser.AST
                 yield return t;
             }
         }
+
+        public override bool CanEvaluate()
+        {
+            return left.CanEvaluate() && right.CanEvaluate();
+        }
+
+        public override IAtomNode Simplify()
+        {
+            left = left.Simplify();
+            right = right.Simplify();
+            if (CanEvaluate())
+                return new NumberNode(left.MyLocation, Evaluate());
+            else
+                return this;
+        }
     }
 }

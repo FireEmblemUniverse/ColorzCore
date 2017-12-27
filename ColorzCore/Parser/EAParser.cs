@@ -116,7 +116,7 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             BlockNode temp = new BlockNode();
             Maybe<ILineNode> x;
-            while (tokens.Current.Type != TokenType.CLOSE_BRACE && !tokens.EOS)
+            while (!tokens.EOS && tokens.Current.Type != TokenType.CLOSE_BRACE)
             {
                 if (!(x = ParseLine(tokens, scopes)).IsNothing)
                     temp.Children.Add(x.FromJust);
@@ -269,6 +269,7 @@ namespace ColorzCore.Parser
                     if(r.Fits(parameters))
                     {
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
+                        temp.Simplify();
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
                         return new Just<StatementNode>(temp);
                     }
@@ -418,7 +419,6 @@ namespace ColorzCore.Parser
                         case TokenType.AND_OP:
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
-                            IAtomNode node = grammarSymbols.Peek().GetLeft;
                             int treePrec = GetLowestPrecedence(grammarSymbols);
                             if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
                             {
@@ -472,7 +472,7 @@ namespace ColorzCore.Parser
                                     Log(Errors, lookAhead.Location, "Expected expression after negation. ");
                                     return new Nothing<IAtomNode>();
                                 }
-                                grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); //TODO: The nothing case.
+                                grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); 
                                 break;
                             }
                         case TokenType.COMMA:
