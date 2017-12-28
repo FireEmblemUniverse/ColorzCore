@@ -8,13 +8,16 @@ namespace ColorzCore.Parser.Macros
 {
     class MacroCollection
     {
-        private static readonly Dictionary<string, BuiltInMacro> BuiltInMacros = new Dictionary<string, BuiltInMacro> { { "String", String.Instance } };
+        public Dictionary<string, BuiltInMacro> BuiltInMacros { get; }
+        public EAParser Parent { get; }
 
         private Dictionary<string, Dictionary<int, IMacro>> Macros { get; }
 
-        public MacroCollection()
+        public MacroCollection(EAParser parent)
         {
             Macros = new Dictionary<string, Dictionary<int, IMacro>>();
+            Parent = parent;
+            BuiltInMacros = new Dictionary<string, BuiltInMacro> { { "String", String.Instance } };
         }
 
         public bool HasMacro(string name, int paramNum)

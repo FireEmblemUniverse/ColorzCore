@@ -73,7 +73,7 @@ namespace ColorzCore.Parser
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
-            Macros = new MacroCollection();
+            Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
         }
