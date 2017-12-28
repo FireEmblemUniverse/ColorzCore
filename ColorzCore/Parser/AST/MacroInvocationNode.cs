@@ -43,7 +43,7 @@ namespace ColorzCore.Parser.AST
 
         public IEnumerable<Token> ExpandMacro()
         {
-            return p.Macros[invokeToken.Content][Parameters.Count].ApplyMacro(invokeToken, Parameters);
+            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters);
         }
 
         public Either<int, string> TryEvaluate()

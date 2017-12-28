@@ -1,6 +1,7 @@
 ﻿using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Macros;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -15,10 +16,11 @@ namespace ColorzCore.Parser
 {
     class EAParser
     {
-        public Dictionary<string, Dictionary<int, Macro>> Macros { get; }
+        public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" };
+        //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
         public ImmutableStack<Closure> GlobalScope { get; }
@@ -71,7 +73,7 @@ namespace ColorzCore.Parser
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
-            Macros = new Dictionary<string, Dictionary<int, Macro>>();
+            Macros = new MacroCollection();
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
         }
@@ -86,7 +88,7 @@ namespace ColorzCore.Parser
         }
         public bool IsValidMacroName(string name, int paramNum)
         {
-            return !(Macros.ContainsKey(name) && Macros[name].ContainsKey(paramNum)) && !IsReservedName(name);
+            return !(Macros.HasMacro(name, paramNum)) && !IsReservedName(name);
         }
         public bool IsValidLabelName(string name)
         {
@@ -523,7 +525,7 @@ namespace ColorzCore.Parser
                     }
                     else if (lookAhead.Type == TokenType.ERROR)
                     {
-                        Log(Errors, lookAhead.Location, String.Format("Unexpected token: {0}", lookAhead.Content));
+                        Log(Errors, lookAhead.Location, System.String.Format("Unexpected token: {0}", lookAhead.Content));
                         tokens.MoveNext();
                         return new Nothing<IAtomNode>();
                     }
@@ -659,15 +661,15 @@ namespace ColorzCore.Parser
                     case TokenType.PREPROCESSOR_DIRECTIVE:
                         return ParsePreprocessor(tokens, scopes);
                     case TokenType.OPEN_BRACKET:
-                        Log(Errors, head.Location, "Unexpected list literal.");
+                        Error(head.Location, "Unexpected list literal.");
                         break;
                     case TokenType.NUMBER:
                     case TokenType.OPEN_PAREN:
-                        Log(Errors, head.Location, "Unexpected mathematical expression.");
+                        Error(head.Location, "Unexpected mathematical expression.");
                         break;
                     default:
                         tokens.MoveNext();
-                        Log(Errors, head.Location, String.Format("Unexpected token: {0}: {1}", head.Type, head.Content));
+                        Error(head.Location, System.String.Format("Unexpected token: {0}: {1}", head.Type, head.Content));
                         break;
                 }
                 IgnoreRestOfLine(tokens);
@@ -683,7 +685,7 @@ namespace ColorzCore.Parser
                 }
                 else
                 {
-                    Log(Errors, null, String.Format("Missing {0} endif(s).", Inclusion.Count));
+                    Error(null, System.String.Format("Missing {0} endif(s).", Inclusion.Count));
                     return new Nothing<ILineNode>();
                 }
             }
@@ -722,18 +724,18 @@ namespace ColorzCore.Parser
         {
             bool ret = false;
             //Macros and Definitions.
-            if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsKey(tokens.Current.Content))
+            if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsName(tokens.Current.Content))
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
-                if (Macros[head.Content].ContainsKey(parameters.Count))
+                if (Macros.HasMacro(head.Content, parameters.Count))
                 {
-                    tokens.PrependEnumerator(Macros[head.Content][parameters.Count].ApplyMacro(head, parameters).GetEnumerator());
+                    tokens.PrependEnumerator(Macros.GetMacro(head.Content, parameters.Count).ApplyMacro(head, parameters).GetEnumerator());
                 }
                 else
                 {
-                    Error(head.Location, String.Format("No overload of {0} with {1} parameters.", head.Content, parameters.Count));
+                    Error(head.Location, System.String.Format("No overload of {0} with {1} parameters.", head.Content, parameters.Count));
                 }
                 return true;
             }
@@ -758,7 +760,7 @@ namespace ColorzCore.Parser
         private static void Log(IList<string> record, Location? causedError, string message)
         {
             if (causedError.HasValue)
-                record.Add(String.Format("In File {0}, Line {1}, Column {2}: {3}", Path.GetFileName(causedError.Value.file), causedError.Value.lineNum, causedError.Value.colNum, message));
+                record.Add(System.String.Format("In File {0}, Line {1}, Column {2}: {3}", Path.GetFileName(causedError.Value.file), causedError.Value.lineNum, causedError.Value.colNum, message));
             else
                 record.Add(message);
         }

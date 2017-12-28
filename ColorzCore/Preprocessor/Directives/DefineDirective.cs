@@ -7,6 +7,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Macros;
 
 namespace ColorzCore.Preprocessor.Directives
 {
@@ -48,7 +49,7 @@ namespace ColorzCore.Preprocessor.Directives
                     else
                         p.Warning(signature.MyLocation, "Redefining " + name + '.');
                 }*/
-                if(p.Macros.ContainsKey(name) && p.Macros[name].ContainsKey(myParams.Count))
+                if(p.Macros.HasMacro(name, myParams.Count))
                     p.Warning(signature.MyLocation, "Redefining " + name + '.');
                 Maybe<IList<Token>> toRepl;
                 if (parameters.Count != 2)
@@ -59,9 +60,7 @@ namespace ColorzCore.Preprocessor.Directives
                     toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
                 if (!toRepl.IsNothing)
                 {
-                    if (!p.Macros.ContainsKey(name))
-                        p.Macros[name] = new Dictionary<int, Macro>();
-                    p.Macros[name][myParams.Count] = new Macro(myParams, toRepl.FromJust);
+                    p.Macros.AddMacro(new Macro(myParams, toRepl.FromJust), name, myParams.Count);
                 }
             }
             else
@@ -144,12 +143,12 @@ namespace ColorzCore.Preprocessor.Directives
                 Token current = tokens.Dequeue();
                 if(current.Type == TokenType.IDENTIFIER)
                 {
-                    if(p.Macros.ContainsKey(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
+                    if(p.Macros.ContainsName(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
                     {
                         IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
-                        if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros[current.Content].ContainsKey(param.Count))
+                        if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros.HasMacro(current.Content, param.Count))
                         {
-                            foreach(Token t in  p.Macros[current.Content][param.Count].ApplyMacro(current, param))
+                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param))
                             {
                                 yield return t; 
                             }

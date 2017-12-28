@@ -74,9 +74,13 @@
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\AST\StringNode.cs" />
     <Compile Include="Parser\BaseClosure.cs" />
+    <Compile Include="Parser\Macros\BuiltInMacro.cs" />
+    <Compile Include="Parser\Macros\IMacro.cs" />
+    <Compile Include="Parser\Macros\MacroCollection.cs" />
+    <Compile Include="Parser\Macros\String.cs" />
     <Compile Include="Parser\Closure.cs" />
     <Compile Include="Parser\Definition.cs" />
-    <Compile Include="Parser\Macro.cs" />
+    <Compile Include="Parser\Macros\Macro.cs" />
     <Compile Include="Parser\EAParser.cs" />
     <Compile Include="Preprocessor\Directives\UndefineDirective.cs" />
     <Compile Include="Preprocessor\Directives\DefineDirective.cs" />

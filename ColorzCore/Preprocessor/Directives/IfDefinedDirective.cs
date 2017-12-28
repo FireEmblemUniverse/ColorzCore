@@ -26,7 +26,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if(parameter.Type==ParamType.ATOM && !(identifier = ((IAtomNode)parameter).GetIdentifier()).IsNothing)
                 {
-                    flag &= p.Macros.ContainsKey(identifier.FromJust) || p.Definitions.ContainsKey(identifier.FromJust); //TODO: Built in definitions?
+                    flag &= p.Macros.ContainsName(identifier.FromJust) || p.Definitions.ContainsKey(identifier.FromJust); //TODO: Built in definitions?
                 }
                 else
                 {
