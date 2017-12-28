@@ -39,20 +39,33 @@ namespace ColorzCore
             ROM myROM = new ROM(fout);
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(new BufferedStream(sin), iFile)));
-            
+
 
             //TODO: sort them by file/line
+            serr.WriteLine("Messages:");
+            if (myParser.Messages.Count == 0)
+                serr.WriteLine("No messages.");
             foreach (string message in myParser.Messages)
             {
-                serr.WriteLine("MESSAGE: " + message);
+                serr.WriteLine(message);
             }
+            serr.WriteLine();
+
+            serr.WriteLine("Warnings:");
+            if (myParser.Warnings.Count == 0)
+                serr.WriteLine("No warnings.");
             foreach (string warning in myParser.Warnings)
             {
-                serr.WriteLine("WARNING: " + warning);
+                serr.WriteLine(warning);
             }
+            serr.WriteLine();
+
+            serr.WriteLine("Errors:");
+            if (myParser.Warnings.Count == 0)
+                serr.WriteLine("No errors. Please continue being awesome.");
             foreach (string error in myParser.Errors)
             {
-                serr.WriteLine("ERROR: " + error);
+                serr.WriteLine(error);
             }
 
             //TODO: -WError flag?

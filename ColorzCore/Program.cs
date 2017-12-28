@@ -32,27 +32,37 @@ namespace ColorzCore
                 else
                 {
                     string[] flag = args[i].Substring(1).Split(new char[]{':'}, 2);
-                    switch(flag[0])
+                    try
                     {
-                        case "raws":
-                            rawsFolder = flag[1];
-                            break;
-                        case "rawsExt":
-                            rawsExtension = flag[1];
-                            break;
-                        case "output":
-                            outStream = File.Open(flag[1], FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
-                            break;
-                        case "input":
-                            inFileName = flag[1];
-                            inStream = File.OpenRead(flag[1]);
-                            break;
-                        case "error":
-                            errorStream = new StreamWriter(File.OpenWrite(flag[1]));
-                            break;
-                        default:
-                            Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
-                            return;
+
+
+                        switch (flag[0])
+                        {
+                            case "raws":
+                                rawsFolder = flag[1];
+                                break;
+                            case "rawsExt":
+                                rawsExtension = flag[1];
+                                break;
+                            case "output":
+                                outStream = File.Open(flag[1], FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                break;
+                            case "input":
+                                inFileName = flag[1];
+                                inStream = File.OpenRead(flag[1]);
+                                break;
+                            case "error":
+                                errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                                break;
+                            default:
+                                Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
+                                return;
+                        }
+                    }
+                    catch(IOException e)
+                    {
+                        Console.Error.WriteLine("Exception: " + e.Message);
+                        return;
                     }
                 }
             }
@@ -67,12 +77,7 @@ namespace ColorzCore
 
             inStream.Close();
             outStream.Close();
-            errorStream.Close();
-
-            Console.WriteLine("Done.");
-
-            Console.In.ReadLine();
-            
+            errorStream.Close();            
         }
     }
 }

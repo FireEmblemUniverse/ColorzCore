@@ -361,15 +361,14 @@ namespace ColorzCore.Parser
                     return new Just<IParamNode>(new StringNode(head));
                 case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
-                    tokens.MoveNext();
-                    IList<IList<Token>> param = ParseMacroParamList(tokens);
-                    if (expandDefs && Macros.ContainsKey(head.Content) && Macros[head.Content].ContainsKey(param.Count))
+                    if (expandDefs && ExpandIdentifier(tokens))
                     {
-                        tokens.PrependEnumerator(Macros[head.Content][param.Count].ApplyMacro(head, param).GetEnumerator());
                         return ParseParam(tokens, scopes);
                     }
                     else
                     {
+                        tokens.MoveNext();
+                        IList<IList<Token>> param = ParseMacroParamList(tokens);
                         //TODO: Smart errors if trying to redefine a macro with the same num of params.
                         return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
                     }
@@ -426,8 +425,7 @@ namespace ColorzCore.Parser
                         case TokenType.AND_OP:
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
-                            int treePrec = GetLowestPrecedence(grammarSymbols);
-                            if (precedences.ContainsKey(lookAhead.Type) && precedences[lookAhead.Type] >= treePrec)
+                            if (precedences.ContainsKey(lookAhead.Type))
                             {
                                 Reduce(grammarSymbols, precedences[lookAhead.Type]);
                             }
@@ -539,7 +537,7 @@ namespace ColorzCore.Parser
             }
             while (grammarSymbols.Count > 1)
             {
-                Reduce(grammarSymbols, -1);
+                Reduce(grammarSymbols, 11);
             }
             if (grammarSymbols.Peek().IsRight)
             {
@@ -556,14 +554,23 @@ namespace ColorzCore.Parser
          */
         private void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
         {
-            while (grammarSymbols.Count > 1 && grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
+            while (grammarSymbols.Count > 1)// && grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
             {
                 //These shouldn't error...
                 IAtomNode r = grammarSymbols.Pop().GetLeft;
-                Token op = grammarSymbols.Pop().GetRight;
-                IAtomNode l = grammarSymbols.Pop().GetLeft;
 
-                grammarSymbols.Push(new Left<IAtomNode, Token>(new OperatorNode(l, op, r, l.Precedence)));
+                if(precedences[grammarSymbols.Peek().GetRight.Type] > targetPrecedence)
+                {
+                    grammarSymbols.Push(new Left<IAtomNode, Token>(r));
+                    break;
+                }
+                else
+                {
+                    Token op = grammarSymbols.Pop().GetRight;
+                    IAtomNode l = grammarSymbols.Pop().GetLeft;
+
+                    grammarSymbols.Push(new Left<IAtomNode, Token>(new OperatorNode(l, op, r, l.Precedence)));
+                }
             }
         }
 
@@ -730,7 +737,14 @@ namespace ColorzCore.Parser
                 }
                 return true;
             }
-            if (Definitions.ContainsKey(tokens.Current.Content))
+            else if(tokens.Current.Type == TokenType.MAYBE_MACRO)
+            {
+                Token head = tokens.Current;
+                tokens.MoveNext();
+                tokens.PutBack(new Token(TokenType.IDENTIFIER, head.Location, head.Content));
+                return true;
+            }
+            else if (Definitions.ContainsKey(tokens.Current.Content))
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
