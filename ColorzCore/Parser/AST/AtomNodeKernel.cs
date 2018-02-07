@@ -44,6 +44,10 @@ namespace ColorzCore.Parser.AST
             {
                 return new Right<int, string>("Unrecognized identifier: " + e.CausedError.Content);
             }
+            catch (DivideByZeroException)
+            {
+                return new Right<int, string>("Division by zero.");
+            }
         }
         public abstract bool CanEvaluate();
         public abstract IAtomNode Simplify();
