@@ -12,7 +12,7 @@ namespace ColorzCore.Parser.AST
     {
         //TODO: Simplify() partial evaluation as much as is defined, to save on memory space.
 		int Precedence { get; }
-		int Evaluate();
+		int Evaluate(); //May throw errors. TODO: Remove and only do calls through TryEvaluate?
         Maybe<string> GetIdentifier();
         IEnumerable<Token> ToTokens();
         bool CanEvaluate();
