@@ -61,7 +61,7 @@ namespace ColorzCore
             serr.WriteLine();
 
             serr.WriteLine("Errors:");
-            if (myParser.Warnings.Count == 0)
+            if (myParser.Errors.Count == 0)
                 serr.WriteLine("No errors. Please continue being awesome.");
             foreach (string error in myParser.Errors)
             {
@@ -73,7 +73,14 @@ namespace ColorzCore
             {
                 foreach(ILineNode line in lines)
                 {
-                    line.WriteData(myROM);
+                    try
+                    {
+                        line.WriteData(myROM);
+                    }
+                    catch(IdentifierNode.UndefinedIdentifierException e)
+                    {
+                        serr.WriteLine("Unidentified identifier when evaluating tree: " + e.CausedError.ToString());
+                    }
                 }
                 myROM.WriteROM();
             }

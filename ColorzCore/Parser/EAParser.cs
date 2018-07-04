@@ -146,6 +146,7 @@ namespace ColorzCore.Parser
             else
             {
                 parameters = new List<IParamNode>();
+                tokens.MoveNext();
             }
 
             if (SpecialCodes.Contains(head.Content.ToUpper()))
@@ -610,7 +611,7 @@ namespace ColorzCore.Parser
         {
             if (IsIncluding)
             {
-                if (tokens.Current.Type == TokenType.NEWLINE)
+                if (tokens.Current.Type == TokenType.NEWLINE || tokens.Current.Type == TokenType.SEMICOLON)
                 {
                     tokens.MoveNext();
                     return new Nothing<ILineNode>();
@@ -643,17 +644,12 @@ namespace ColorzCore.Parser
                                     scopes.Head.AddLabel(head.Content, CurrentOffset);
                                 }
 
-                                if (tokens.Current.Type != TokenType.NEWLINE)
-                                {
-                                    Log(Errors, head.Location, "Unexpected token " + tokens.Current.Type);
-                                    IgnoreRestOfLine(tokens);
-                                }
                                 return new Nothing<ILineNode>();
                             }
                             else
                             {
                                 tokens.PutBack(head);
-                                return new Just<ILineNode>(new StatementListNode(ParseStatementList(tokens, scopes)));
+                                return ParseStatement(tokens, scopes).Fmap((StatementNode n) => (ILineNode)n);
                             }
                         }
                     case TokenType.OPEN_BRACE:
@@ -662,17 +658,19 @@ namespace ColorzCore.Parser
                         return ParsePreprocessor(tokens, scopes);
                     case TokenType.OPEN_BRACKET:
                         Error(head.Location, "Unexpected list literal.");
+                        IgnoreRestOfLine(tokens);
                         break;
                     case TokenType.NUMBER:
                     case TokenType.OPEN_PAREN:
                         Error(head.Location, "Unexpected mathematical expression.");
+                        IgnoreRestOfLine(tokens);
                         break;
                     default:
                         tokens.MoveNext();
                         Error(head.Location, System.String.Format("Unexpected token: {0}: {1}", head.Type, head.Content));
+                        IgnoreRestOfLine(tokens);
                         break;
                 }
-                IgnoreRestOfLine(tokens);
                 return new Nothing<ILineNode>();
             }
             else
@@ -701,18 +699,6 @@ namespace ColorzCore.Parser
             if (!retVal.IsNothing)
                 CurrentOffset += retVal.FromJust.Size;
             return retVal;
-        }
-
-        private IList<StatementNode> ParseStatementList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
-        {
-            IList<StatementNode> stmts = new List<StatementNode>();
-            do
-            {
-                ParseStatement(tokens, scopes).IfJust((StatementNode n) => stmts.Add(n));
-                if (tokens.Current.Type == TokenType.SEMICOLON)
-                    tokens.MoveNext();
-            } while (tokens.Current.Type != TokenType.NEWLINE);
-            return stmts;
         }
 
         /***

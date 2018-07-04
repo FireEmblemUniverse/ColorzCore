@@ -70,7 +70,6 @@
     <Compile Include="Parser\AST\ParamType.cs" />
     <Compile Include="Parser\AST\ParenthesizedAtomNode.cs" />
     <Compile Include="Parser\AST\RawNode.cs" />
-    <Compile Include="Parser\AST\StatementListNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\AST\StringNode.cs" />
     <Compile Include="Parser\BaseClosure.cs" />
