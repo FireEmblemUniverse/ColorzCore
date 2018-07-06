@@ -5,6 +5,8 @@ namespace ColorzCore
 {
     class Program
     {
+        public static bool Debug = false;
+
         static void Main(string[] args)
         {
             if(args.Length < 2)
@@ -53,6 +55,9 @@ namespace ColorzCore
                                 break;
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                                break;
+                            case "debug":
+                                Debug = true;
                                 break;
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);

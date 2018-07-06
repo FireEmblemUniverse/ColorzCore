@@ -75,6 +75,10 @@ namespace ColorzCore
                 {
                     try
                     {
+                        if (Program.Debug)
+                        {
+                            System.Console.Out.WriteLine(line.PrettyPrint(0));
+                        }
                         line.WriteData(myROM);
                     }
                     catch(IdentifierNode.UndefinedIdentifierException e)
