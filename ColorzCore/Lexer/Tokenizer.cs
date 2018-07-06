@@ -294,14 +294,13 @@ namespace ColorzCore.Lexer
          *   All Token streams end in a NEWLINE.
          * 
          */
-        public IEnumerable<Token> Tokenize(BufferedStream input, string fileName)
+        public IEnumerable<Token> Tokenize(Stream input, string fileName)
         {
-
-            StreamReader sr = new StreamReader(input);
+            StreamReader sin = new StreamReader(input);
             int curLine = 1;
-            while (!sr.EndOfStream)
+            while (!sin.EndOfStream)
             {
-                string line = sr.ReadLine();
+                string line = sin.ReadLine();
                 foreach (Token t in TokenizeLine(line, fileName, curLine))
                 {
                     yield return t;
@@ -310,12 +309,11 @@ namespace ColorzCore.Lexer
                 curLine++;
             }
         }
+
         public IEnumerable<Token> Tokenize(FileStream fs)
         {
-            BufferedStream inputStream = new BufferedStream(fs);
-            foreach (Token t in Tokenize(inputStream, fs.Name))
+            foreach (Token t in Tokenize(fs, fs.Name))
                 yield return t;
-            inputStream.Close();
             fs.Close();
         }
     }

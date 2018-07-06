@@ -71,8 +71,9 @@ namespace ColorzCore.Preprocessor.Directives
             }
             else
             {
+                outputBytes.Position = 0; //Reset MemoryStream position so StreamReader starts reading from beginning.
                 Tokenizer t = new Tokenizer();
-                tokens.PrependEnumerator(t.Tokenize(new BufferedStream(outputBytes), self.FileName + ":" + parameters[0].ToString()).GetEnumerator());
+                tokens.PrependEnumerator(t.Tokenize(outputBytes, self.FileName + ":" + parameters[0].ToString()).GetEnumerator());
             }
             return new Nothing<ILineNode>();
         }

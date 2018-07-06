@@ -38,7 +38,7 @@ namespace ColorzCore
             Tokenizer t = new Tokenizer();
             ROM myROM = new ROM(fout);
 
-            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(new BufferedStream(sin), iFile)));
+            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
 
             //TODO: sort them by file/line
