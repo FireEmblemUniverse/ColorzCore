@@ -591,7 +591,7 @@ namespace ColorzCore.Parser
             Token head = tokens.Current;
             tokens.MoveNext();
             IList<IAtomNode> atoms = new List<IAtomNode>();
-            do
+            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET)
             {
                 Maybe<IAtomNode> res = ParseAtom(tokens, scopes);
                 res.IfJust(
@@ -599,7 +599,7 @@ namespace ColorzCore.Parser
                     () => Error(tokens.Current.Location, "Expected atomic value, got " + tokens.Current.Type + "."));
                 if (tokens.Current.Type == TokenType.COMMA)
                     tokens.MoveNext();
-            } while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET);
+            }
             if (tokens.Current.Type == TokenType.CLOSE_BRACKET)
                 tokens.MoveNext();
             else
