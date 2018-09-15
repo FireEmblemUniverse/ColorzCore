@@ -115,9 +115,9 @@ namespace ColorzCore.Parser.AST
                 return this;
         }
 
-        public override bool DependsOnSymbol(string name)
+        public override bool EvaluationRequiresName(string name)
         {
-            return left.DependsOnSymbol(name) || right.DependsOnSymbol(name);
+            return left.EvaluationRequiresName(name) || right.EvaluationRequiresName(name);
         }
     }
 }

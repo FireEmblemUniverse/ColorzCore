@@ -79,7 +79,7 @@ namespace ColorzCore.Parser.AST
                 return new NumberNode(identifier, Evaluate());
         }
 
-        public override bool DependsOnSymbol(string name)
+        public override bool EvaluationRequiresName(string name)
         {
             if (identifier.Content == name)
                 return true;
