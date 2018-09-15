@@ -17,6 +17,6 @@ namespace ColorzCore.Parser.AST
         IEnumerable<Token> ToTokens();
         bool CanEvaluate();
         IAtomNode Simplify();
-        bool EvaluationRequiresName(string name);
+        bool DependsOnSymbol(string name);
     }
 }

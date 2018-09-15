@@ -52,7 +52,7 @@ namespace ColorzCore.Parser.AST
 
         public override bool DependsOnSymbol(string name)
         {
-            return interior.EvaluationRequiresName(name);
+            return interior.DependsOnSymbol(name);
         }
 
         public override IEnumerable<Token> ToTokens()
