@@ -72,7 +72,7 @@ namespace ColorzCore.Parser.AST
 
         public override bool DependsOnSymbol(string name)
         {
-            return inner.DependsOnSymbol(name);
+            return inner.EvaluationRequiresName(name);
         }
     }
 }
