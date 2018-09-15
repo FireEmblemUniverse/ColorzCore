@@ -29,6 +29,18 @@ namespace ColorzCore.Parser
 
             return node.CanEvaluate();
         }
+        public virtual bool EvaluationRequiresName(string label, string other)
+        {
+            if (Symbols.ContainsKey(label))
+                return true;
+
+            IAtomNode node;
+
+            if (!NonComputedSymbols.TryGetValue(label, out node))
+                return false;
+
+            return node.EvaluationRequiresName(other);
+        }
         public virtual int GetSymbolValue(string label)
         {
             int value;

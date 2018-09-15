@@ -88,7 +88,7 @@ namespace ColorzCore.Parser.AST
 
             while (!temp.IsEmpty)
             {
-                if (temp.Head.HasLocalSymbol(identifier.Content))
+                if (temp.Head.EvaluationRequiresName(identifier.Content, name))
                     return true;
 
                 temp = temp.Tail;
