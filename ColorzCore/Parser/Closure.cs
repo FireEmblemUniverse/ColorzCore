@@ -52,9 +52,6 @@ namespace ColorzCore.Parser
         }
         public void AddSymbol(string label, IAtomNode node)
         {
-            if (node.CanEvaluate())
-                AddSymbol(label, node.Evaluate());
-
             NonComputedSymbols[label] = node.Simplify();
         }
     }

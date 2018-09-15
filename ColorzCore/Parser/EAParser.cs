@@ -672,7 +672,11 @@ namespace ColorzCore.Parser
                                     {
                                         IAtomNode node = maybe.FromJust;
 
-                                        if (node.EvaluationRequiresName(head.Content))
+                                        if (node.CanEvaluate())
+                                        {
+                                            scopes.Head.AddSymbol(head.Content, node.Evaluate());
+                                        }
+                                        else if (node.EvaluationRequiresName(head.Content))
                                         {
                                             Error(head.Location, "Assigned symbol depends on itself! ");
                                         }
