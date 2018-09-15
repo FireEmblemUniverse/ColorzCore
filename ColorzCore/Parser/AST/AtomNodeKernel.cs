@@ -51,5 +51,6 @@ namespace ColorzCore.Parser.AST
         }
         public abstract bool CanEvaluate();
         public abstract IAtomNode Simplify();
+        public abstract bool DependsOnSymbol(string name);
     }
 }

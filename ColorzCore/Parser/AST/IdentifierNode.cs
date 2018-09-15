@@ -79,5 +79,22 @@ namespace ColorzCore.Parser.AST
                 return new NumberNode(identifier, Evaluate());
         }
 
+        public override bool DependsOnSymbol(string name)
+        {
+            if (identifier.Content == name)
+                return true;
+
+            ImmutableStack<Closure> temp = scope;
+
+            while (!temp.IsEmpty)
+            {
+                if (temp.Head.CouldHaveLocalLabel(identifier.Content))
+                    return true;
+
+                temp = temp.Tail;
+            }
+
+            return false;
+        }
     }
 }

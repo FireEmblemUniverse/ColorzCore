@@ -662,15 +662,24 @@ namespace ColorzCore.Parser
                                 }
                                 else
                                 {
-                                    Maybe<IAtomNode> node = ParseAtom(tokens, scopes);
+                                    Maybe<IAtomNode> maybe = ParseAtom(tokens, scopes);
 
-                                    if (node.IsNothing)
+                                    if (maybe.IsNothing)
                                     {
                                         Error(head.Location, "Expected expression for symbol assignment. ");
                                     }
                                     else
                                     {
-                                        scopes.Head.AddSymbol(head.Content, node.FromJust);
+                                        IAtomNode node = maybe.FromJust;
+
+                                        if (node.DependsOnSymbol(head.Content))
+                                        {
+                                            Error(head.Location, "Assigned symbol depends on itself! ");
+                                        }
+                                        else
+                                        {
+                                            scopes.Head.AddSymbol(head.Content, node);
+                                        }
                                     }
                                 }
 

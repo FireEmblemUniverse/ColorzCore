@@ -13,6 +13,10 @@ namespace ColorzCore.Parser
             Symbols = new Dictionary<string, int>();
             NonComputedSymbols = new Dictionary<string, IAtomNode>();
         }
+        public virtual bool CouldHaveLocalLabel(string label)
+        {
+            return Symbols.ContainsKey(label) || NonComputedSymbols.ContainsKey(label);
+        }
         public virtual bool HasLocalLabel(string label)
         {
             if (Symbols.ContainsKey(label))
