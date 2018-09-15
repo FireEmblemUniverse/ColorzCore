@@ -633,15 +633,45 @@ namespace ColorzCore.Parser
                                 tokens.MoveNext();
                                 if (scopes.Head.HasLocalLabel(head.Content))
                                 {
-                                    Warning(head.Location, "Label already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
+                                    Warning(head.Location, "Symbol already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
                                 }
-                                else if(!IsValidLabelName(head.Content))
+                                else if (!IsValidLabelName(head.Content))
                                 {
                                     Error(head.Location, "Invalid label name " + head.Content + '.');
                                 }
                                 else
                                 {
                                     scopes.Head.AddLabel(head.Content, CurrentOffset);
+                                }
+
+                                return new Nothing<ILineNode>();
+                            }
+                            else if (tokens.Current.Type == TokenType.EQUALS_OP)
+                            {
+                                tokens.MoveNext();
+
+                                // TODO: avoid duplicate code with the label part above?
+
+                                if (scopes.Head.HasLocalLabel(head.Content))
+                                {
+                                    Warning(head.Location, "Symbol already in scope, ignoring: " + head.Content);
+                                }
+                                else if (!IsValidLabelName(head.Content))
+                                {
+                                    Error(head.Location, "Invalid label name " + head.Content + '.');
+                                }
+                                else
+                                {
+                                    Maybe<IAtomNode> node = ParseAtom(tokens, scopes);
+
+                                    if (node.IsNothing)
+                                    {
+                                        Error(head.Location, "Expected expression for symbol assignment. ");
+                                    }
+                                    else
+                                    {
+                                        scopes.Head.AddSymbol(head.Content, node.FromJust);
+                                    }
                                 }
 
                                 return new Nothing<ILineNode>();
