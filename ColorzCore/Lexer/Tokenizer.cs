@@ -122,6 +122,9 @@ namespace ColorzCore.Lexer
                     case ',':
                         yield return new Token(TokenType.COMMA, fileName, lineNum, curCol+offset);
                         break;
+                    case '=':
+                        yield return new Token(TokenType.EQUALS_OP, fileName, lineNum, curCol+offset);
+                        break;
                     case '/':
                         if (curCol + 1 < endOffs && line[curCol + 1] == '/')
                         {

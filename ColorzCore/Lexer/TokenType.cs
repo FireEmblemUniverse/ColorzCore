@@ -17,6 +17,7 @@ namespace ColorzCore.Lexer
         OPEN_PAREN,
         CLOSE_PAREN,
         COMMA,
+        EQUALS_OP,
         MUL_OP,
         DIV_OP,
         MOD_OP,
