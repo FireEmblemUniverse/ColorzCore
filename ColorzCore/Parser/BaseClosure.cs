@@ -7,9 +7,9 @@
         {
             this.enclosing = enclosing;
         }
-        public override bool HasLocalLabel(string label)
+        public override bool HasLocalSymbolValue(string label)
         {
-            return label.ToUpper() == "CURRENTOFFSET" || base.HasLocalLabel(label);
+            return label.ToUpper() == "CURRENTOFFSET" || base.HasLocalSymbolValue(label);
         }
     }
 }

@@ -25,8 +25,8 @@ namespace ColorzCore.Parser.AST
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)
             {
-                if(temp.Head.HasLocalLabel(identifier.Content))
-                    return temp.Head.GetLabel(identifier.Content);
+                if(temp.Head.HasLocalSymbolValue(identifier.Content))
+                    return temp.Head.GetSymbolValue(identifier.Content);
                 else
                     temp = temp.Tail;
             }
@@ -68,7 +68,7 @@ namespace ColorzCore.Parser.AST
 
         public override bool CanEvaluate()
         {
-            return Enumerable.Any(scope, (Closure c) => c.HasLocalLabel(identifier.Content));
+            return Enumerable.Any(scope, (Closure c) => c.HasLocalSymbolValue(identifier.Content));
         }
 
         public override IAtomNode Simplify()
@@ -88,7 +88,7 @@ namespace ColorzCore.Parser.AST
 
             while (!temp.IsEmpty)
             {
-                if (temp.Head.CouldHaveLocalLabel(identifier.Content))
+                if (temp.Head.HasLocalSymbol(identifier.Content))
                     return true;
 
                 temp = temp.Tail;

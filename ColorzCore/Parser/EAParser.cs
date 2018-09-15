@@ -631,7 +631,7 @@ namespace ColorzCore.Parser
                             if (tokens.Current.Type == TokenType.COLON)
                             {
                                 tokens.MoveNext();
-                                if (scopes.Head.HasLocalLabel(head.Content))
+                                if (scopes.Head.HasLocalSymbol(head.Content))
                                 {
                                     Warning(head.Location, "Symbol already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
                                 }
@@ -641,7 +641,7 @@ namespace ColorzCore.Parser
                                 }
                                 else
                                 {
-                                    scopes.Head.AddLabel(head.Content, CurrentOffset);
+                                    scopes.Head.AddSymbol(head.Content, CurrentOffset);
                                 }
 
                                 return new Nothing<ILineNode>();
@@ -652,7 +652,7 @@ namespace ColorzCore.Parser
 
                                 // TODO: avoid duplicate code with the label part above?
 
-                                if (scopes.Head.HasLocalLabel(head.Content))
+                                if (scopes.Head.HasLocalSymbol(head.Content))
                                 {
                                     Warning(head.Location, "Symbol already in scope, ignoring: " + head.Content);
                                 }

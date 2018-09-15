@@ -13,11 +13,11 @@ namespace ColorzCore.Parser
             Symbols = new Dictionary<string, int>();
             NonComputedSymbols = new Dictionary<string, IAtomNode>();
         }
-        public virtual bool CouldHaveLocalLabel(string label)
+        public virtual bool HasLocalSymbol(string label)
         {
             return Symbols.ContainsKey(label) || NonComputedSymbols.ContainsKey(label);
         }
-        public virtual bool HasLocalLabel(string label)
+        public virtual bool HasLocalSymbolValue(string label)
         {
             if (Symbols.ContainsKey(label))
                 return true;
@@ -29,7 +29,7 @@ namespace ColorzCore.Parser
 
             return node.CanEvaluate();
         }
-        public virtual int GetLabel(string label)
+        public virtual int GetSymbolValue(string label)
         {
             int value;
 
@@ -46,16 +46,16 @@ namespace ColorzCore.Parser
 
             return value;
         }
-        public void AddLabel(string label, int value)
+        public void AddSymbol(string label, int value)
         {
             Symbols[label] = value;
         }
         public void AddSymbol(string label, IAtomNode node)
         {
             if (node.CanEvaluate())
-                AddLabel(label, node.Evaluate());
+                AddSymbol(label, node.Evaluate());
 
-            NonComputedSymbols[label] = node;
+            NonComputedSymbols[label] = node.Simplify();
         }
     }
 }
