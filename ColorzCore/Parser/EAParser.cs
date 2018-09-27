@@ -274,7 +274,10 @@ namespace ColorzCore.Parser
                     {
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
                         temp.Simplify();
+
+                        CheckDataWrite(temp.Size);
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
+
                         return new Just<StatementNode>(temp);
                     }
                 }
@@ -697,7 +700,10 @@ namespace ColorzCore.Parser
             IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
             Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
+            {
+                CheckDataWrite(retVal.FromJust.Size);
                 CurrentOffset += retVal.FromJust.Size;
+            }
             return retVal;
         }
 
@@ -806,6 +812,15 @@ namespace ColorzCore.Parser
                     return true;
             }
             return false;
+        }
+
+        private void CheckDataWrite(int length)
+        {
+            // TODO (maybe?): save Location of PROTECT statement, for better diagnosis
+            // We would then print something like "Trying to write data to area protected at <location>"
+
+            if (IsProtected(CurrentOffset, length))
+                Error(head.Location, "Trying to write data to protected area");
         }
     }
 }
