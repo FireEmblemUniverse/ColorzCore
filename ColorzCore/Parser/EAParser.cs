@@ -38,6 +38,7 @@ namespace ColorzCore.Parser
                 {
                     currentOffset = value;
                     validOffset = true;
+                    offsetInitialized = true;
                 }
             }
 
@@ -59,6 +60,7 @@ namespace ColorzCore.Parser
                 return acc;
             } }
         private bool validOffset;
+        private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
         private int currentOffset;
         private Token head; //TODO: Make this make sense
 
@@ -73,6 +75,7 @@ namespace ColorzCore.Parser
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
+            offsetInitialized = false;
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
@@ -816,6 +819,13 @@ namespace ColorzCore.Parser
 
         private void CheckDataWrite(int length)
         {
+            // TODO: maybe make this warning optional?
+            if (!offsetInitialized)
+            {
+                Warning(head.Location, "Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
+                offsetInitialized = false; // only warn once
+            }
+
             // TODO (maybe?): save Location of PROTECT statement, for better diagnosis
             // We would then print something like "Trying to write data to area protected at <location>"
 
