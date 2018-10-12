@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using ColorzCore.IO;
+using ColorzCore.DataTypes;
 
 namespace ColorzCore
 {
@@ -23,7 +25,8 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             FileStream outStream = null;
             TextWriter errorStream = Console.Error;
-            string rawsFolder = "Language Raws", rawsExtension = ".txt";
+            Maybe<string> rawsFolder = IOUtility.FindDirectory("Language Raws");
+            string rawsExtension = ".txt";
             string inFileName = "stdin";
             for(int i = 2; i < args.Length; i++)
             {
@@ -41,7 +44,7 @@ namespace ColorzCore
                         switch (flag[0])
                         {
                             case "raws":
-                                rawsFolder = flag[1];
+                                rawsFolder = IOUtility.FindDirectory(flag[1]);
                                 break;
                             case "rawsExt":
                                 rawsExtension = flag[1];
@@ -76,8 +79,13 @@ namespace ColorzCore
                 Console.Error.WriteLine("No output specified for assembly.");
                 return;
             }
+            if (rawsFolder.IsNothing)
+            {
+                Console.Error.WriteLine("Couldn't find raws folder");
+                return;
+            }
             //FirstPass(Tokenizer.Tokenize(inputStream));
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder, rawsExtension, inStream, inFileName, outStream, errorStream);
+            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream);
             myInterpreter.Interpret();
 
             inStream.Close();

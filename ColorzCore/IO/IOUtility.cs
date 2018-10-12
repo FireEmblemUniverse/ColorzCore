@@ -40,6 +40,22 @@ namespace ColorzCore.IO
             return new Nothing<string>();
         }
 
+        public static Maybe<string> FindDirectory(string name)
+        {
+            if (Directory.Exists(name))
+            {
+                return new Just<string>(name);
+            }
+            else
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
+                if (Directory.Exists(path))
+                    return new Just<string>(path);
+            }
+
+            return new Nothing<string>();
+        }
+
         public static string UnescapeString(string param)
         {
             StringBuilder sb = new StringBuilder(param);
