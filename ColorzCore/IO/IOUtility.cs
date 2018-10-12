@@ -54,12 +54,13 @@ namespace ColorzCore.IO
         {
             switch (Environment.OSVersion.Platform)
             {
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                    return "./Tools/" + toolName;
-                default:
-                    return ".\\Tools\\" + toolName + ".exe";
+                case PlatformID.Win32Windows: // Who knows, maybe someone runs EA on win 95
+                case PlatformID.Win32NT:
+                    toolName = toolName + ".exe";
+                    break;
             }
+
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", toolName);
         }
     }
 }
