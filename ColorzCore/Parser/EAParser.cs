@@ -46,7 +46,7 @@ namespace ColorzCore.Parser
         public ImmutableStack<bool> Inclusion { get; set; }
 
 
-        private Stack<int> pastOffsets;
+		private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int>> protectedRegions;
 
         public IList<string> Messages { get; }
@@ -67,7 +67,7 @@ namespace ColorzCore.Parser
         public EAParser(Dictionary<string, IList<Raw>> raws)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
-            pastOffsets = new Stack<int>();
+			pastOffsets = new Stack<Tuple<int, bool>>();
             protectedRegions = new List<Tuple<int, int>>();
             Messages = new List<string>();
             Warnings = new List<string>();
@@ -176,16 +176,20 @@ namespace ColorzCore.Parser
                         if (parameters.Count != 0)
                             Error(head.Location, "Incorrect number of parameters in PUSH: " + parameters.Count);
                         else
-                            pastOffsets.Push(CurrentOffset);
+							pastOffsets.Push(new Tuple<int, bool>(CurrentOffset, offsetInitialized));
                         break;
-                    case "POP":
-                        if (parameters.Count != 0)
-                            Error(head.Location, "Incorrect number of parameters in POP: " + parameters.Count);
-                        else if (pastOffsets.Count == 0)
-                            Error(head.Location, "POP without matching PUSH.");
-                        else
-                            CurrentOffset = pastOffsets.Pop();
-                        break;
+					case "POP":
+						if (parameters.Count != 0)
+							Error(head.Location, "Incorrect number of parameters in POP: " + parameters.Count);
+						else if (pastOffsets.Count == 0)
+							Error(head.Location, "POP without matching PUSH.");
+						else {
+							Tuple<int, bool> tuple = pastOffsets.Pop();
+
+							CurrentOffset = tuple.Item1;
+							offsetInitialized = tuple.Item2;
+						}
+						break;
                     case "MESSAGE":
                         Message(head.Location, PrettyPrintParams(parameters));
                         break;
