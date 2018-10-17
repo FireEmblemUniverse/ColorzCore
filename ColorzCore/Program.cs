@@ -96,17 +96,36 @@ namespace ColorzCore
             myInterpreter.Interpret();
 
             DateTime current = DateTime.Now;
+            TimeSpan total = TimeSpan.Zero;
 
             Dictionary<string, TimeSpan> times = new Dictionary<string, TimeSpan>();
+            Dictionary<string, int> count = new Dictionary<string, int>();
 
             foreach (Tuple<DateTime, string> point in timingPoints)
             {
                 if (point.Item2 != TIMING_START)
                 {
                     if (times.ContainsKey(point.Item2))
+                    {
                         times[point.Item2] += point.Item1.Subtract(current);
+
+                        switch (point.Item2)
+                        {
+                            case TIMING_RAWPROC:
+                            case TIMING_GENERIC:
+                            case TIMING_DATAWRITE:
+                                break;
+
+                            default:
+                                count[point.Item2] += 1;
+                                break;
+                        }
+                    }
                     else
+                    {
                         times[point.Item2] = point.Item1.Subtract(current);
+                        count[point.Item2] = 1;
+                    }
                 }
 
                 current = point.Item1;
@@ -119,12 +138,16 @@ namespace ColorzCore
             foreach (KeyValuePair<string, TimeSpan> time in times)
             {
                 sortedTimes.Add(time.Value, time.Key);
+                total += time.Value;
             }
 
             foreach (KeyValuePair<TimeSpan, string> time in sortedTimes)
             {
-                errorStream.WriteLine("  " + time.Value + ": " + time.Key.ToString());
+                errorStream.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + count[time.Value] + ")");
             }
+
+            errorStream.WriteLine("Total:");
+            errorStream.WriteLine("  " + total.ToString());
 
             inStream.Close();
             outStream.Close();
