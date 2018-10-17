@@ -7,6 +7,7 @@ using ColorzCore.Raws;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System;
 
 namespace ColorzCore
 {
@@ -40,6 +41,7 @@ namespace ColorzCore
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
+            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, Program.TIMING_GENERIC));
 
             //TODO: sort them by file/line
             serr.WriteLine("Messages:");
@@ -92,6 +94,8 @@ namespace ColorzCore
             {
                 serr.WriteLine("Errors occurred; no changes written.");
             }
+
+            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, Program.TIMING_DATAWRITE));
         }
 
         private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)

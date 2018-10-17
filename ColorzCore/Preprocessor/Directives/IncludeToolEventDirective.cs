@@ -20,6 +20,8 @@ namespace ColorzCore.Preprocessor.Directives
 
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
+            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, Program.TIMING_GENERIC));
+
             Maybe<string> validFile = IO.IOUtility.FindFile(self.FileName, IOUtility.GetToolPath(parameters[0].ToString()));
             if (validFile.IsNothing)
             {
@@ -75,6 +77,9 @@ namespace ColorzCore.Preprocessor.Directives
                 Tokenizer t = new Tokenizer();
                 tokens.PrependEnumerator(t.Tokenize(outputBytes, Path.GetFileName(self.FileName) + ", Line " + self.LineNumber + "; " + parameters[0].ToString()).GetEnumerator());
             }
+
+            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, parameters[0].ToString().ToLower()));
+
             return new Nothing<ILineNode>();
         }
     }
