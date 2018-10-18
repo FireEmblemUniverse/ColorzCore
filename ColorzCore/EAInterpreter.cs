@@ -41,7 +41,7 @@ namespace ColorzCore
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
-            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, Program.TIMING_GENERIC));
+            Program.Timer.AddTimingPoint(Program.ExecTimer.KEY_GENERIC);
 
             //TODO: sort them by file/line
             serr.WriteLine("Messages:");
@@ -95,7 +95,7 @@ namespace ColorzCore
                 serr.WriteLine("Errors occurred; no changes written.");
             }
 
-            Program.timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, Program.TIMING_DATAWRITE));
+            Program.Timer.AddTimingPoint(Program.ExecTimer.KEY_DATAWRITE);
         }
 
         private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
