@@ -4,6 +4,7 @@ using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.Raws;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,18 @@ namespace ColorzCore
         public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr, EAOptions opts)
         {
             this.game = game;
-            allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+            try
+            {
+                allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+            }
+            catch (Raw.RawParseException e)
+            {
+                serr.WriteLine(e.Message);
+                serr.WriteLine("Error occured as a result of the line:");
+                serr.WriteLine(e.rawline);
+                serr.WriteLine("In file " + Raw.RawParseException.filename); // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
+                Environment.Exit(-1);
+            }
             this.sin = sin;
             this.fout = fout;
             this.serr = serr;
