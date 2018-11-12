@@ -33,5 +33,11 @@ namespace ColorzCore.Parser.AST
                 }
             }
         }
+
+        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        {
+            for (int i = 0; i < Parameters.Count; i++)
+                Parameters[i].Evaluate(undefinedIdentifiers).IfJust((IParamNode p) => { Parameters[i] = p; });
+        }
     }
 }

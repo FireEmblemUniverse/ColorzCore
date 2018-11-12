@@ -22,9 +22,9 @@ namespace ColorzCore.Parser.AST
             inner = putIn;
         }
 
-        public override int Evaluate()
+        public override int ToInt()
         {
-            return inner.Evaluate();
+            return inner.ToInt();
         }
 
         public override Maybe<string> GetIdentifier()
@@ -63,11 +63,16 @@ namespace ColorzCore.Parser.AST
             inner = inner.Simplify();
             if(CanEvaluate())
             {
-                return new NumberNode(MyLocation, Evaluate());
+                return new NumberNode(MyLocation, ToInt());
             } else
             {
                 return this;
             }
+        }
+
+        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            return inner.Evaluate(undefinedIdentifiers);
         }
     }
 }

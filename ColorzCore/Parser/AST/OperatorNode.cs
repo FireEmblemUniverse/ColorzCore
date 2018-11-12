@@ -41,9 +41,9 @@ namespace ColorzCore.Parser.AST
             Precedence = prec;
 		}
 		
-		public override int Evaluate()
+		public override int ToInt()
 		{
-            return Operators[op.Type](left.Evaluate(), right.Evaluate());
+            return Operators[op.Type](left.ToInt(), right.ToInt());
 		}
 
         public override string PrettyPrint()
@@ -110,9 +110,16 @@ namespace ColorzCore.Parser.AST
             left = left.Simplify();
             right = right.Simplify();
             if (CanEvaluate())
-                return new NumberNode(left.MyLocation, Evaluate());
+                return new NumberNode(left.MyLocation, ToInt());
             else
                 return this;
+        }
+
+        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            Maybe<int> l = left.Evaluate(undefinedIdentifiers);
+            Maybe<int> r = right.Evaluate(undefinedIdentifiers);
+            return l.Bind<int>((int newL) => r.Fmap((int newR) => Operators[op.Type](newL, newR)));
         }
     }
 }

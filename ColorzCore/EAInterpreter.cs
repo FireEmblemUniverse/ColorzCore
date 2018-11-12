@@ -42,6 +42,34 @@ namespace ColorzCore
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
+            /* First pass on AST: Identifier resolution.
+             * 
+             * Suppose we had the code
+             * 
+             * POIN myLabel
+             * myLabel:
+             * 
+             * At parse time, myLabel did not exist for the POIN. 
+             * It is at this point we want to make sure all references to identifiers are valid, before assembling.
+             */
+            List<Token> undefinedIds = new List<Token>();
+            foreach (ILineNode line in lines)
+            {
+                try
+                {
+                    line.EvaluateExpressions(undefinedIds);
+                } catch (MacroInvocationNode.MacroException e)
+                {
+                    myParser.Error(e.CausedError.MyLocation, "Unexpanded macro.");
+                }
+            }
+
+            foreach (Token errCause in undefinedIds)
+            {
+                myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+            }
+
+            /* Last step: Message output and assembly */
 
             //TODO: sort them by file/line
             if (!opts.nomess)
@@ -79,23 +107,16 @@ namespace ColorzCore
             {
                 serr.WriteLine(error);
             }
-            
-            if(myParser.Errors.Count == 0)
+
+            if (myParser.Errors.Count == 0)
             {
-                foreach(ILineNode line in lines)
+                foreach (ILineNode line in lines)
                 {
-                    try
+                    if (Program.Debug)
                     {
-                        if (Program.Debug)
-                        {
-                            System.Console.Out.WriteLine(line.PrettyPrint(0));
-                        }
-                        line.WriteData(myROM);
+                        System.Console.Out.WriteLine(line.PrettyPrint(0));
                     }
-                    catch(IdentifierNode.UndefinedIdentifierException e)
-                    {
-                        serr.WriteLine("Unidentified identifier when evaluating tree: " + e.CausedError.ToString());
-                    }
+                    line.WriteData(myROM);
                 }
                 myROM.WriteROM();
             }
