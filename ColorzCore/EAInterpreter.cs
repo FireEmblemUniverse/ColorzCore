@@ -34,6 +34,7 @@ namespace ColorzCore
                 serr.WriteLine(e.Message);
                 serr.WriteLine("Error occured as a result of the line:");
                 serr.WriteLine(e.rawline);
+                serr.WriteLine("In file " + Raw.RawParseException.filename); // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
                 Environment.Exit(-1);
             }
             this.sin = sin;
@@ -147,7 +148,6 @@ namespace ColorzCore
             foreach (FileInfo fileInfo in files)
             {
                 FileStream fs = new FileStream(fileInfo.FullName, FileMode.Open);
-                IEnumerable<Raw.RawParseException> exceptions = new List<Raw.RawParseException>();
                 allRaws = allRaws.Concat(Raw.ParseAllRaws(fs));
                 fs.Close();
             }

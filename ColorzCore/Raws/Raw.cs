@@ -85,6 +85,7 @@ namespace ColorzCore.Raws
         public static IList<Raw> ParseAllRaws(FileStream fs)
         {
             StreamReader r = new StreamReader(fs);
+            RawParseException.filename = fs.Name;
             IList<Raw> myRaws = new List<Raw>();
             while (!r.EndOfStream)
             {
@@ -350,6 +351,7 @@ namespace ColorzCore.Raws
         }
         public class RawParseException : Exception {
             public string rawline;
+            public static string filename;
             public RawParseException(string s, string rawline) : base(s) { this.rawline = rawline; }
         }
     }
