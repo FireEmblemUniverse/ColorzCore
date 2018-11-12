@@ -295,7 +295,7 @@ namespace ColorzCore.Parser
             }
             else //TODO: Move outside of this else.
             {
-                Log(Errors, head.Location, "Unrecognized code: " + head.Content);
+                Error(head.Location, "Unrecognized code: " + head.Content);
                 return new Nothing<StatementNode>();
             }
         }
@@ -323,7 +323,7 @@ namespace ColorzCore.Parser
             } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
             if(tokens.Current.Type != TokenType.CLOSE_PAREN || parenNestings != 0)
             {
-                Log(Errors, tokens.Current.Location, "Unmatched open parenthesis.");
+                Error(tokens.Current.Location, "Unmatched open parenthesis.");
             }
             else
             {
@@ -465,12 +465,12 @@ namespace ColorzCore.Parser
                                 Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
                                 if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                                 {
-                                    Log(Errors, tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
+                                    Error(tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
                                     return new Nothing<IAtomNode>();
                                 }
                                 else if (interior.IsNothing)
                                 {
-                                    Log(Errors, lookAhead.Location, "Expected expression inside paretheses. ");
+                                    Error(lookAhead.Location, "Expected expression inside paretheses. ");
                                     return new Nothing<IAtomNode>();
                                 }
                                 else
@@ -487,14 +487,14 @@ namespace ColorzCore.Parser
                                 Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
                                 if(interior.IsNothing)
                                 {
-                                    Log(Errors, lookAhead.Location, "Expected expression after negation. ");
+                                    Error(lookAhead.Location, "Expected expression after negation. ");
                                     return new Nothing<IAtomNode>();
                                 }
                                 grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); 
                                 break;
                             }
                         case TokenType.COMMA:
-                            Log(Errors, lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
+                            Error(lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
                             IgnoreRestOfStatement(tokens);
                             return new Nothing<IAtomNode>();
                         case TokenType.MUL_OP:
@@ -508,7 +508,7 @@ namespace ColorzCore.Parser
                         case TokenType.XOR_OP:
                         case TokenType.OR_OP:
                         default:
-                            Log(Errors, lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + ": " + lookAhead.Content + '.');
+                            Error(lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + ": " + lookAhead.Content + '.');
                             IgnoreRestOfStatement(tokens);
                             return new Nothing<IAtomNode>();
                     }
@@ -536,7 +536,7 @@ namespace ColorzCore.Parser
                     }
                     else if (lookAhead.Type == TokenType.ERROR)
                     {
-                        Log(Errors, lookAhead.Location, System.String.Format("Unexpected token: {0}", lookAhead.Content));
+                        Error(lookAhead.Location, System.String.Format("Unexpected token: {0}", lookAhead.Content));
                         tokens.MoveNext();
                         return new Nothing<IAtomNode>();
                     }
@@ -554,7 +554,7 @@ namespace ColorzCore.Parser
             }
             if (grammarSymbols.Peek().IsRight)
             {
-                Log(Errors, grammarSymbols.Peek().GetRight.Location, "Unexpected token: " + grammarSymbols.Peek().GetRight.Type);
+                Error(grammarSymbols.Peek().GetRight.Location, "Unexpected token: " + grammarSymbols.Peek().GetRight.Type);
             }
             return new Just<IAtomNode>(grammarSymbols.Peek().GetLeft);
         }
