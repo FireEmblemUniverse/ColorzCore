@@ -9,7 +9,7 @@ namespace ColorzCore.Parser.AST
     public class IdentifierNode : AtomNodeKernel
     {
         private Token identifier;
-        ImmutableStack<Closure> scope;
+        readonly ImmutableStack<Closure> scope;
 
 		public override int Precedence { get { return 11; } }
         public override Location MyLocation { get { return identifier.Location; } }
@@ -20,7 +20,7 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
 		}
 		
-		public override int Evaluate()
+		public override int ToInt()
         {
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)
@@ -32,6 +32,18 @@ namespace ColorzCore.Parser.AST
             }
             throw new UndefinedIdentifierException(identifier);
         }
+
+        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            try
+            {
+                return new Just<int>(ToInt());
+            } catch(UndefinedIdentifierException e)
+            {
+                undefinedIdentifiers.Add(e.CausedError);
+                return new Nothing<int>();
+            }
+        }
         
         public override Maybe<string> GetIdentifier()
         {
@@ -42,7 +54,7 @@ namespace ColorzCore.Parser.AST
         {
             try
             {
-                return "0x"+Evaluate().ToString("X");
+                return "0x"+ToInt().ToString("X");
             }
             catch (UndefinedIdentifierException)
             {
@@ -76,7 +88,7 @@ namespace ColorzCore.Parser.AST
             if (!CanEvaluate())
                 return this;
             else
-                return new NumberNode(identifier, Evaluate());
+                return new NumberNode(identifier, ToInt());
         }
 
     }
