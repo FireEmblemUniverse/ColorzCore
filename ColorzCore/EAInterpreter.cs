@@ -33,7 +33,7 @@ namespace ColorzCore
             {
                 serr.WriteLine(e.Message);
                 serr.WriteLine("Error occured as a result of the line:");
-                serr.WriteLine('\t' + e.rawline);
+                serr.WriteLine(e.rawline);
                 Environment.Exit(-1);
             }
             this.sin = sin;
