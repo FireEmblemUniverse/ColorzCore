@@ -47,7 +47,7 @@ namespace ColorzCore.Parser
 
 
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
-        private IList<Tuple<int, int>> protectedRegions;
+        private IList<Tuple<int, int, Location>> protectedRegions;
 
         public IList<string> Messages { get; }
         public IList<string> Warnings { get; }
@@ -68,7 +68,7 @@ namespace ColorzCore.Parser
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<Tuple<int, bool>>();
-            protectedRegions = new List<Tuple<int, int>>();
+            protectedRegions = new List<Tuple<int, int, Location>>();
             Messages = new List<string>();
             Warnings = new List<string>();
             Errors = new List<string>();
@@ -219,7 +219,7 @@ namespace ColorzCore.Parser
                             parameters[0].TryEvaluate().Case(
                                 (int temp) =>
                                 {
-                                    protectedRegions.Add(new Tuple<int, int>(temp, 4));
+                                    protectedRegions.Add(new Tuple<int, int, Location>(temp, 4, head.Location));
                                 },
                                 (string err) =>
                                 {
@@ -247,7 +247,7 @@ namespace ColorzCore.Parser
                             {
                                 int length = end - start;
                                 if (length > 0)
-                                    protectedRegions.Add(new Tuple<int, int>(start, length));
+                                    protectedRegions.Add(new Tuple<int, int, Location>(start, length, head.Location));
                                 else
                                     Warning(head.Location, "Protected region not valid (end offset not after start offset). No region protected.");
                             }
@@ -809,16 +809,17 @@ namespace ColorzCore.Parser
             return sb.ToString();
         }
 
-        private bool IsProtected(int offset, int length)
+        // Return value: Location where protection occurred. Nothing if location was not protected.
+        private Maybe<Location> IsProtected(int offset, int length)
         {
-            foreach (Tuple<int, int> protectedRegion in protectedRegions)
+            foreach (Tuple<int, int, Location> protectedRegion in protectedRegions)
             {
                 //They intersect if the last offset in the given region is after the start of this one
                 //and the first offset in the given region is before the last of this one
                 if (offset + length > protectedRegion.Item1 && offset < protectedRegion.Item1 + protectedRegion.Item2)
-                    return true;
+                    return new Just<Location>(protectedRegion.Item3);
             }
-            return false;
+            return new Nothing<Location>();
         }
 
         private void CheckDataWrite(int length)
@@ -833,8 +834,12 @@ namespace ColorzCore.Parser
             // TODO (maybe?): save Location of PROTECT statement, for better diagnosis
             // We would then print something like "Trying to write data to area protected at <location>"
 
-            if (IsProtected(CurrentOffset, length))
-                Error(head.Location, "Trying to write data to protected area");
+            Maybe<Location> prot = IsProtected(CurrentOffset, length);
+            if (!prot.IsNothing)
+            {
+                Location l = prot.FromJust;
+                Error(head.Location, System.String.Format("Trying to write data to area protected in file {0} at line {1}, column {2}.", l.file, l.lineNum, l.colNum));
+            }
         }
     }
 }
