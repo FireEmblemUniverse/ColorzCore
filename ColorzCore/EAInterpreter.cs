@@ -4,6 +4,7 @@ using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.Raws;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,7 +25,17 @@ namespace ColorzCore
         public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr, EAOptions opts)
         {
             this.game = game;
-            allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+            try
+            {
+                allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+            }
+            catch (Raw.RawParseException e)
+            {
+                serr.WriteLine(e.Message);
+                serr.WriteLine("Error occured as a result of the line:");
+                serr.WriteLine('\t' + e.rawline);
+                Environment.Exit(-1);
+            }
             this.sin = sin;
             this.fout = fout;
             this.serr = serr;
@@ -136,6 +147,7 @@ namespace ColorzCore
             foreach (FileInfo fileInfo in files)
             {
                 FileStream fs = new FileStream(fileInfo.FullName, FileMode.Open);
+                IEnumerable<Raw.RawParseException> exceptions = new List<Raw.RawParseException>();
                 allRaws = allRaws.Concat(Raw.ParseAllRaws(fs));
                 fs.Close();
             }
