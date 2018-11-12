@@ -19,8 +19,9 @@ namespace ColorzCore
         private Stream sin;
         private FileStream fout;
         private TextWriter serr;
+        private EAOptions opts;
 
-        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr)
+        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr, EAOptions opts)
         {
             this.game = game;
             allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
@@ -28,6 +29,7 @@ namespace ColorzCore
             this.fout = fout;
             this.serr = serr;
             iFile = inFileName;
+            this.opts = opts;
         }
 
         public void Interpret()
@@ -42,23 +44,33 @@ namespace ColorzCore
 
 
             //TODO: sort them by file/line
-            serr.WriteLine("Messages:");
-            if (myParser.Messages.Count == 0)
-                serr.WriteLine("No messages.");
-            foreach (string message in myParser.Messages)
+            if (!opts.nomess)
             {
-                serr.WriteLine(message);
+                serr.WriteLine("Messages:");
+                if (myParser.Messages.Count == 0)
+                    serr.WriteLine("No messages.");
+                foreach (string message in myParser.Messages)
+                {
+                    serr.WriteLine(message);
+                }
+                serr.WriteLine();
             }
-            serr.WriteLine();
 
-            serr.WriteLine("Warnings:");
-            if (myParser.Warnings.Count == 0)
-                serr.WriteLine("No warnings.");
-            foreach (string warning in myParser.Warnings)
+            if (opts.werr)
             {
-                serr.WriteLine(warning);
+                foreach (string warning in myParser.Warnings)
+                    myParser.Errors.Add(warning);
+            } else if (!opts.nowarn)
+            {
+                serr.WriteLine("Warnings:");
+                if (myParser.Warnings.Count == 0)
+                    serr.WriteLine("No warnings.");
+                foreach (string warning in myParser.Warnings)
+                {
+                    serr.WriteLine(warning);
+                }
+                serr.WriteLine();
             }
-            serr.WriteLine();
 
             serr.WriteLine("Errors:");
             if (myParser.Errors.Count == 0)
@@ -67,8 +79,7 @@ namespace ColorzCore
             {
                 serr.WriteLine(error);
             }
-
-            //TODO: -WError flag?
+            
             if(myParser.Errors.Count == 0)
             {
                 foreach(ILineNode line in lines)
