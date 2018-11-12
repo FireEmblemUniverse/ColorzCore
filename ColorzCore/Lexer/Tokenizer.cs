@@ -51,11 +51,11 @@ namespace ColorzCore.Lexer
             return sb.ToString();
         }
 
-        private bool inMultilineComment;
+        private int multilineCommentNesting;
 
         public Tokenizer()
         {
-            inMultilineComment = false;
+            multilineCommentNesting = 0;
         }
         
         public IEnumerable<Token> TokenizePhrase(string line, string fileName, int lineNum, int startOffs, int endOffs, int offset = 0)
@@ -66,11 +66,16 @@ namespace ColorzCore.Lexer
             while (curCol < endOffs)
             {
                 char nextChar = line[curCol];
-                if (inMultilineComment)
+                if (multilineCommentNesting > 0)
                 {
                     if (nextChar == '*' && curCol + 1 < endOffs && line[curCol + 1] == '/')
                     {
-                        inMultilineComment = false;
+                        multilineCommentNesting -= 1;
+                        curCol += 2;
+                        continue;
+                    } else if (nextChar == '/' && curCol + 1 < endOffs && line[curCol + 1] == '*')
+                    {
+                        multilineCommentNesting += 1;
                         curCol += 2;
                         continue;
                     }
@@ -130,7 +135,7 @@ namespace ColorzCore.Lexer
                         }
                         else if (curCol + 1 < endOffs && line[curCol + 1] == '*')
                         {
-                            inMultilineComment = true;
+                            multilineCommentNesting += 1;
                             curCol += 2;
                             continue;
                         }
