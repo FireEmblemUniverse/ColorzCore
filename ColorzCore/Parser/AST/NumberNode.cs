@@ -31,7 +31,7 @@ namespace ColorzCore.Parser.AST
             this.value = value;
         }
 
-        public override int Evaluate()
+        public override int ToInt()
         {
             return value;
         }
@@ -46,6 +46,11 @@ namespace ColorzCore.Parser.AST
         public override IAtomNode Simplify()
         {
             return this;
+        }
+
+        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            return new Just<int>(value);
         }
     }
 }

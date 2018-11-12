@@ -8,20 +8,39 @@ namespace ColorzCore
     class Program
     {
         public static bool Debug = false;
+        private static string[] helpstringarr = {"EA Colorz Core. Usage:",
+            "./ColorzCore <A|D> <game> [-opts]",
+            "",
+            "Only A is allowed as assembly mode currently.",
+            "Game may be any string; the respective _game_ variable gets defined in scripts.",
+            "Available options:",
+            "-raws:<dir>",
+            "   Sets the raws directory to the one provided (relative to ColorzCore). Defaults to \"Language Raws\".",
+            "-rawsExt:<ext>",
+            "   Sets the extension of files used for raws to the one provided. Defaults to .txt.",
+            "-output:<filename>",
+            "   Set the file to write assembly to.",
+            "-input:<filename>",
+            "   Set the file to take input script from. Defaults to stdin.",
+            "-error:<filename>",
+            "   Set a file to redirect messages, warnings, and errors to. Defaults to stderr.",
+            "-werr",
+            "   Treat all warnings as errors and prevent assembly.",
+            "--no-mess",
+            "   Suppress output of messages.",
+            "--no-warn",
+            "   Suppress output of warnings.",
+            "--quiet",
+            "   Equivalent to --no-mess --no-warn.",
+            "-h|--help",
+            "   Display helpstring and exit.",
+            "-debug",
+            "   Enable debug mode. Not recommended for end users."};
+        private static string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr, (String a, String b) => { return a + '\n' + b; }) + '\n';
 
         static void Main(string[] args)
         {
-            if(args.Length < 2)
-            {
-                Console.WriteLine("Required parameters missing.");
-                return;
-            }
-            if(args[0] != "A")
-            {
-                Console.WriteLine("Only assembly is supported currently.");
-                return;
-            }
-            string game = args[1];
+            EAOptions options = new EAOptions();
             Stream inStream = Console.OpenStandardInput();
             FileStream outStream = null;
             TextWriter errorStream = Console.Error;
@@ -62,6 +81,23 @@ namespace ColorzCore
                             case "debug":
                                 Debug = true;
                                 break;
+                            case "werr":
+                                options.werr = true;
+                                break;
+                            case "-no-mess":
+                                options.nomess = true;
+                                break;
+                            case "-no-warn":
+                                options.nowarn = true;
+                                break;
+                            case "quiet":
+                                options.nomess = true;
+                                options.nowarn = true;
+                                break;
+                            case "h":
+                            case "-help":
+                                Console.Out.WriteLine(helpstring);
+                                return;
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
                                 return;
@@ -74,7 +110,19 @@ namespace ColorzCore
                     }
                 }
             }
-            if(outStream == null)
+
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Required parameters missing.");
+                return;
+            }
+            if (args[0] != "A")
+            {
+                Console.WriteLine("Only assembly is supported currently.");
+                return;
+            }
+            string game = args[1];
+            if (outStream == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
                 return;
@@ -85,7 +133,8 @@ namespace ColorzCore
                 return;
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream);
+
+            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
             myInterpreter.Interpret();
 
             inStream.Close();
