@@ -38,6 +38,7 @@ namespace ColorzCore.Parser
                 {
                     currentOffset = value;
                     validOffset = true;
+                    offsetInitialized = true;
                 }
             }
 
@@ -45,7 +46,7 @@ namespace ColorzCore.Parser
         public ImmutableStack<bool> Inclusion { get; set; }
 
 
-        private Stack<int> pastOffsets;
+        private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int>> protectedRegions;
 
         public IList<string> Messages { get; }
@@ -59,13 +60,14 @@ namespace ColorzCore.Parser
                 return acc;
             } }
         private bool validOffset;
+        private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
         private int currentOffset;
         private Token head; //TODO: Make this make sense
 
         public EAParser(Dictionary<string, IList<Raw>> raws)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
-            pastOffsets = new Stack<int>();
+            pastOffsets = new Stack<Tuple<int, bool>>();
             protectedRegions = new List<Tuple<int, int>>();
             Messages = new List<string>();
             Warnings = new List<string>();
@@ -73,6 +75,7 @@ namespace ColorzCore.Parser
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
+            offsetInitialized = false;
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
@@ -173,15 +176,19 @@ namespace ColorzCore.Parser
                         if (parameters.Count != 0)
                             Error(head.Location, "Incorrect number of parameters in PUSH: " + parameters.Count);
                         else
-                            pastOffsets.Push(CurrentOffset);
+                            pastOffsets.Push(new Tuple<int, bool>(CurrentOffset, offsetInitialized));
                         break;
                     case "POP":
                         if (parameters.Count != 0)
                             Error(head.Location, "Incorrect number of parameters in POP: " + parameters.Count);
                         else if (pastOffsets.Count == 0)
                             Error(head.Location, "POP without matching PUSH.");
-                        else
-                            CurrentOffset = pastOffsets.Pop();
+                        else {
+                            Tuple<int, bool> tuple = pastOffsets.Pop();
+
+                            CurrentOffset = tuple.Item1;
+                            offsetInitialized = tuple.Item2;
+                        }
                         break;
                     case "MESSAGE":
                         Message(head.Location, PrettyPrintParams(parameters));
@@ -816,6 +823,13 @@ namespace ColorzCore.Parser
 
         private void CheckDataWrite(int length)
         {
+            // TODO: maybe make this warning optional?
+            if (!offsetInitialized)
+            {
+                Warning(head.Location, "Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
+                offsetInitialized = false; // only warn once
+            }
+
             // TODO (maybe?): save Location of PROTECT statement, for better diagnosis
             // We would then print something like "Trying to write data to area protected at <location>"
 
