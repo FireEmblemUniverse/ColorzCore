@@ -838,7 +838,7 @@ namespace ColorzCore.Parser
             if (!prot.IsNothing)
             {
                 Location l = prot.FromJust;
-                Error(head.Location, System.String.Format("Trying to write data to area protected in file {0} at line {1}, column {2}.", l.file, l.lineNum, l.colNum));
+                Error(head.Location, System.String.Format("Trying to write data to area protected in file {0} at line {1}, column {2}.", Path.GetFileName(l.file), l.lineNum, l.colNum));
             }
         }
     }
