@@ -42,7 +42,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataTypes\Handler.cs" />
     <Compile Include="EAOptions.cs" />
     <Compile Include="DataTypes\CaseInsensitiveString.cs" />
     <Compile Include="EAInterpreter.cs" />
