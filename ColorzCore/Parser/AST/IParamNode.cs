@@ -17,4 +17,12 @@ namespace ColorzCore.Parser.AST
         IParamNode SimplifyExpressions(TAction<Exception> handler); //TODO: Abstract this into a general traverse method.
         Maybe<IAtomNode> AsAtom();
     }
+
+    public static class ParamExtensions
+    {
+        public static IParamNode Simplify(this IParamNode n)
+        {
+            return n.SimplifyExpressions((Exception e) => { });
+        }
+    }
 }

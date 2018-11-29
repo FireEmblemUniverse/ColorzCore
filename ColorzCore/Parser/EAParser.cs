@@ -284,7 +284,6 @@ namespace ColorzCore.Parser
                     if(r.Fits(parameters))
                     {
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
-                        temp.Simplify();
 
                         CheckDataWrite(temp.Size);
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
@@ -372,7 +371,7 @@ namespace ColorzCore.Parser
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new Just<IParamNode>(new ListNode(head.Location, ParseList(tokens, scopes)));
+                    return new Just<IParamNode>(new ListNode(head.Location, ParseList(tokens, scopes)).Simplify());
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new Just<IParamNode>(new StringNode(head));
@@ -393,9 +392,9 @@ namespace ColorzCore.Parser
                     if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens))
                         return ParseParam(tokens, scopes, expandDefs);
                     else
-                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
+                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
                 default:
-                    return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
+                    return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
             }
         }
 
