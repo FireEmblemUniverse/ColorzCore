@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataTypes\Handler.cs" />
     <Compile Include="EAOptions.cs" />
     <Compile Include="DataTypes\CaseInsensitiveString.cs" />
     <Compile Include="EAInterpreter.cs" />
@@ -69,7 +70,6 @@
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParamType.cs" />
-    <Compile Include="Parser\AST\ParenthesizedAtomNode.cs" />
     <Compile Include="Parser\AST\RawNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\AST\StringNode.cs" />

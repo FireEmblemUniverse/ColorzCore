@@ -50,10 +50,9 @@ namespace ColorzCore.Parser.AST
         {
             return new IdentifierNode(MyToken, scope);
         }
-        public Maybe<IParamNode> Evaluate(ICollection<Token> undefinedIds)
-        {
-            //Nothing to be done.
-            return new Just<IParamNode>(this);
-        }
+
+        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+
+        public IParamNode SimplifyExpressions(TAction<Exception> handler) { return this; }
     }
 }

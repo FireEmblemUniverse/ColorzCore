@@ -32,7 +32,7 @@ namespace ColorzCore.Raws
             int bitsPerAtom = Length / numCoords;
             foreach(IAtomNode a in interior)
             {
-                int res = a.ToInt();
+                int res = a.CoerceInt();
                 for(int i=0; i<bitsPerAtom; i++, res >>= 1)
                 {
                     data[i + Position + count] = (res & 1) == 1;

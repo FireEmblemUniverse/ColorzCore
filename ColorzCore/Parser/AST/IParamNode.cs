@@ -14,8 +14,7 @@ namespace ColorzCore.Parser.AST
         ParamType Type { get; }
         string PrettyPrint();
         Location MyLocation { get; }
-        Maybe<IParamNode> Evaluate(ICollection<Token> unidentifiedIdentifiers);
-
-        Either<int, string> TryEvaluate();
+        IParamNode SimplifyExpressions(TAction<Exception> handler); //TODO: Abstract this into a general traverse method.
+        Maybe<IAtomNode> AsAtom();
     }
 }

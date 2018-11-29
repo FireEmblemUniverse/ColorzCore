@@ -27,7 +27,7 @@ namespace ColorzCore.Parser.AST
             sb.Append('[');
             for(int i=0; i<Interior.Count; i++)
             {
-                sb.Append(Interior[i].ToInt());
+                sb.Append(Interior[i].CoerceInt());
                 if(i < Interior.Count - 1)
                     sb.Append(',');
             }
@@ -79,16 +79,18 @@ namespace ColorzCore.Parser.AST
             return new Right<int, string>("Expected atomic parameter.");
         }
 
-        public Maybe<IParamNode> Evaluate(ICollection<Token> undefinedIdentifiers)
+        public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
             IEnumerable<Token> acc = new List<Token>();
             for(int i=0; i<Interior.Count; i++)
             {
-                Interior[i].Evaluate(undefinedIdentifiers).IfJust((int a) => { Interior[i] = new NumberNode(Interior[i].MyLocation, a); });
+                Interior[i] = Interior[i].Simplify();
             }
-            return new Just<IParamNode>(this);
+            return this;
         }
 
         public int NumCoords { get { return Interior.Count; } }
+
+        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
     }
 }

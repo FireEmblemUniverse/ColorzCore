@@ -13,7 +13,7 @@ namespace ColorzCore.Parser.AST
         public class MacroException : Exception
         {
             public MacroInvocationNode CausedError { get; private set; }
-            public MacroException(MacroInvocationNode min)
+            public MacroException(MacroInvocationNode min) : base(min.invokeToken.Content)
             {
                 CausedError = min;
             }
@@ -64,10 +64,12 @@ namespace ColorzCore.Parser.AST
 
         public Location MyLocation { get { return invokeToken.Location; } }
 
-        public Maybe<IParamNode> Evaluate(ICollection<Token> undefinedIdentifiers)
+        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+
+        public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
-            //There shouldn't be macros lingering out by the time we're simplifying?
-            throw new MacroException(this);
+            handler(new MacroException(this));
+            return this;
         }
     }
 }

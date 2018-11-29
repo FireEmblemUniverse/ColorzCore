@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,14 +12,7 @@ namespace ColorzCore.Parser.AST
     {
         public abstract int Precedence { get; }
 
-        public abstract int ToInt();
-
         public ParamType Type { get { return ParamType.ATOM; } }
-
-        public override string ToString()
-        {
-            return "0x"+ToInt().ToString("X");
-        }
 
         public virtual Maybe<string> GetIdentifier()
         {
@@ -33,31 +26,16 @@ namespace ColorzCore.Parser.AST
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public Either<int, string> TryEvaluate()
-        {
-            try
-            {
-                int res = this.ToInt();
-                return new Left<int, string>(res);
-            }
-            catch (IdentifierNode.UndefinedIdentifierException e)
-            {
-                return new Right<int, string>("Unrecognized identifier: " + e.CausedError.Content);
-            }
-            catch (DivideByZeroException)
-            {
-                return new Right<int, string>("Division by zero.");
-            }
-        }
-        public abstract bool CanEvaluate();
+        public abstract Maybe<int> TryEvaluate(TAction<Exception> handler);
 
-        public abstract Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers);
-        
-        Maybe<IParamNode> IParamNode.Evaluate(ICollection<Token> undefinedIdentifiers)
+        public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
-            return Evaluate(undefinedIdentifiers).Fmap((int a) => (IParamNode)new NumberNode(MyLocation, a));
+            return this.Simplify();
         }
 
-        public abstract IAtomNode Simplify();
+        public Maybe<IAtomNode> AsAtom()
+        {
+            return new Just<IAtomNode>(this);
+        }
     }
 }
