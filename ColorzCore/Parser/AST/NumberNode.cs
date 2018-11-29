@@ -37,5 +37,10 @@ namespace ColorzCore.Parser.AST
         {
             return new Just<int>(value);
         }
+
+        public override string PrettyPrint()
+        {
+            return "0x" + value.ToString("X");
+        }
     }
 }

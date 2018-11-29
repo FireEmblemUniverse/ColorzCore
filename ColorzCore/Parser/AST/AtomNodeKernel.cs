@@ -19,10 +19,7 @@ namespace ColorzCore.Parser.AST
             return new Nothing<string>();
         }
 
-        public virtual string PrettyPrint()
-        {
-            return ToString(); //TODO: Mark abstract
-        }
+        public abstract string PrettyPrint();
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
