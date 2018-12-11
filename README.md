@@ -5,7 +5,7 @@ A rewriting of Core.exe for [Event Assembler](https://github.com/TimoVesalainen/
 Event Assembler Language is a language for describing the writing of binary or formatted payloads with relative addressing.
 A script is a series of statements; each statement is either a directive, a command, a label, or a raw.
 
-If no `ORG` commands are given, then the assembler continues writing data sequentially to the current offset.
+If no offset changing commands are given, then the assembler continues writing data sequentially to the current offset.
 
 ## Directives
 
@@ -59,4 +59,5 @@ Pointer(MyLabel)
 
 # Projects made with ColorzCore
 [Snek-GBA](https://github.com/LeonarthCG/Snek-GBA), by Leonarth. A full, independently made GBA game. ColorzCore was used as the linker and build tool.
+
 [VBA: Blitz Tendency](https://github.com/FireEmblemUniverse/VBA-Blitz-Tendency/), by Crazycolorz5. An extensive, community mod of Fire Emblem: The Sacred Stones. Consider the number of contributors, ColorzCore was used to make sequences of binary writes version controllable. It was also used as the build tool.
