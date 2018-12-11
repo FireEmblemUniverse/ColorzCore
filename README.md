@@ -45,7 +45,7 @@ Having `LabelName:` brings in `LabelName` as an identifier which evaluates to wh
 
 ## Small Example
 
-Assuming the raw `WORD` assembles the word(s) provided after it, the followin script writes 0xDEADBEEF at 0x1000, and writes 0x08001000 at 0x2000
+Assuming the raw `WORD` assembles the word(s) provided after it, the following script writes 0xDEADBEEF at 0x1000, and writes 0x08001000 at 0x2000
 ```
 ORG 0x1000
 MyLabel:
