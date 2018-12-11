@@ -30,12 +30,12 @@ These commands report assembler state to the appropriate category: `MESSAGE`, `W
 Any number of expressions can be given for evaluation, or a string may be provided (in quotes).
 
 These commands ensure a certain state for the assembler: `PROTECT`, `ASSERT`.
-`PROTECT start end` will error on any future write to anywhere in the range of offsets provided, and provide where the write occurred for debugging. `PROTECT offset` only pretects the single offset.
+`PROTECT start end` will error on any future write to anywhere in the range of offsets provided, and provide where the write occurred for debugging. `PROTECT offset` only protects the single offset.
 `ASSERT` will error if the provided expression is negative.
 
 ## Raws
 
-Raws are defined in a separate language, and specification for all raws are (by default) in the `./Language Raws` folder. Raws describe a pattern of binary data to be written, say for example, "the short 0x1234 followed by two one-byte coordinates". Raws may also be written with no assemption about the data (e.g. "a byte").
+Raws are defined in a separate language, and specification for all raws are (by default) in the `./Language Raws` folder. Raws describe a pattern of binary data to be written, say for example, "the short 0x1234 followed by two one-byte coordinates". Raws may also be written with no assumption about the data (e.g. "a byte").
 
 ## Labels
 Having `LabelName:` brings in `LabelName` as an identifier which evaluates to what the current offset was when the label was defined.
