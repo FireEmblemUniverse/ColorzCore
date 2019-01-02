@@ -141,6 +141,21 @@ namespace ColorzCore
             }
         }
 
+        public bool WriteNocashSymbols(TextWriter output)
+        {
+            if (myParser == null)
+            {
+                return false;
+            }
+
+            foreach (var label in myParser.GlobalScope.Head.LocalLabels())
+            {
+                output.WriteLine("{0:X8} {1}", label.Value, label.Key);
+            }
+
+            return true;
+        }
+
         private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
         {
             string folder;

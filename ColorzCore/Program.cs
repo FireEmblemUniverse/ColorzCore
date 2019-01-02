@@ -43,6 +43,7 @@ namespace ColorzCore
             EAOptions options = new EAOptions();
             Stream inStream = Console.OpenStandardInput();
             FileStream outStream = null;
+            string outFileName = "none";
             TextWriter errorStream = Console.Error;
             Maybe<string> rawsFolder = IOUtility.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
@@ -69,7 +70,8 @@ namespace ColorzCore
                                 rawsExtension = flag[1];
                                 break;
                             case "output":
-                                outStream = File.Open(flag[1], FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                outFileName = flag[1];
+                                outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
                                 break;
                             case "input":
                                 inFileName = flag[1];
@@ -142,6 +144,17 @@ namespace ColorzCore
             EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
 
             bool success = myInterpreter.Interpret();
+
+            if (success && options.nocashSym)
+            {
+                using (var output = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                {
+                    if (!(success = myInterpreter.WriteNocashSymbols(output)))
+                    {
+                        Console.Error.WriteLine("Error trying to write no$gba symbol file.");
+                    }
+                }
+            }
 
             inStream.Close();
             outStream.Close();
