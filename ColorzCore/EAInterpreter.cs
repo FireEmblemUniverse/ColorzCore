@@ -150,7 +150,8 @@ namespace ColorzCore
 
             foreach (var label in myParser.GlobalScope.Head.LocalLabels())
             {
-                output.WriteLine("{0:X8} {1}", label.Value, label.Key);
+                // TODO: more elegant offset to address mapping
+                output.WriteLine("{0:X8} {1}", label.Value + 0x8000000, label.Key);
             }
 
             return true;
