@@ -38,7 +38,7 @@ namespace ColorzCore
             "   Enable debug mode. Not recommended for end users."};
         private static string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr, (String a, String b) => { return a + '\n' + b; }) + '\n';
 
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
             EAOptions options = new EAOptions();
             Stream inStream = Console.OpenStandardInput();
@@ -94,19 +94,24 @@ namespace ColorzCore
                                 options.nomess = true;
                                 options.nowarn = true;
                                 break;
+
+                            case "-nocash-sym":
+                                options.nocashSym = true;
+                                break;
+
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
-                                return;
+                                return 0;
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
-                                return;
+                                return 1;
                         }
                     }
                     catch(IOException e)
                     {
                         Console.Error.WriteLine("Exception: " + e.Message);
-                        return;
+                        return 1;
                     }
                 }
             }
@@ -114,32 +119,35 @@ namespace ColorzCore
             if (args.Length < 2)
             {
                 Console.WriteLine("Required parameters missing.");
-                return;
+                return 1;
             }
             if (args[0] != "A")
             {
                 Console.WriteLine("Only assembly is supported currently.");
-                return;
+                return 1;
             }
             string game = args[1];
             if (outStream == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
-                return;
+                return 1;
             }
             if (rawsFolder.IsNothing)
             {
                 Console.Error.WriteLine("Couldn't find raws folder");
-                return;
+                return 1;
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
             EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
-            myInterpreter.Interpret();
+
+            bool success = myInterpreter.Interpret();
 
             inStream.Close();
             outStream.Close();
-            errorStream.Close();            
+            errorStream.Close();
+
+            return success ? 0 : 1;
         }
     }
 }

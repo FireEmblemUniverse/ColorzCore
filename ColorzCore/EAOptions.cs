@@ -11,11 +11,14 @@ namespace ColorzCore
         public bool werr;
         public bool nowarn, nomess;
 
+        public bool nocashSym;
+
         public EAOptions()
         {
             werr = false;
             nowarn = false;
             nomess = false;
+            nocashSym = false;
         }
     }
 }

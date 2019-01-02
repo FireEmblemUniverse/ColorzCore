@@ -44,7 +44,7 @@ namespace ColorzCore
             this.opts = opts;
         }
 
-        public void Interpret()
+        public bool Interpret()
         {
             myParser = new EAParser(allRaws);
             myParser.Definitions['_' + game + '_'] = new Definition();
@@ -130,11 +130,14 @@ namespace ColorzCore
                     }
                     line.WriteData(myROM);
                 }
+
                 myROM.WriteROM();
+                return true;
             }
             else
             {
                 serr.WriteLine("Errors occurred; no changes written.");
+                return false;
             }
         }
 
