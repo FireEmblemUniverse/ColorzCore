@@ -42,13 +42,13 @@ namespace ColorzCore
             this.serr = serr;
             iFile = inFileName;
             this.opts = opts;
+
+            myParser = new EAParser(allRaws);
+            myParser.Definitions['_' + game + '_'] = new Definition();
         }
 
         public bool Interpret()
         {
-            myParser = new EAParser(allRaws);
-            myParser.Definitions['_' + game + '_'] = new Definition();
-            
             Tokenizer t = new Tokenizer();
             ROM myROM = new ROM(fout);
 
@@ -143,11 +143,6 @@ namespace ColorzCore
 
         public bool WriteNocashSymbols(TextWriter output)
         {
-            if (myParser == null)
-            {
-                return false;
-            }
-
             foreach (var label in myParser.GlobalScope.Head.LocalLabels())
             {
                 // TODO: more elegant offset to address mapping

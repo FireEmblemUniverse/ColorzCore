@@ -38,6 +38,9 @@ namespace ColorzCore
             "   Enable debug mode. Not recommended for end users."};
         private static string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr, (String a, String b) => { return a + '\n' + b; }) + '\n';
 
+        private const int EXIT_SUCCESS = 0;
+        private const int EXIT_FAILURE = 1;
+
         static int Main(string[] args)
         {
             EAOptions options = new EAOptions();
@@ -104,16 +107,16 @@ namespace ColorzCore
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
-                                return 0;
+                                return EXIT_SUCCESS;
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
-                                return 1;
+                                return EXIT_FAILURE;
                         }
                     }
                     catch(IOException e)
                     {
                         Console.Error.WriteLine("Exception: " + e.Message);
-                        return 1;
+                        return EXIT_FAILURE;
                     }
                 }
             }
@@ -121,23 +124,23 @@ namespace ColorzCore
             if (args.Length < 2)
             {
                 Console.WriteLine("Required parameters missing.");
-                return 1;
+                return EXIT_FAILURE;
             }
             if (args[0] != "A")
             {
                 Console.WriteLine("Only assembly is supported currently.");
-                return 1;
+                return EXIT_FAILURE;
             }
             string game = args[1];
             if (outStream == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
-                return 1;
+                return EXIT_FAILURE;
             }
             if (rawsFolder.IsNothing)
             {
                 Console.Error.WriteLine("Couldn't find raws folder");
-                return 1;
+                return EXIT_FAILURE;
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
@@ -160,7 +163,7 @@ namespace ColorzCore
             outStream.Close();
             errorStream.Close();
 
-            return success ? 0 : 1;
+            return success ? EXIT_SUCCESS : EXIT_FAILURE;
         }
     }
 }
