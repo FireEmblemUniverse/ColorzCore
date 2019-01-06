@@ -38,11 +38,15 @@ namespace ColorzCore
             "   Enable debug mode. Not recommended for end users."};
         private static string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr, (String a, String b) => { return a + '\n' + b; }) + '\n';
 
-        static void Main(string[] args)
+        private const int EXIT_SUCCESS = 0;
+        private const int EXIT_FAILURE = 1;
+
+        static int Main(string[] args)
         {
             EAOptions options = new EAOptions();
             Stream inStream = Console.OpenStandardInput();
             FileStream outStream = null;
+            string outFileName = "none";
             TextWriter errorStream = Console.Error;
             Maybe<string> rawsFolder = IOUtility.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
@@ -69,7 +73,8 @@ namespace ColorzCore
                                 rawsExtension = flag[1];
                                 break;
                             case "output":
-                                outStream = File.Open(flag[1], FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                outFileName = flag[1];
+                                outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
                                 break;
                             case "input":
                                 inFileName = flag[1];
@@ -94,19 +99,24 @@ namespace ColorzCore
                                 options.nomess = true;
                                 options.nowarn = true;
                                 break;
+
+                            case "-nocash-sym":
+                                options.nocashSym = true;
+                                break;
+
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
-                                return;
+                                return EXIT_SUCCESS;
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
-                                return;
+                                return EXIT_FAILURE;
                         }
                     }
                     catch(IOException e)
                     {
                         Console.Error.WriteLine("Exception: " + e.Message);
-                        return;
+                        return EXIT_FAILURE;
                     }
                 }
             }
@@ -114,32 +124,46 @@ namespace ColorzCore
             if (args.Length < 2)
             {
                 Console.WriteLine("Required parameters missing.");
-                return;
+                return EXIT_FAILURE;
             }
             if (args[0] != "A")
             {
                 Console.WriteLine("Only assembly is supported currently.");
-                return;
+                return EXIT_FAILURE;
             }
             string game = args[1];
             if (outStream == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
-                return;
+                return EXIT_FAILURE;
             }
             if (rawsFolder.IsNothing)
             {
                 Console.Error.WriteLine("Couldn't find raws folder");
-                return;
+                return EXIT_FAILURE;
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
             EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
-            myInterpreter.Interpret();
+
+            bool success = myInterpreter.Interpret();
+
+            if (success && options.nocashSym)
+            {
+                using (var output = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                {
+                    if (!(success = myInterpreter.WriteNocashSymbols(output)))
+                    {
+                        Console.Error.WriteLine("Error trying to write no$gba symbol file.");
+                    }
+                }
+            }
 
             inStream.Close();
             outStream.Close();
-            errorStream.Close();            
+            errorStream.Close();
+
+            return success ? EXIT_SUCCESS : EXIT_FAILURE;
         }
     }
 }

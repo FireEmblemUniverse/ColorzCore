@@ -22,5 +22,13 @@ namespace ColorzCore.Parser
         {
             Labels[label] = value;
         }
+
+        public IEnumerable<KeyValuePair<string, int>> LocalLabels()
+        {
+            foreach (KeyValuePair<string, int> label in Labels)
+            {
+                yield return label;
+            }
+        }
     }
 }

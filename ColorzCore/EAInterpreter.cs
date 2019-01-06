@@ -42,13 +42,13 @@ namespace ColorzCore
             this.serr = serr;
             iFile = inFileName;
             this.opts = opts;
-        }
 
-        public void Interpret()
-        {
             myParser = new EAParser(allRaws);
             myParser.Definitions['_' + game + '_'] = new Definition();
-            
+        }
+
+        public bool Interpret()
+        {
             Tokenizer t = new Tokenizer();
             ROM myROM = new ROM(fout);
 
@@ -130,12 +130,26 @@ namespace ColorzCore
                     }
                     line.WriteData(myROM);
                 }
+
                 myROM.WriteROM();
+                return true;
             }
             else
             {
                 serr.WriteLine("Errors occurred; no changes written.");
+                return false;
             }
+        }
+
+        public bool WriteNocashSymbols(TextWriter output)
+        {
+            foreach (var label in myParser.GlobalScope.Head.LocalLabels())
+            {
+                // TODO: more elegant offset to address mapping
+                output.WriteLine("{0:X8} {1}", label.Value + 0x8000000, label.Key);
+            }
+
+            return true;
         }
 
         private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
