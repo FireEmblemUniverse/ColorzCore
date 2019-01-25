@@ -34,10 +34,5 @@ namespace ColorzCore.IO
                     return name;
             }
         }
-
-        public static string GetToolPath(string toolName)
-        {
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", GetToolFileName(toolName));
-        }
     }
 }
