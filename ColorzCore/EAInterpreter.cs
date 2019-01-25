@@ -51,7 +51,19 @@ namespace ColorzCore
             iFile = inFileName;
             this.opts = opts;
 
-            myParser = new EAParser(allRaws, log);
+            IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
+            includeSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
+
+            foreach (string path in opts.includePaths)
+                includeSearcher.IncludeDirectories.Add(path);
+
+            IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
+            toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
+
+            foreach (string path in opts.toolsPaths)
+                includeSearcher.IncludeDirectories.Add(path);
+
+            myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
             myParser.Definitions['_' + game + '_'] = new Definition();
         }
 

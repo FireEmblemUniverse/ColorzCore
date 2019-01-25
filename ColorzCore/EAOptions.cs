@@ -15,6 +15,9 @@ namespace ColorzCore
 
         public bool nocashSym;
 
+        public List<string> includePaths = new List<string>();
+        public List<string> toolsPaths = new List<string>();
+
         public EAOptions()
         {
             werr = false;
