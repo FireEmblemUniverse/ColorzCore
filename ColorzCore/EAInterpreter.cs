@@ -64,7 +64,9 @@ namespace ColorzCore
                 includeSearcher.IncludeDirectories.Add(path);
 
             myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
+
             myParser.Definitions['_' + game + '_'] = new Definition();
+            myParser.Definitions["__COLORZ_CORE__"] = new Definition();
         }
 
         public bool Interpret()
