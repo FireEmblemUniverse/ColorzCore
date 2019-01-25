@@ -2,13 +2,13 @@
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using ColorzCore.Parser.Macros;
+using ColorzCore.Preprocessor;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static ColorzCore.Preprocessor.Handler;
 
 //TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
@@ -45,6 +45,7 @@ namespace ColorzCore.Parser
         }
         public ImmutableStack<bool> Inclusion { get; set; }
 
+        private DirectiveHandler DirectiveHandler { get; }
 
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int, Location>> protectedRegions;
@@ -705,7 +706,7 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
-            Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
+            Maybe<ILineNode> retVal = DirectiveHandler.HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
             {
                 CheckDataWrite(retVal.FromJust.Size);
