@@ -51,15 +51,16 @@ namespace ColorzCore
             Maybe<string> rawsFolder = IOUtility.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
             string inFileName = "stdin";
-            for(int i = 2; i < args.Length; i++)
+
+            for (int i = 2; i < args.Length; i++)
             {
-                if(args[i][0] != '-')
+                if (args[i][0] != '-')
                 {
                     Console.Error.WriteLine("Unrecognized paramter: " + args[i]);
                 }
                 else
                 {
-                    string[] flag = args[i].Substring(1).Split(new char[]{':'}, 2);
+                    string[] flag = args[i].Substring(1).Split(new char[] { ':' }, 2);
                     try
                     {
 
@@ -104,6 +105,16 @@ namespace ColorzCore
                                 options.nocashSym = true;
                                 break;
 
+                            case "I":
+                            case "-include":
+                                options.includePaths.Add(flag[1]);
+                                break;
+
+                            case "T":
+                            case "-tools":
+                                options.toolsPaths.Add(flag[1]);
+                                break;
+
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
@@ -113,7 +124,7 @@ namespace ColorzCore
                                 return EXIT_FAILURE;
                         }
                     }
-                    catch(IOException e)
+                    catch (IOException e)
                     {
                         Console.Error.WriteLine("Exception: " + e.Message);
                         return EXIT_FAILURE;

@@ -61,22 +61,29 @@ namespace ColorzCore.IO
             StringBuilder sb = new StringBuilder(param);
             return sb.Replace("\\t", "\t").Replace("\\n", "\n").Replace("\\\\", "\\").Replace("\\r", "\r").ToString();
         }
+
         public static string UnescapePath(string param)
         {
             StringBuilder sb = new StringBuilder(param);
             return sb.Replace("\\ ", " ").Replace("\\\\", "\\").ToString();
         }
-        public static string GetToolPath(string toolName)
+
+        public static string GetToolFileName(string name)
         {
             switch (Environment.OSVersion.Platform)
             {
                 case PlatformID.Win32Windows: // Who knows, maybe someone runs EA on win 95
                 case PlatformID.Win32NT:
-                    toolName = toolName + ".exe";
-                    break;
-            }
+                    return name + ".exe";
 
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", toolName);
+                default:
+                    return name;
+            }
+        }
+
+        public static string GetToolPath(string toolName)
+        {
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", GetToolFileName(toolName));
         }
     }
 }
