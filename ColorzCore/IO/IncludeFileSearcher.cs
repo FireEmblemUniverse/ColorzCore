@@ -10,6 +10,11 @@ namespace ColorzCore.IO
         public List<string> IncludeDirectories { get; } = new List<string>();
         public bool AllowRelativeInclude { get; set; } = true;
 
+        public Maybe<string> FindFile(string name)
+        {
+            return FindFile(null, name);
+        }
+
         public Maybe<string> FindFile(string cwd, string name)
         {
             // Find the first valid file in the list of possible file paths
@@ -21,6 +26,11 @@ namespace ColorzCore.IO
             }
 
             return new Nothing<string>();
+        }
+
+        public Maybe<string> FindDirectory(string name)
+        {
+            return FindDirectory(null, name);
         }
 
         public Maybe<string> FindDirectory(string cwd, string name)

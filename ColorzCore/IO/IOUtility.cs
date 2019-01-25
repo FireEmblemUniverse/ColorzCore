@@ -10,52 +10,6 @@ namespace ColorzCore.IO
 {
     static class IOUtility
     {
-
-        /* Modified from Nintenlord's Core's IO.IOHelpers */
-        public static Maybe<string> FindFile(string currentFile, string newFile)
-        {
-            // Reordered so that relative directory is searched first.
-
-            if (!string.IsNullOrEmpty(currentFile))
-            {
-                // relative to current file directory
-                string path = Path.Combine(Path.GetDirectoryName(currentFile), newFile);
-                if (File.Exists(path))
-                    return new Just<string>(path);
-            }
-
-            if (File.Exists(newFile))
-            {
-                // relative to working directory
-                return new Just<string>(newFile);
-            }
-            else
-            {
-                // relative to EA distribution directory
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, newFile);
-                if (File.Exists(path))
-                    return new Just<string>(path);
-            }
-            
-            return new Nothing<string>();
-        }
-
-        public static Maybe<string> FindDirectory(string name)
-        {
-            if (Directory.Exists(name))
-            {
-                return new Just<string>(name);
-            }
-            else
-            {
-                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
-                if (Directory.Exists(path))
-                    return new Just<string>(path);
-            }
-
-            return new Nothing<string>();
-        }
-
         public static string UnescapeString(string param)
         {
             StringBuilder sb = new StringBuilder(param);
