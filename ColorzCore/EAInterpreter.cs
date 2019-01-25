@@ -19,31 +19,39 @@ namespace ColorzCore
         private string game, iFile;
         private Stream sin;
         private FileStream fout;
-        private TextWriter serr;
+        private Log log;
         private EAOptions opts;
 
-        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr, EAOptions opts)
+        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, Log log, EAOptions opts)
         {
             this.game = game;
+
             try
             {
                 allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
             }
             catch (Raw.RawParseException e)
             {
-                serr.WriteLine(e.Message);
-                serr.WriteLine("Error occured as a result of the line:");
-                serr.WriteLine(e.rawline);
-                serr.WriteLine("In file " + Raw.RawParseException.filename); // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
+                Location loc = new Location
+                {
+                    file = Raw.RawParseException.filename, // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
+                    lineNum = e.rawline.ToInt(),
+                    colNum = 1
+                };
+
+                log.Message(Log.MsgKind.ERROR, loc, "An error occured while parsing raws");
+                log.Message(Log.MsgKind.ERROR, loc, e.Message);
+
                 Environment.Exit(-1);
             }
+
             this.sin = sin;
             this.fout = fout;
-            this.serr = serr;
+            this.log = log;
             iFile = inFileName;
             this.opts = opts;
 
-            myParser = new EAParser(allRaws);
+            myParser = new EAParser(allRaws, log);
             myParser.Definitions['_' + game + '_'] = new Definition();
         }
 
@@ -81,62 +89,28 @@ namespace ColorzCore
                 myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
             }
 
-            /* Last step: Message output and assembly */
+            /* Last step: assembly */
 
-            //TODO: sort them by file/line
-            if (!opts.nomess)
-            {
-                serr.WriteLine("Messages:");
-                if (myParser.Messages.Count == 0)
-                    serr.WriteLine("No messages.");
-                foreach (string message in myParser.Messages)
-                {
-                    serr.WriteLine(message);
-                }
-                serr.WriteLine();
-            }
-
-            if (opts.werr)
-            {
-                foreach (string warning in myParser.Warnings)
-                    myParser.Errors.Add(warning);
-            } else if (!opts.nowarn)
-            {
-                serr.WriteLine("Warnings:");
-                if (myParser.Warnings.Count == 0)
-                    serr.WriteLine("No warnings.");
-                foreach (string warning in myParser.Warnings)
-                {
-                    serr.WriteLine(warning);
-                }
-                serr.WriteLine();
-            }
-
-            serr.WriteLine("Errors:");
-            if (myParser.Errors.Count == 0)
-                serr.WriteLine("No errors. Please continue being awesome.");
-            foreach (string error in myParser.Errors)
-            {
-                serr.WriteLine(error);
-            }
-
-            if (myParser.Errors.Count == 0)
+            if (!log.HasErrored)
             {
                 foreach (ILineNode line in lines)
                 {
                     if (Program.Debug)
                     {
-                        System.Console.Out.WriteLine(line.PrettyPrint(0));
+                        log.Message(Log.MsgKind.DEBUG, line.PrettyPrint(0));
                     }
+
                     line.WriteData(myROM);
                 }
 
                 myROM.WriteROM();
+
+                log.Output.WriteLine("No errors. Please continue being awesome.");
                 return true;
             }
             else
             {
-                serr.WriteLine("Errors occurred; no changes written.");
+                log.Output.WriteLine("Errors occurred; no changes written.");
                 return false;
             }
         }

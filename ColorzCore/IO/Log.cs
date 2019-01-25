@@ -19,6 +19,8 @@ namespace ColorzCore.IO
         public bool HasErrored { get; private set; } = false;
         public bool WarningsAreErrors { get; set; } = false;
 
+        public List<MsgKind> IgnoredKinds { get; } = new List<MsgKind>();
+
         public TextWriter Output { get; set; } = Console.Error;
 
         protected struct LogDisplayConfig
@@ -54,20 +56,23 @@ namespace ColorzCore.IO
 
             HasErrored |= (kind == MsgKind.ERROR);
 
-            if (KIND_DISPLAY_DICT.TryGetValue(kind, out LogDisplayConfig config))
+            if (!IgnoredKinds.Contains(kind))
             {
-                if (source.HasValue)
+                if (KIND_DISPLAY_DICT.TryGetValue(kind, out LogDisplayConfig config))
                 {
-                    Output.Write("{0}:{1}:{2}: ", source.Value.file, source.Value.lineNum, source.Value.colNum);
+                    if (config.tagColor.HasValue)
+                        Console.ForegroundColor = config.tagColor.Value;
+
+                    Output.Write("{0}: ", config.tag);
+                    Console.ResetColor();
+
+                    if (source.HasValue)
+                    {
+                        Output.Write("{0}:{1}:{2}: ", source.Value.file, source.Value.lineNum, source.Value.colNum);
+                    }
+
+                    Output.WriteLine(message);
                 }
-
-                if (config.tagColor.HasValue)
-                    Console.ForegroundColor = config.tagColor.Value;
-
-                Output.Write("{0}: ", config.tag);
-                Console.ResetColor();
-
-                Output.WriteLine(message);
             }
         }
     }

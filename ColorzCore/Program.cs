@@ -144,7 +144,15 @@ namespace ColorzCore
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
+            Log log = new Log { Output = errorStream, WarningsAreErrors = options.werr };
+
+            if (options.nowarn)
+                log.IgnoredKinds.Add(Log.MsgKind.WARNING);
+
+            if (options.nomess)
+                log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
+
+            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, log, options);
 
             bool success = myInterpreter.Interpret();
 
@@ -154,7 +162,7 @@ namespace ColorzCore
                 {
                     if (!(success = myInterpreter.WriteNocashSymbols(output)))
                     {
-                        Console.Error.WriteLine("Error trying to write no$gba symbol file.");
+                        log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
                     }
                 }
             }
