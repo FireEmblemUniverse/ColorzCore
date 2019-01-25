@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using ColorzCore.Parser.Macros;
@@ -50,9 +51,8 @@ namespace ColorzCore.Parser
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int, Location>> protectedRegions;
 
-        public IList<string> Messages { get; }
-        public IList<string> Warnings { get; }
-        public IList<string> Errors { get; }
+        public Log log;
+
         public bool IsIncluding { get
             {
                 bool acc = true;
@@ -65,14 +65,12 @@ namespace ColorzCore.Parser
         private int currentOffset;
         private Token head; //TODO: Make this make sense
 
-        public EAParser(Dictionary<string, IList<Raw>> raws, DirectiveHandler directiveHandler)
+        public EAParser(Dictionary<string, IList<Raw>> raws, Log log, DirectiveHandler directiveHandler)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<Tuple<int, bool>>();
             protectedRegions = new List<Tuple<int, int, Location>>();
-            Messages = new List<string>();
-            Warnings = new List<string>();
-            Errors = new List<string>();
+            this.log = log;
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
@@ -758,30 +756,27 @@ namespace ColorzCore.Parser
             return ret;
         }
 
-        private static void Log(IList<string> record, Location? causedError, string message)
-        {
-            if (causedError.HasValue)
-                record.Add(System.String.Format("In File {0}, Line {1}, Column {2}: {3}", Path.GetFileName(causedError.Value.file), causedError.Value.lineNum, causedError.Value.colNum, message));
-            else
-                record.Add(message);
-        }
         public void Message(Location? loc, string message)
         {
-            Log(Messages, loc, message);
+            log.Message(Log.MsgKind.MESSAGE, loc, message);
         }
+
         public void Warning(Location? loc, string message)
         {
-            Log(Warnings, loc, message);
+            log.Message(Log.MsgKind.WARNING, loc, message);
         }
+
         public void Error(Location? loc, string message)
         {
-            Log(Errors, loc, message);
+            log.Message(Log.MsgKind.ERROR, loc, message);
         }
+
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) ;
             if (tokens.Current.Type == TokenType.SEMICOLON) tokens.MoveNext();
         }
+
         private void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext()) ;
@@ -795,9 +790,6 @@ namespace ColorzCore.Parser
             Inclusion = ImmutableStack<bool>.Nil;
             CurrentOffset = 0;
             pastOffsets.Clear();
-            Messages.Clear();
-            Warnings.Clear();
-            Errors.Clear();
         }
 
         private string PrettyPrintParams(IList<IParamNode> parameters)

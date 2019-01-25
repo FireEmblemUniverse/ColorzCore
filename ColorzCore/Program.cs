@@ -93,6 +93,7 @@ namespace ColorzCore
 
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                                options.noColoredLog = true;
                                 break;
 
                             case "debug":
@@ -109,6 +110,10 @@ namespace ColorzCore
 
                             case "-no-warn":
                                 options.nowarn = true;
+                                break;
+
+                            case "-no-colored-log":
+                                options.noColoredLog = true;
                                 break;
 
                             case "quiet":
@@ -182,7 +187,19 @@ namespace ColorzCore
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);
+            Log log = new Log {
+                Output = errorStream,
+                WarningsAreErrors = options.werr,
+                NoColoredTags = options.noColoredLog
+            };
+
+            if (options.nowarn)
+                log.IgnoredKinds.Add(Log.MsgKind.WARNING);
+
+            if (options.nomess)
+                log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
+
+            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, log, options);
 
             bool success = myInterpreter.Interpret();
 
@@ -192,7 +209,7 @@ namespace ColorzCore
                 {
                     if (!(success = myInterpreter.WriteNocashSymbols(output)))
                     {
-                        Console.Error.WriteLine("Error trying to write no$gba symbol file.");
+                        log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
                     }
                 }
             }

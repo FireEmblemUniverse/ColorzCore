@@ -11,6 +11,8 @@ namespace ColorzCore
         public bool werr;
         public bool nowarn, nomess;
 
+        public bool noColoredLog;
+
         public bool nocashSym;
 
         public List<string> includePaths = new List<string>();
@@ -21,6 +23,7 @@ namespace ColorzCore
             werr = false;
             nowarn = false;
             nomess = false;
+            noColoredLog = false;
             nocashSym = false;
         }
     }

@@ -101,6 +101,7 @@
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />
+    <Compile Include="IO\Log.cs" />
     <Compile Include="IO\IncludeFileSearcher.cs" />
   </ItemGroup>
   <ItemGroup>
