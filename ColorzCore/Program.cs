@@ -130,6 +130,12 @@ namespace ColorzCore
                                 options.toolsPaths.Add(flag[1]);
                                 break;
 
+                            case "IT":
+                            case "TI":
+                                options.includePaths.Add(flag[1]);
+                                options.toolsPaths.Add(flag[1]);
+                                break;
+
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
