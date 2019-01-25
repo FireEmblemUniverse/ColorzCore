@@ -44,57 +44,73 @@ namespace ColorzCore
         static int Main(string[] args)
         {
             EAOptions options = new EAOptions();
+
+            IncludeFileSearcher rawSearcher = new IncludeFileSearcher();
+            rawSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
+
             Stream inStream = Console.OpenStandardInput();
+            string inFileName = "stdin";
+
             FileStream outStream = null;
             string outFileName = "none";
+
             TextWriter errorStream = Console.Error;
-            Maybe<string> rawsFolder = IOUtility.FindDirectory("Language Raws");
+
+            Maybe<string> rawsFolder = rawSearcher.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
-            string inFileName = "stdin";
-            for(int i = 2; i < args.Length; i++)
+
+            for (int i = 2; i < args.Length; i++)
             {
-                if(args[i][0] != '-')
+                if (args[i][0] != '-')
                 {
                     Console.Error.WriteLine("Unrecognized paramter: " + args[i]);
                 }
                 else
                 {
-                    string[] flag = args[i].Substring(1).Split(new char[]{':'}, 2);
+                    string[] flag = args[i].Substring(1).Split(new char[] { ':' }, 2);
+
                     try
                     {
-
-
                         switch (flag[0])
                         {
                             case "raws":
-                                rawsFolder = IOUtility.FindDirectory(flag[1]);
+                                rawsFolder = rawSearcher.FindDirectory(flag[1]);
                                 break;
+
                             case "rawsExt":
                                 rawsExtension = flag[1];
                                 break;
+
                             case "output":
                                 outFileName = flag[1];
                                 outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
                                 break;
+
                             case "input":
                                 inFileName = flag[1];
                                 inStream = File.OpenRead(flag[1]);
                                 break;
+
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
                                 break;
+
                             case "debug":
                                 Debug = true;
                                 break;
+
                             case "werr":
                                 options.werr = true;
                                 break;
+
                             case "-no-mess":
                                 options.nomess = true;
                                 break;
+
                             case "-no-warn":
                                 options.nowarn = true;
                                 break;
+
                             case "quiet":
                                 options.nomess = true;
                                 options.nowarn = true;
@@ -104,16 +120,33 @@ namespace ColorzCore
                                 options.nocashSym = true;
                                 break;
 
+                            case "I":
+                            case "-include":
+                                options.includePaths.Add(flag[1]);
+                                break;
+
+                            case "T":
+                            case "-tools":
+                                options.toolsPaths.Add(flag[1]);
+                                break;
+
+                            case "IT":
+                            case "TI":
+                                options.includePaths.Add(flag[1]);
+                                options.toolsPaths.Add(flag[1]);
+                                break;
+
                             case "h":
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
                                 return EXIT_SUCCESS;
+
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
                                 return EXIT_FAILURE;
                         }
                     }
-                    catch(IOException e)
+                    catch (IOException e)
                     {
                         Console.Error.WriteLine("Exception: " + e.Message);
                         return EXIT_FAILURE;
@@ -126,22 +159,27 @@ namespace ColorzCore
                 Console.WriteLine("Required parameters missing.");
                 return EXIT_FAILURE;
             }
+
             if (args[0] != "A")
             {
                 Console.WriteLine("Only assembly is supported currently.");
                 return EXIT_FAILURE;
             }
-            string game = args[1];
+
             if (outStream == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
                 return EXIT_FAILURE;
             }
+
             if (rawsFolder.IsNothing)
             {
                 Console.Error.WriteLine("Couldn't find raws folder");
                 return EXIT_FAILURE;
             }
+
+            string game = args[1];
+
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
             EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, errorStream, options);

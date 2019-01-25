@@ -2,13 +2,13 @@
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using ColorzCore.Parser.Macros;
+using ColorzCore.Preprocessor;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static ColorzCore.Preprocessor.Handler;
 
 //TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
@@ -45,6 +45,7 @@ namespace ColorzCore.Parser
         }
         public ImmutableStack<bool> Inclusion { get; set; }
 
+        private readonly DirectiveHandler directiveHandler;
 
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int, Location>> protectedRegions;
@@ -64,7 +65,7 @@ namespace ColorzCore.Parser
         private int currentOffset;
         private Token head; //TODO: Make this make sense
 
-        public EAParser(Dictionary<string, IList<Raw>> raws)
+        public EAParser(Dictionary<string, IList<Raw>> raws, DirectiveHandler directiveHandler)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<Tuple<int, bool>>();
@@ -79,6 +80,7 @@ namespace ColorzCore.Parser
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
+            this.directiveHandler = directiveHandler;
         }
 
         public bool IsReservedName(string name)
@@ -705,7 +707,7 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
-            Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
+            Maybe<ILineNode> retVal = directiveHandler.HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
             {
                 CheckDataWrite(retVal.FromJust.Size);
