@@ -11,6 +11,8 @@ namespace ColorzCore
         public bool werr;
         public bool nowarn, nomess;
 
+        public bool noColoredLog;
+
         public bool nocashSym;
 
         public EAOptions()
@@ -18,6 +20,7 @@ namespace ColorzCore
             werr = false;
             nowarn = false;
             nomess = false;
+            noColoredLog = false;
             nocashSym = false;
         }
     }

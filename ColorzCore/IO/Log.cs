@@ -19,6 +19,8 @@ namespace ColorzCore.IO
         public bool HasErrored { get; private set; } = false;
         public bool WarningsAreErrors { get; set; } = false;
 
+        public bool NoColoredTags { get; set; } = false;
+
         public List<MsgKind> IgnoredKinds { get; } = new List<MsgKind>();
 
         public TextWriter Output { get; set; } = Console.Error;
@@ -60,11 +62,13 @@ namespace ColorzCore.IO
             {
                 if (KIND_DISPLAY_DICT.TryGetValue(kind, out LogDisplayConfig config))
                 {
-                    if (config.tagColor.HasValue)
+                    if (!NoColoredTags && config.tagColor.HasValue)
                         Console.ForegroundColor = config.tagColor.Value;
 
                     Output.Write("{0}: ", config.tag);
-                    Console.ResetColor();
+
+                    if (!NoColoredTags)
+                        Console.ResetColor();
 
                     if (source.HasValue)
                     {

@@ -82,6 +82,7 @@ namespace ColorzCore
                                 break;
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                                options.noColoredLog = true;
                                 break;
                             case "debug":
                                 Debug = true;
@@ -95,6 +96,11 @@ namespace ColorzCore
                             case "-no-warn":
                                 options.nowarn = true;
                                 break;
+
+                            case "-no-colored-log":
+                                options.noColoredLog = true;
+                                break;
+
                             case "quiet":
                                 options.nomess = true;
                                 options.nowarn = true;
@@ -144,7 +150,11 @@ namespace ColorzCore
             }
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            Log log = new Log { Output = errorStream, WarningsAreErrors = options.werr };
+            Log log = new Log {
+                Output = errorStream,
+                WarningsAreErrors = options.werr,
+                NoColoredTags = options.noColoredLog
+            };
 
             if (options.nowarn)
                 log.IgnoredKinds.Add(Log.MsgKind.WARNING);
