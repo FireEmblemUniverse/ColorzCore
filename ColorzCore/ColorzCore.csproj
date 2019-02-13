@@ -31,6 +31,11 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == '32bit|AnyCPU'">
+    <OutputPath>bin\32bit\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -42,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EAOptions.cs" />
     <Compile Include="DataTypes\CaseInsensitiveString.cs" />
     <Compile Include="EAInterpreter.cs" />
     <Compile Include="DataTypes\Extension.cs" />
@@ -92,7 +98,7 @@
     <Compile Include="Preprocessor\Directives\IncludeDirective.cs" />
     <Compile Include="Preprocessor\Directives\IncludeToolEventDirective.cs" />
     <Compile Include="Preprocessor\Directives\IncludeExternalDirective.cs" />
-    <Compile Include="Preprocessor\Handler.cs" />
+    <Compile Include="Preprocessor\DirectiveHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Raws\AtomicParam.cs" />
@@ -100,6 +106,8 @@
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />
+    <Compile Include="IO\Log.cs" />
+    <Compile Include="IO\IncludeFileSearcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -18,11 +18,14 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams { get { return null; } }
         public bool RequireInclusion { get { return true; } }
 
+        public IncludeFileSearcher FileSearcher { get; set; }
+
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             Program.Timer.AddTimingPoint(Program.ExecTimer.KEY_GENERIC);
 
-            Maybe<string> validFile = IO.IOUtility.FindFile(self.FileName, IOUtility.GetToolPath(parameters[0].ToString()));
+            Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()));
+
             if (validFile.IsNothing)
             {
                 parse.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");

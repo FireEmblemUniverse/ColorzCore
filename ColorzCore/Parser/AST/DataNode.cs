@@ -1,4 +1,5 @@
 ﻿using ColorzCore.IO;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +29,11 @@ namespace ColorzCore.Parser.AST
         public void WriteData(ROM rom)
         {
             rom.WriteTo(offset, data);
+        }
+
+        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        { 
+            // Nothing to be done because we contain no expressions.
         }
     }
 }

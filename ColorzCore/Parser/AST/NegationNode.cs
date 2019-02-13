@@ -27,9 +27,9 @@ namespace ColorzCore.Parser.AST
             return interior.CanEvaluate();
         }
 
-        public override int Evaluate()
+        public override int ToInt()
         {
-            return -interior.Evaluate();
+            return -interior.ToInt();
         }
 
         public override string PrettyPrint()
@@ -42,7 +42,7 @@ namespace ColorzCore.Parser.AST
             interior = interior.Simplify();
             if(CanEvaluate())
             {
-                return new NumberNode(MyLocation, Evaluate());
+                return new NumberNode(MyLocation, ToInt());
             }
             else
             {
@@ -55,6 +55,11 @@ namespace ColorzCore.Parser.AST
             yield return myToken;
             foreach(Token t in interior.ToTokens())
                 yield return t;
+        }
+
+        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            return interior.Evaluate(undefinedIdentifiers).Fmap((int x) => -x);
         }
     }
 }

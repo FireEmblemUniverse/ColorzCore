@@ -12,13 +12,13 @@ namespace ColorzCore.Parser.AST
     {
         public abstract int Precedence { get; }
 
-        public abstract int Evaluate();
+        public abstract int ToInt();
 
         public ParamType Type { get { return ParamType.ATOM; } }
 
         public override string ToString()
         {
-            return "0x"+Evaluate().ToString("X");
+            return "0x"+ToInt().ToString("X");
         }
 
         public virtual Maybe<string> GetIdentifier()
@@ -37,7 +37,7 @@ namespace ColorzCore.Parser.AST
         {
             try
             {
-                int res = this.Evaluate();
+                int res = this.ToInt();
                 return new Left<int, string>(res);
             }
             catch (IdentifierNode.UndefinedIdentifierException e)
@@ -50,6 +50,14 @@ namespace ColorzCore.Parser.AST
             }
         }
         public abstract bool CanEvaluate();
+
+        public abstract Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers);
+        
+        Maybe<IParamNode> IParamNode.Evaluate(ICollection<Token> undefinedIdentifiers)
+        {
+            return Evaluate(undefinedIdentifiers).Fmap((int a) => (IParamNode)new NumberNode(MyLocation, a));
+        }
+
         public abstract IAtomNode Simplify();
     }
 }
