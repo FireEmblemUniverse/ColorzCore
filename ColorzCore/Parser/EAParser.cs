@@ -277,15 +277,23 @@ namespace ColorzCore.Parser
                 //TODO: Check for matches. Currently should type error.
                 foreach(Raw r in Raws[head.Content.ToUpper()])
                 {
-                    if(r.Fits(parameters))
+                    if (r.Fits(parameters))
                     {
-                        StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
-                        temp.Simplify();
+                        if ((CurrentOffset % r.AlignmentRequirement) == 0)
+                        {
+                            StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
+                            temp.Simplify();
 
-                        CheckDataWrite(temp.Size);
-                        CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
+                            CheckDataWrite(temp.Size);
+                            CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
 
-                        return new Just<StatementNode>(temp);
+                            return new Just<StatementNode>(temp);
+                        }
+                        else
+                        {
+                            Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
+                            return new Nothing<StatementNode>();
+                        }
                     }
                 }
                 //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
