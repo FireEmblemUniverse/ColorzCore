@@ -279,21 +279,18 @@ namespace ColorzCore.Parser
                 {
                     if (r.Fits(parameters))
                     {
-                        if ((CurrentOffset % r.AlignmentRequirement) == 0)
-                        {
-                            StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
-                            temp.Simplify();
-
-                            CheckDataWrite(temp.Size);
-                            CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
-
-                            return new Just<StatementNode>(temp);
-                        }
-                        else
+                        if ((CurrentOffset % r.AlignmentRequirement) != 0)
                         {
                             Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
-                            return new Nothing<StatementNode>();
                         }
+
+                        StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
+                        temp.Simplify();
+
+                        CheckDataWrite(temp.Size);
+                        CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
+
+                        return new Just<StatementNode>(temp);
                     }
                 }
                 //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
