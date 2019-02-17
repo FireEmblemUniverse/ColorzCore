@@ -277,8 +277,13 @@ namespace ColorzCore.Parser
                 //TODO: Check for matches. Currently should type error.
                 foreach(Raw r in Raws[head.Content.ToUpper()])
                 {
-                    if(r.Fits(parameters))
+                    if (r.Fits(parameters))
                     {
+                        if ((CurrentOffset % r.OffsetMod) != 0)
+                        {
+                            Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
+                        }
+
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
                         temp.Simplify();
 
