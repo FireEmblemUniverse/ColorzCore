@@ -15,7 +15,7 @@ namespace ColorzCore.Raws
         public string Name { get; }
         private int length;
         public short Code { get; }
-        public int AlignmentRequirement { get; }
+        public int OffsetMod { get; }
         public HashSet<string> Game { get; }
         private IList<IRawParam> myParams;
         private IList<Tuple<int, int, int>> fixedParams; //position, length, value
@@ -69,7 +69,7 @@ namespace ColorzCore.Raws
             this.length = length;
             Code = code;
             Game = game;
-            AlignmentRequirement = offsetMod;
+            OffsetMod = offsetMod;
             myParams = varParams;
             this.fixedParams = fixedParams;
             this.terminatingList = terminatingList;
@@ -78,7 +78,7 @@ namespace ColorzCore.Raws
         
         public static Raw CopyWithNewName(Raw baseRaw, string newName)
         {
-            return new Raw(newName, baseRaw.length, baseRaw.Code, baseRaw.AlignmentRequirement, baseRaw.Game, baseRaw.myParams, 
+            return new Raw(newName, baseRaw.length, baseRaw.Code, baseRaw.OffsetMod, baseRaw.Game, baseRaw.myParams, 
                 baseRaw.fixedParams, baseRaw.terminatingList, baseRaw.repeatable);
         }
         

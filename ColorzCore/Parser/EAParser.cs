@@ -279,7 +279,7 @@ namespace ColorzCore.Parser
                 {
                     if (r.Fits(parameters))
                     {
-                        if ((CurrentOffset % r.AlignmentRequirement) != 0)
+                        if ((CurrentOffset % r.OffsetMod) != 0)
                         {
                             Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
                         }
