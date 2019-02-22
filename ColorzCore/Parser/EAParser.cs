@@ -47,7 +47,6 @@ namespace ColorzCore.Parser
         public ImmutableStack<bool> Inclusion { get; set; }
 
         public List<List<Token>> PooledLines { get; private set; }
-        private long poolLabelCounter;
 
         private readonly DirectiveHandler directiveHandler;
 
@@ -84,7 +83,6 @@ namespace ColorzCore.Parser
             this.directiveHandler = directiveHandler;
 
             PooledLines = new List<List<Token>>();
-            poolLabelCounter = 0;
         }
 
         public bool IsReservedName(string name)
@@ -765,12 +763,6 @@ namespace ColorzCore.Parser
             }
 
             return ret;
-        }
-
-        public string MakePoolLabelName()
-        {
-            // The presence of $ in the label name guarantees that it can't be a user label
-            return string.Format("__POOLED${0}", poolLabelCounter++);
         }
 
         public void Message(Location? loc, string message)

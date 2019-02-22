@@ -14,16 +14,19 @@ namespace ColorzCore.Parser.Macros
 
         public EAParser ParentParser { get; private set; }
 
+        private long poolLabelCounter;
+
         public AddToPool(EAParser parent)
         {
             ParentParser = parent;
+            poolLabelCounter = 0;
         }
 
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             List<Token> line = new List<Token>(6 + parameters[0].Count);
 
-            string labelName = ParentParser.MakePoolLabelName();
+            string labelName = MakePoolLabelName();
 
             if (parameters.Count == 2)
             {
@@ -51,6 +54,12 @@ namespace ColorzCore.Parser.Macros
         public override bool ValidNumParams(int num)
         {
             return num == 1 || num == 2;
+        }
+
+        protected string MakePoolLabelName()
+        {
+            // The presence of $ in the label name guarantees that it can't be a user label
+            return string.Format("__POOLED${0}", poolLabelCounter++);
         }
     }
 }
