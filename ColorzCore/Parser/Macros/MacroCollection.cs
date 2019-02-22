@@ -21,6 +21,7 @@ namespace ColorzCore.Parser.Macros
             BuiltInMacros = new Dictionary<string, BuiltInMacro> {
                 { "String", new String() },
                 { "IsDefined", new IsDefined(parent) },
+                { "AddToPool", new AddToPool(parent) },
             };
         }
 

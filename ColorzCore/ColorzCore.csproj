@@ -109,6 +109,8 @@
     <Compile Include="IO\Log.cs" />
     <Compile Include="IO\IncludeFileSearcher.cs" />
     <Compile Include="Parser\Macros\IsDefined.cs" />
+    <Compile Include="Parser\Macros\AddToPool.cs" />
+    <Compile Include="Preprocessor\Directives\PoolDirective.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
