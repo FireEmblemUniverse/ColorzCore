@@ -19,7 +19,7 @@ namespace ColorzCore.Parser.Macros
             Parent = parent;
 
             BuiltInMacros = new Dictionary<string, BuiltInMacro> {
-                { "String", String.Instance },
+                { "String", new String() },
                 { "IsDefined", new IsDefined(parent) },
             };
         }

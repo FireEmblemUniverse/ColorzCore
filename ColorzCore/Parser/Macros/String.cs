@@ -9,12 +9,6 @@ namespace ColorzCore.Parser.Macros
 {
     class String : BuiltInMacro
     {
-        private static String instance = new String();
-
-        public static String Instance { get { return instance; } }
-
-        private String() { }
-
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             yield return new Token(TokenType.IDENTIFIER, head.Location, "BYTE");
