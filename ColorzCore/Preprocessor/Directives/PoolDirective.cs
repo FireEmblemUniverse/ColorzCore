@@ -17,8 +17,13 @@ namespace ColorzCore.Preprocessor.Directives
         {
             BlockNode result = new BlockNode();
 
-            foreach (Pool.PooledLine line in p.Pool.Lines)
+            // Iterating indices (and not values via foreach)
+            // to avoid crashes occuring with AddToPool within AddToPool
+
+            for (int i = 0; i < p.Pool.Lines.Count; ++i)
             {
+                Pool.PooledLine line = p.Pool.Lines[i];
+
                 MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line.Tokens);
                 tempGenerator.MoveNext();
 
