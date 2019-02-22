@@ -15,14 +15,23 @@ namespace ColorzCore.Preprocessor.Directives
 
         public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
+            BlockNode result = new BlockNode();
+
             foreach (List<Token> line in p.PooledLines)
             {
-                tokens.PrependEnumerator(line.GetEnumerator());
+                MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line);
+                tempGenerator.MoveNext();
+
+                while (!tempGenerator.EOS)
+                {
+                    p.ParseLine(tempGenerator, p.GlobalScope).IfJust(
+                        (lineNode) => result.Children.Add(lineNode));
+                }
             }
 
             p.PooledLines.Clear();
 
-            return new Nothing<ILineNode>();
+            return new Just<ILineNode>(result);
         }
     }
 }
