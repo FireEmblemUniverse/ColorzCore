@@ -3,6 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Macros;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -100,7 +101,14 @@ namespace ColorzCore
 
             foreach (Token errCause in undefinedIds)
             {
-                myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                if (errCause.Content.StartsWith(AddToPool.pooledLabelPrefix, StringComparison.Ordinal))
+                {
+                    myParser.Error(errCause.Location, "Unpooled data (forgot #pool?)");
+                }
+                else
+                {
+                    myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                }
             }
 
             /* Last step: assembly */

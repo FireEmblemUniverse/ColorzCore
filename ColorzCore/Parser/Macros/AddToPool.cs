@@ -12,6 +12,8 @@ namespace ColorzCore.Parser.Macros
          * AddToPool(tokens..., alignment): adds token to pool and make sure pooled tokens are aligned given alignment        
          */
 
+        public static readonly string pooledLabelPrefix = "__POOLED$";
+
         public EAParser ParentParser { get; private set; }
 
         private long poolLabelCounter;
@@ -59,7 +61,7 @@ namespace ColorzCore.Parser.Macros
         protected string MakePoolLabelName()
         {
             // The presence of $ in the label name guarantees that it can't be a user label
-            return string.Format("__POOLED${0}", poolLabelCounter++);
+            return string.Format("{0}{1}", pooledLabelPrefix, poolLabelCounter++);
         }
     }
 }
