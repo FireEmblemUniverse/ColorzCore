@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.Macros
@@ -13,7 +14,7 @@ namespace ColorzCore.Parser.Macros
             ParentParser = parent;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             if (parameters[0].Count != 1)
             {

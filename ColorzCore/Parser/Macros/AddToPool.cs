@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.Macros
@@ -12,23 +13,18 @@ namespace ColorzCore.Parser.Macros
          * AddToPool(tokens..., alignment): adds token to pool and make sure pooled tokens are aligned given alignment        
          */
 
-        public static readonly string pooledLabelPrefix = "__POOLED$";
-
         public EAParser ParentParser { get; private set; }
-
-        private long poolLabelCounter;
 
         public AddToPool(EAParser parent)
         {
             ParentParser = parent;
-            poolLabelCounter = 0;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             List<Token> line = new List<Token>(6 + parameters[0].Count);
 
-            string labelName = MakePoolLabelName();
+            string labelName = ParentParser.Pool.MakePoolLabelName();
 
             if (parameters.Count == 2)
             {
@@ -48,7 +44,7 @@ namespace ColorzCore.Parser.Macros
             line.AddRange(parameters[0]);
             line.Add(new Token(TokenType.NEWLINE, head.Location, "\n"));
 
-            ParentParser.PooledLines.Add(line);
+            ParentParser.Pool.Lines.Add(new Pool.PooledLine(scopes, line));
 
             yield return new Token(TokenType.IDENTIFIER, head.Location, labelName);
         }
@@ -56,12 +52,6 @@ namespace ColorzCore.Parser.Macros
         public override bool ValidNumParams(int num)
         {
             return num == 1 || num == 2;
-        }
-
-        protected string MakePoolLabelName()
-        {
-            // The presence of $ in the label name guarantees that it can't be a user label
-            return string.Format("{0}{1}", pooledLabelPrefix, poolLabelCounter++);
         }
     }
 }

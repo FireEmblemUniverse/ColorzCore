@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace ColorzCore.Parser.Macros
 {
     class String : BuiltInMacro
     {
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             yield return new Token(TokenType.IDENTIFIER, head.Location, "BYTE");
             foreach (byte num in Encoding.ASCII.GetBytes(parameters[0][0].Content.ToCharArray())) //TODO: Errors if not adherent?

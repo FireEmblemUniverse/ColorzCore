@@ -17,19 +17,19 @@ namespace ColorzCore.Preprocessor.Directives
         {
             BlockNode result = new BlockNode();
 
-            foreach (List<Token> line in p.PooledLines)
+            foreach (Pool.PooledLine line in p.Pool.Lines)
             {
-                MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line);
+                MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line.Tokens);
                 tempGenerator.MoveNext();
 
                 while (!tempGenerator.EOS)
                 {
-                    p.ParseLine(tempGenerator, p.GlobalScope).IfJust(
+                    p.ParseLine(tempGenerator, line.Scope).IfJust(
                         (lineNode) => result.Children.Add(lineNode));
                 }
             }
 
-            p.PooledLines.Clear();
+            p.Pool.Lines.Clear();
 
             return new Just<ILineNode>(result);
         }

@@ -111,6 +111,7 @@
     <Compile Include="Parser\Macros\IsDefined.cs" />
     <Compile Include="Parser\Macros\AddToPool.cs" />
     <Compile Include="Preprocessor\Directives\PoolDirective.cs" />
+    <Compile Include="Parser\Pool.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
