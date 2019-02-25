@@ -53,7 +53,7 @@ namespace ColorzCore
         };
 
         private static readonly string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr,
-            (string a, string b) => { return a + '\n' + b; }) + '\n';
+            (string a, string b) => { return a + '\n' + b; });
 
         private const int EXIT_SUCCESS = 0;
         private const int EXIT_FAILURE = 1;
