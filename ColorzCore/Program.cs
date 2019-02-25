@@ -8,11 +8,14 @@ namespace ColorzCore
     class Program
     {
         public static bool Debug = false;
-        private static string[] helpstringarr = {"EA Colorz Core. Usage:",
-            "./ColorzCore <A|D> <game> [-opts]",
+
+        private static readonly string[] helpstringarr = {
+            "EA Colorz Core. Usage:",
+            "  ./ColorzCore <A|D> <game> [-opts]",
             "",
             "Only A is allowed as assembly mode currently.",
             "Game may be any string; the respective _game_ variable gets defined in scripts.",
+            "",
             "Available options:",
             "-raws:<dir>",
             "   Sets the raws directory to the one provided (relative to ColorzCore). Defaults to \"Language Raws\".",
@@ -24,19 +27,33 @@ namespace ColorzCore
             "   Set the file to take input script from. Defaults to stdin.",
             "-error:<filename>",
             "   Set a file to redirect messages, warnings, and errors to. Defaults to stderr.",
+            "--nocash-sym",
+            "   Outputs a no$ compatible .sym file corresponding to the output file.",
+            "-I:<path>|--inlude:<path>",
+            "   Add given path to list of paths to search for included files in.",
+            "-T:<path>|--tools:<path> /",
+            "   Add given path to list of paths to search for tools in.",
+            "-IT:<path>|-TI:<path>",
+            "   Combines --include:<path> and --tools:<path>.",
             "-werr",
             "   Treat all warnings as errors and prevent assembly.",
             "--no-mess",
             "   Suppress output of messages.",
             "--no-warn",
             "   Suppress output of warnings.",
-            "--quiet",
+            "-quiet",
             "   Equivalent to --no-mess --no-warn.",
+            "--no-colored-log",
+            "   Don't use colored log tags when outputting logs to console/stderr.",
             "-h|--help",
-            "   Display helpstring and exit.",
+            "   Display this message and ends.",
             "-debug",
-            "   Enable debug mode. Not recommended for end users."};
-        private static string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr, (String a, String b) => { return a + '\n' + b; }) + '\n';
+            "   Enable debug mode. Not recommended for end users.",
+            ""
+        };
+
+        private static readonly string helpstring = System.Linq.Enumerable.Aggregate(helpstringarr,
+            (string a, string b) => { return a + '\n' + b; }) + '\n';
 
         private const int EXIT_SUCCESS = 0;
         private const int EXIT_FAILURE = 1;
