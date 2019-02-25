@@ -31,7 +31,7 @@ namespace ColorzCore
             "   Outputs a no$ compatible .sym file corresponding to the output file.",
             "-I:<path>|--inlude:<path>",
             "   Add given path to list of paths to search for included files in.",
-            "-T:<path>|--tools:<path> /",
+            "-T:<path>|--tools:<path>",
             "   Add given path to list of paths to search for tools in.",
             "-IT:<path>|-TI:<path>",
             "   Combines --include:<path> and --tools:<path>.",
