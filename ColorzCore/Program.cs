@@ -46,7 +46,7 @@ namespace ColorzCore
             "--no-colored-log",
             "   Don't use colored log tags when outputting logs to console/stderr.",
             "-h|--help",
-            "   Display this message and ends.",
+            "   Display this message and exit.",
             "-debug",
             "   Enable debug mode. Not recommended for end users.",
             ""
