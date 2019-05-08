@@ -156,9 +156,11 @@ namespace ColorzCore.Parser
                 tokens.MoveNext();
             }
 
-            if (SpecialCodes.Contains(head.Content.ToUpper()))
+            string upperCodeIdentifier = head.Content.ToUpperInvariant();
+
+            if (SpecialCodes.Contains(upperCodeIdentifier))
             {
-                switch(head.Content.ToUpper())
+                switch (upperCodeIdentifier)
                 {
                     case "ORG":
                         if (parameters.Count != 1)
@@ -276,10 +278,10 @@ namespace ColorzCore.Parser
                 }
                 return new Nothing<StatementNode>();
             }
-            else if (Raws.ContainsKey(head.Content.ToUpper()))
+            else if (Raws.ContainsKey(upperCodeIdentifier))
             {
                 //TODO: Check for matches. Currently should type error.
-                foreach(Raw r in Raws[head.Content.ToUpper()])
+                foreach(Raw r in Raws[upperCodeIdentifier])
                 {
                     if (r.Fits(parameters))
                     {
