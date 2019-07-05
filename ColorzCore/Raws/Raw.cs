@@ -121,7 +121,7 @@ namespace ColorzCore.Raws
             if (Char.IsWhiteSpace(rawLine[0]))
                 throw new RawParseException("Raw not at start of line.", rawLine);
             string[] parts = rawLine.Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            string name = parts[0].Trim().ToUpper(); //Note all raws implicitly have all uppercase names -- this is to allow for case-insensitive comparison down the line. TODO: Make case sensitivity a requirement?
+            string name = parts[0].Trim().ToUpperInvariant(); //Note all raws implicitly have all uppercase names -- this is to allow for case-insensitive comparison down the line. TODO: Make case sensitivity a requirement?
             string code = parts[1].Trim();
             string length = parts[2].Trim();
             string flags = parts.Length == 4 ? parts[3].Trim() : "";
