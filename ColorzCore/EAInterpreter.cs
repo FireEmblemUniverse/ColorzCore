@@ -102,7 +102,14 @@ namespace ColorzCore
 
             foreach (Token errCause in undefinedIds)
             {
-                myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                if (errCause.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
+                {
+                    myParser.Error(errCause.Location, "Unpooled data (forgot #pool?)");
+                }
+                else
+                {
+                    myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                }
             }
 
             /* Last step: assembly */

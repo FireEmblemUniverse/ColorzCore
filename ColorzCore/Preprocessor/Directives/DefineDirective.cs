@@ -148,7 +148,7 @@ namespace ColorzCore.Preprocessor.Directives
                         IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
                         if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros.HasMacro(current.Content, param.Count))
                         {
-                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param))
+                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param, p.GlobalScope))
                             {
                                 yield return t; 
                             }

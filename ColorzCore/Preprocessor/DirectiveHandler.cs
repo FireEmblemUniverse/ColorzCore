@@ -29,8 +29,9 @@ namespace ColorzCore.Preprocessor
                 { "ifndef", new IfNotDefinedDirective() },
                 { "else", new ElseDirective() },
                 { "endif", new EndIfDirective() },
-                { "define", new DefineDirective() }, //TODO: pool
-                { "undef", new UndefineDirective() }
+                { "define", new DefineDirective() },
+                { "pool", new PoolDirective() },
+                { "undef", new UndefineDirective() },
             };
         }
 
