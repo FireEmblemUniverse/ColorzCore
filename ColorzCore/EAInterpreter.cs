@@ -16,15 +16,19 @@ namespace ColorzCore
     {
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
+        private bool outputASM;
         private string game, iFile;
         private Stream sin;
         private FileStream fout;
+        private StreamWriter asmStream, ldsStream;
         private Log log;
         private EAOptions opts;
 
-        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, Log log, EAOptions opts)
+        public EAInterpreter(bool outputASM, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, StreamWriter asmStream, StreamWriter ldsStream, Log log, EAOptions opts)
         {
+
             this.game = game;
+            this.outputASM = outputASM;
 
             try
             {
@@ -47,6 +51,8 @@ namespace ColorzCore
 
             this.sin = sin;
             this.fout = fout;
+            this.asmStream = asmStream;
+            this.ldsStream = ldsStream;
             this.log = log;
             iFile = inFileName;
             this.opts = opts;
@@ -72,7 +78,12 @@ namespace ColorzCore
         public bool Interpret()
         {
             Tokenizer t = new Tokenizer();
-            ROM myROM = new ROM(fout);
+            ASM myASM = null;
+            ROM myROM = null;
+            if (outputASM)
+                myASM = new ASM(asmStream, ldsStream);
+            else
+                myROM = new ROM(fout);
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
@@ -121,10 +132,16 @@ namespace ColorzCore
                         log.Message(Log.MsgKind.DEBUG, line.PrettyPrint(0));
                     }
 
-                    line.WriteData(myROM);
+                    if (outputASM)
+                        line.WriteData(myASM);
+                    else
+                        line.WriteData(myROM);
                 }
 
-                myROM.WriteROM();
+                if (outputASM)
+                    myASM.Flush();
+                else
+                    myROM.WriteROM();
 
                 log.Output.WriteLine("No errors. Please continue being awesome.");
                 return true;

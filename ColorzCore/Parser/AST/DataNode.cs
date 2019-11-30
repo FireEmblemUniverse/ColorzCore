@@ -31,6 +31,11 @@ namespace ColorzCore.Parser.AST
             rom.WriteTo(offset, data);
         }
 
+        public void WriteData(ASM asm)
+        {
+            asm.WriteTo(offset, data);
+        }
+
         public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
         { 
             // Nothing to be done because we contain no expressions.

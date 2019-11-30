@@ -56,6 +56,7 @@
     <Compile Include="DataTypes\Maybe.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="DataTypes\Either.cs" />
+    <Compile Include="IO\ASM.cs" />
     <Compile Include="IO\IOUtility.cs" />
     <Compile Include="IO\ROM.cs" />
     <Compile Include="Lexer\Token.cs" />

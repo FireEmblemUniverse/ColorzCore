@@ -48,6 +48,14 @@ namespace ColorzCore.Parser.AST
             }
         }
 
+        public void WriteData(ASM asm)
+        {
+            foreach (ILineNode child in Children)
+            {
+                child.WriteData(asm);
+            }
+        }
+
         public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
         {
             foreach (ILineNode line in Children)

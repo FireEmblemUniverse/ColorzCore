@@ -9,9 +9,11 @@ namespace ColorzCore
     {
         public static bool Debug = false;
         private static string[] helpstringarr = {"EA Colorz Core. Usage:",
-            "./ColorzCore <A|D> <game> [-opts]",
+            "./ColorzCore <A|D|AA> <game> [-opts]",
             "",
-            "Only A is allowed as assembly mode currently.",
+            "A is to write ROM directly",
+            "AA is to output assembly source file and linker script",
+            "D is not allowed currently.",
             "Game may be any string; the respective _game_ variable gets defined in scripts.",
             "Available options:",
             "-raws:<dir>",
@@ -54,10 +56,32 @@ namespace ColorzCore
             FileStream outStream = null;
             string outFileName = "none";
 
+            StreamWriter asmStream = null;
+            string asmFileName = "none";
+
+            StreamWriter ldsStream = null;
+            string ldsFileName = "none";
+
             TextWriter errorStream = Console.Error;
 
             Maybe<string> rawsFolder = rawSearcher.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
+
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Required parameters missing.");
+                return EXIT_FAILURE;
+            }
+
+            bool outputASM = false;
+            if (args[0] == "AA")
+                outputASM = true;
+            else
+                if (args[0] != "A")
+            {
+                Console.WriteLine("Only assembly is supported currently.");
+                return EXIT_FAILURE;
+            }
 
             for (int i = 2; i < args.Length; i++)
             {
@@ -82,8 +106,15 @@ namespace ColorzCore
                                 break;
 
                             case "output":
-                                outFileName = flag[1];
-                                outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                if (outputASM)
+                                {
+                                    asmFileName = flag[1];
+                                }
+                                else
+                                {
+                                    outFileName = flag[1];
+                                    outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                }
                                 break;
 
                             case "input":
@@ -159,23 +190,20 @@ namespace ColorzCore
                 }
             }
 
-            if (args.Length < 2)
+            if (outputASM)
             {
-                Console.WriteLine("Required parameters missing.");
-                return EXIT_FAILURE;
+                if (asmFileName == "none")
+                    asmFileName = Path.ChangeExtension(inFileName, "s");
+                asmStream = new StreamWriter(asmFileName, false);
+                ldsFileName = Path.ChangeExtension(asmFileName, "lds");
+                ldsStream = new StreamWriter(ldsFileName, false);
             }
-
-            if (args[0] != "A")
-            {
-                Console.WriteLine("Only assembly is supported currently.");
-                return EXIT_FAILURE;
-            }
-
-            if (outStream == null)
-            {
-                Console.Error.WriteLine("No output specified for assembly.");
-                return EXIT_FAILURE;
-            }
+            else
+                if (outStream == null)
+                {
+                    Console.Error.WriteLine("No output specified for assembly.");
+                    return EXIT_FAILURE;
+                }
 
             if (rawsFolder.IsNothing)
             {
@@ -199,7 +227,7 @@ namespace ColorzCore
             if (options.nomess)
                 log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, log, options);
+            EAInterpreter myInterpreter = new EAInterpreter(outputASM, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, asmStream, ldsStream, log, options);
 
             bool success = myInterpreter.Interpret();
 
@@ -215,7 +243,13 @@ namespace ColorzCore
             }
 
             inStream.Close();
-            outStream.Close();
+            if (outputASM)
+            {
+                asmStream.Close();
+                ldsStream.Close();
+            }
+            else
+                outStream.Close();
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;

@@ -13,6 +13,7 @@ namespace ColorzCore.Parser.AST
         int Size { get; }
         string PrettyPrint(int indentation);
         void WriteData(ROM rom);
+        void WriteData(ASM asm);
         void EvaluateExpressions(ICollection<Token> undefinedIdentifiers); //Return: undefined identifiers
     }
 }

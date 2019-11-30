@@ -40,5 +40,9 @@ namespace ColorzCore.Parser.AST
         {
             rom.WriteTo(offset, myRaw.GetBytes(Parameters));
         }
+        public override void WriteData(ASM asm)
+        {
+            asm.WriteTo(offset, myRaw.GetBytes(Parameters));
+        }
     }
 }
