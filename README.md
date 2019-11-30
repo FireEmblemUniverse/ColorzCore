@@ -64,4 +64,4 @@ Pointer(MyLabel)
 
 # AA Mode
 
-Output assembly source file and linker script rather than writing to ROM.
+Output assembly source file and linker script for building with gcc tool chain rather than write to ROM directly.
