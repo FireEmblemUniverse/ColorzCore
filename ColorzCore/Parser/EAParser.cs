@@ -1,14 +1,15 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using ColorzCore.Parser.Macros;
+using ColorzCore.Preprocessor;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static ColorzCore.Preprocessor.Handler;
 
 //TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
@@ -45,13 +46,15 @@ namespace ColorzCore.Parser
         }
         public ImmutableStack<bool> Inclusion { get; set; }
 
+        public Pool Pool { get; private set; }
+
+        private readonly DirectiveHandler directiveHandler;
 
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
         private IList<Tuple<int, int, Location>> protectedRegions;
 
-        public IList<string> Messages { get; }
-        public IList<string> Warnings { get; }
-        public IList<string> Errors { get; }
+        public Log log;
+
         public bool IsIncluding { get
             {
                 bool acc = true;
@@ -64,14 +67,12 @@ namespace ColorzCore.Parser
         private int currentOffset;
         private Token head; //TODO: Make this make sense
 
-        public EAParser(Dictionary<string, IList<Raw>> raws)
+        public EAParser(Dictionary<string, IList<Raw>> raws, Log log, DirectiveHandler directiveHandler)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<Tuple<int, bool>>();
             protectedRegions = new List<Tuple<int, int, Location>>();
-            Messages = new List<string>();
-            Warnings = new List<string>();
-            Errors = new List<string>();
+            this.log = log;
             Raws = raws;
             CurrentOffset = 0;
             validOffset = true;
@@ -79,6 +80,9 @@ namespace ColorzCore.Parser
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
+            this.directiveHandler = directiveHandler;
+
+            Pool = new Pool();
         }
 
         public bool IsReservedName(string name)
@@ -135,7 +139,7 @@ namespace ColorzCore.Parser
         }
         private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            while (ExpandIdentifier(tokens)) ;
+            while (ExpandIdentifier(tokens, scopes)) { }
             head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
@@ -152,9 +156,11 @@ namespace ColorzCore.Parser
                 tokens.MoveNext();
             }
 
-            if (SpecialCodes.Contains(head.Content.ToUpper()))
+            string upperCodeIdentifier = head.Content.ToUpperInvariant();
+
+            if (SpecialCodes.Contains(upperCodeIdentifier))
             {
-                switch(head.Content.ToUpper())
+                switch (upperCodeIdentifier)
                 {
                     case "ORG":
                         if (parameters.Count != 1)
@@ -276,13 +282,17 @@ namespace ColorzCore.Parser
                 }
                 return new Nothing<StatementNode>();
             }
-            else if (Raws.ContainsKey(head.Content.ToUpper()))
+            else if (Raws.ContainsKey(upperCodeIdentifier))
             {
                 //TODO: Check for matches. Currently should type error.
-                foreach(Raw r in Raws[head.Content.ToUpper()])
+                foreach(Raw r in Raws[upperCodeIdentifier])
                 {
-                    if(r.Fits(parameters))
+                    if (r.Fits(parameters))
                     {
+                        if ((CurrentOffset % r.OffsetMod) != 0)
+                        {
+                            Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
+                        }
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
 
                         CheckDataWrite(temp.Size);
@@ -377,7 +387,7 @@ namespace ColorzCore.Parser
                     return new Just<IParamNode>(new StringNode(head));
                 case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
-                    if (expandDefs && ExpandIdentifier(tokens))
+                    if (expandDefs && ExpandIdentifier(tokens, scopes))
                     {
                         return ParseParam(tokens, scopes);
                     }
@@ -386,10 +396,10 @@ namespace ColorzCore.Parser
                         tokens.MoveNext();
                         IList<IList<Token>> param = ParseMacroParamList(tokens);
                         //TODO: Smart errors if trying to redefine a macro with the same num of params.
-                        return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
+                        return new Just<IParamNode>(new MacroInvocationNode(this, head, param, scopes));
                     }
                 case TokenType.IDENTIFIER:
-                    if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens))
+                    if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens, scopes))
                         return ParseParam(tokens, scopes, expandDefs);
                     else
                         return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
@@ -521,7 +531,7 @@ namespace ColorzCore.Parser
                 {
                     if (lookAhead.Type == TokenType.IDENTIFIER)
                     {
-                        if (expandDefs && ExpandIdentifier(tokens))
+                        if (expandDefs && ExpandIdentifier(tokens, scopes))
                             continue;
                         if (lookAhead.Content.ToUpper() == "CURRENTOFFSET")
                             grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead, CurrentOffset)));
@@ -530,7 +540,7 @@ namespace ColorzCore.Parser
                     }
                     else if (lookAhead.Type == TokenType.MAYBE_MACRO)
                     {
-                        ExpandIdentifier(tokens);
+                        ExpandIdentifier(tokens, scopes);
                         continue;
                     }
                     else if (lookAhead.Type == TokenType.NUMBER)
@@ -634,7 +644,7 @@ namespace ColorzCore.Parser
                 {
                     case TokenType.IDENTIFIER:
                     case TokenType.MAYBE_MACRO:
-                        if (ExpandIdentifier(tokens))
+                        if (ExpandIdentifier(tokens, scopes))
                         {
                             return ParseLine(tokens, scopes);
                         }
@@ -708,7 +718,7 @@ namespace ColorzCore.Parser
             tokens.MoveNext();
             //Note: Not a ParseParamList because no commas.
             IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
-            Maybe<ILineNode> retVal = HandleDirective(this, head, paramList, tokens);
+            Maybe<ILineNode> retVal = directiveHandler.HandleDirective(this, head, paramList, tokens);
             if (!retVal.IsNothing)
             {
                 CheckDataWrite(retVal.FromJust.Size);
@@ -722,7 +732,7 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             bool ret = false;
             //Macros and Definitions.
@@ -733,7 +743,7 @@ namespace ColorzCore.Parser
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                 if (Macros.HasMacro(head.Content, parameters.Count))
                 {
-                    tokens.PrependEnumerator(Macros.GetMacro(head.Content, parameters.Count).ApplyMacro(head, parameters).GetEnumerator());
+                    tokens.PrependEnumerator(Macros.GetMacro(head.Content, parameters.Count).ApplyMacro(head, parameters, scopes).GetEnumerator());
                 }
                 else
                 {
@@ -759,30 +769,27 @@ namespace ColorzCore.Parser
             return ret;
         }
 
-        private static void Log(IList<string> record, Location? causedError, string message)
-        {
-            if (causedError.HasValue)
-                record.Add(System.String.Format("In File {0}, Line {1}, Column {2}: {3}", Path.GetFileName(causedError.Value.file), causedError.Value.lineNum, causedError.Value.colNum, message));
-            else
-                record.Add(message);
-        }
         public void Message(Location? loc, string message)
         {
-            Log(Messages, loc, message);
+            log.Message(Log.MsgKind.MESSAGE, loc, message);
         }
+
         public void Warning(Location? loc, string message)
         {
-            Log(Warnings, loc, message);
+            log.Message(Log.MsgKind.WARNING, loc, message);
         }
+
         public void Error(Location? loc, string message)
         {
-            Log(Errors, loc, message);
+            log.Message(Log.MsgKind.ERROR, loc, message);
         }
+
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) ;
             if (tokens.Current.Type == TokenType.SEMICOLON) tokens.MoveNext();
         }
+
         private void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext()) ;
@@ -796,9 +803,6 @@ namespace ColorzCore.Parser
             Inclusion = ImmutableStack<bool>.Nil;
             CurrentOffset = 0;
             pastOffsets.Clear();
-            Messages.Clear();
-            Warnings.Clear();
-            Errors.Clear();
         }
 
         private string PrettyPrintParams(IList<IParamNode> parameters)

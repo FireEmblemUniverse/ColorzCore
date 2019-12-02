@@ -40,11 +40,11 @@ namespace ColorzCore.Parser.AST
             return sb.ToString();
         }
 
-        public void WriteData(ROM rom)
+        public void WriteData(IOutput output)
         {
             foreach(ILineNode child in Children)
             {
-                child.WriteData(rom);
+                child.WriteData(output);
             }
         }
 

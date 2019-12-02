@@ -18,39 +18,61 @@ namespace ColorzCore
         private EAParser myParser;
         private string game, iFile;
         private Stream sin;
-        private FileStream fout;
-        private TextWriter serr;
+        private Log log;
         private EAOptions opts;
+        private IOutput output;
 
-        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, TextWriter serr, EAOptions opts)
+        public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log, EAOptions opts)
         {
+
             this.game = game;
+            this.output = output;
+
             try
             {
                 allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
             }
             catch (Raw.RawParseException e)
             {
-                serr.WriteLine(e.Message);
-                serr.WriteLine("Error occured as a result of the line:");
-                serr.WriteLine(e.rawline);
-                serr.WriteLine("In file " + Raw.RawParseException.filename); // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
+                Location loc = new Location
+                {
+                    file = Raw.RawParseException.filename, // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
+                    lineNum = e.rawline.ToInt(),
+                    colNum = 1
+                };
+
+                log.Message(Log.MsgKind.ERROR, loc, "An error occured while parsing raws");
+                log.Message(Log.MsgKind.ERROR, loc, e.Message);
+
                 Environment.Exit(-1);
             }
+
             this.sin = sin;
-            this.fout = fout;
-            this.serr = serr;
+            this.log = log;
             iFile = inFileName;
             this.opts = opts;
+
+            IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
+            includeSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
+
+            foreach (string path in opts.includePaths)
+                includeSearcher.IncludeDirectories.Add(path);
+
+            IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
+            toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
+
+            foreach (string path in opts.toolsPaths)
+                includeSearcher.IncludeDirectories.Add(path);
+
+            myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
+
+            myParser.Definitions['_' + game + '_'] = new Definition();
+            myParser.Definitions["__COLORZ_CORE__"] = new Definition();
         }
 
-        public void Interpret()
+        public bool Interpret()
         {
-            myParser = new EAParser(allRaws);
-            myParser.Definitions['_' + game + '_'] = new Definition();
-            
             Tokenizer t = new Tokenizer();
-            ROM myROM = new ROM(fout);
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
@@ -78,64 +100,51 @@ namespace ColorzCore
 
             foreach (Token errCause in undefinedIds)
             {
-                myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
-            }
-
-            /* Last step: Message output and assembly */
-
-            //TODO: sort them by file/line
-            if (!opts.nomess)
-            {
-                serr.WriteLine("Messages:");
-                if (myParser.Messages.Count == 0)
-                    serr.WriteLine("No messages.");
-                foreach (string message in myParser.Messages)
+                if (errCause.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
                 {
-                    serr.WriteLine(message);
+                    myParser.Error(errCause.Location, "Unpooled data (forgot #pool?)");
                 }
-                serr.WriteLine();
-            }
-
-            if (opts.werr)
-            {
-                foreach (string warning in myParser.Warnings)
-                    myParser.Errors.Add(warning);
-            } else if (!opts.nowarn)
-            {
-                serr.WriteLine("Warnings:");
-                if (myParser.Warnings.Count == 0)
-                    serr.WriteLine("No warnings.");
-                foreach (string warning in myParser.Warnings)
+                else
                 {
-                    serr.WriteLine(warning);
+                    myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
                 }
-                serr.WriteLine();
             }
 
-            serr.WriteLine("Errors:");
-            if (myParser.Errors.Count == 0)
-                serr.WriteLine("No errors. Please continue being awesome.");
-            foreach (string error in myParser.Errors)
-            {
-                serr.WriteLine(error);
-            }
+            /* Last step: assembly */
 
-            if (myParser.Errors.Count == 0)
+            if (!log.HasErrored)
             {
                 foreach (ILineNode line in lines)
                 {
                     if (Program.Debug)
                     {
-                        System.Console.Out.WriteLine(line.PrettyPrint(0));
+                        log.Message(Log.MsgKind.DEBUG, line.PrettyPrint(0));
                     }
-                    line.WriteData(myROM);
+
+                    line.WriteData(output);
                 }
-                myROM.WriteROM();
+
+                output.Commit();
+
+                log.Output.WriteLine("No errors. Please continue being awesome.");
+                return true;
             }
             else
             {
-                serr.WriteLine("Errors occurred; no changes written.");
+                log.Output.WriteLine("Errors occurred; no changes written.");
+                return false;
             }
+        }
+
+        public bool WriteNocashSymbols(TextWriter output)
+        {
+            foreach (var label in myParser.GlobalScope.Head.LocalLabels())
+            {
+                // TODO: more elegant offset to address mapping
+                output.WriteLine("{0:X8} {1}", label.Value + 0x8000000, label.Key);
+            }
+
+            return true;
         }
 
         private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
