@@ -9,9 +9,11 @@ namespace ColorzCore
     {
         public static bool Debug = false;
         private static string[] helpstringarr = {"EA Colorz Core. Usage:",
-            "./ColorzCore <A|D> <game> [-opts]",
+            "./ColorzCore <A|D|AA> <game> [-opts]",
             "",
-            "Only A is allowed as assembly mode currently.",
+            "A is to write ROM directly",
+            "AA is to output assembly source file and linker script",
+            "D is not allowed currently.",
             "Game may be any string; the respective _game_ variable gets defined in scripts.",
             "Available options:",
             "-raws:<dir>",
@@ -51,13 +53,30 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             string inFileName = "stdin";
 
-            FileStream outStream = null;
+            IOutput output = null;
             string outFileName = "none";
+            string ldsFileName = "none";
 
             TextWriter errorStream = Console.Error;
 
             Maybe<string> rawsFolder = rawSearcher.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
+
+            if (args.Length < 2)
+            {
+                Console.WriteLine("Required parameters missing.");
+                return EXIT_FAILURE;
+            }
+
+            bool outputASM = false;
+            if (args[0] == "AA")
+                outputASM = true;
+            else
+                if (args[0] != "A")
+            {
+                Console.WriteLine("Only assembly is supported currently.");
+                return EXIT_FAILURE;
+            }
 
             for (int i = 2; i < args.Length; i++)
             {
@@ -83,7 +102,15 @@ namespace ColorzCore
 
                             case "output":
                                 outFileName = flag[1];
-                                outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
+                                if(outputASM)
+                                {
+                                    ldsFileName = Path.ChangeExtension(outFileName, "lds");
+                                    output = new ASM(new StreamWriter(outFileName, false),
+                                                     new StreamWriter(ldsFileName, false));
+                                } else
+                                {
+                                    output = new ROM(File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite)); //TODO: Handle file not found exceptions
+                                } 
                                 break;
 
                             case "input":
@@ -158,20 +185,8 @@ namespace ColorzCore
                     }
                 }
             }
-
-            if (args.Length < 2)
-            {
-                Console.WriteLine("Required parameters missing.");
-                return EXIT_FAILURE;
-            }
-
-            if (args[0] != "A")
-            {
-                Console.WriteLine("Only assembly is supported currently.");
-                return EXIT_FAILURE;
-            }
-
-            if (outStream == null)
+            
+            if (output == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
                 return EXIT_FAILURE;
@@ -199,15 +214,15 @@ namespace ColorzCore
             if (options.nomess)
                 log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, log, options);
+            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log, options);
 
             bool success = myInterpreter.Interpret();
 
             if (success && options.nocashSym)
             {
-                using (var output = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                using (var symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
                 {
-                    if (!(success = myInterpreter.WriteNocashSymbols(output)))
+                    if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
                     {
                         log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
                     }
@@ -215,7 +230,7 @@ namespace ColorzCore
             }
 
             inStream.Close();
-            outStream.Close();
+            output.Close();
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;

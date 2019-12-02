@@ -61,3 +61,7 @@ Pointer(MyLabel)
 [Snek-GBA](https://github.com/LeonarthCG/Snek-GBA), by Leonarth. A full, independently made GBA game. ColorzCore was used as the linker and build tool.
 
 [VBA: Blitz Tendency](https://github.com/FireEmblemUniverse/VBA-Blitz-Tendency/), by Crazycolorz5. An extensive, community mod of Fire Emblem: The Sacred Stones. Considering the large number of contributors, ColorzCore was used to make sequences of binary writes version controllable. It was also used as the build tool.
+
+# AA Mode
+
+Output assembly source file and linker script for building with gcc tool chain rather than write to ROM directly.
