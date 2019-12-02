@@ -27,7 +27,7 @@ namespace ColorzCore.Parser.AST
 
         public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
-            return this.Simplify();
+            return this.Simplify(handler);
         }
 
         public Maybe<IAtomNode> AsAtom()

@@ -84,7 +84,7 @@ namespace ColorzCore.Parser.AST
             IEnumerable<Token> acc = new List<Token>();
             for(int i=0; i<Interior.Count; i++)
             {
-                Interior[i] = Interior[i].Simplify();
+                Interior[i] = Interior[i].Simplify(handler);
             }
             return this;
         }

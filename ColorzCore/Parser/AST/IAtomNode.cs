@@ -23,10 +23,10 @@ namespace ColorzCore.Parser.AST
         {
             return n.TryEvaluate((Exception e) => { throw e; }).FromJust;
         }
-        public static IAtomNode Simplify(this IAtomNode n)
+        public static IAtomNode Simplify(this IAtomNode n, TAction<Exception> handler)
         {
             IAtomNode ret = n;
-            n.TryEvaluate((Exception e) => { }).IfJust((int i) => { ret = FromInt(n.MyLocation, i); });
+            n.TryEvaluate(handler).IfJust((int i) => { ret = FromInt(n.MyLocation, i); });
             return ret;
         }
         public static IAtomNode FromInt(Location l, int i)
