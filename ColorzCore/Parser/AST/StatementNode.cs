@@ -23,21 +23,22 @@ namespace ColorzCore.Parser.AST
         public abstract string PrettyPrint(int indentation);
         public abstract void WriteData(IOutput output);
 
-        public void Simplify()
-        {
-            for(int i=0; i<Parameters.Count; i++)
-            {
-                if(Parameters[i].Type == ParamType.ATOM)
-                {
-                    Parameters[i] = ((IAtomNode)Parameters[i]).Simplify();
-                }
-            }
-        }
-
         public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
         {
             for (int i = 0; i < Parameters.Count; i++)
-                Parameters[i].Evaluate(undefinedIdentifiers).IfJust((IParamNode p) => { Parameters[i] = p; });
+                Parameters[i] = Parameters[i].SimplifyExpressions((Exception e) =>
+                    {
+                        try
+                        {
+                            throw e;
+                        }
+                        catch (IdentifierNode.UndefinedIdentifierException uie)
+                        {
+                            undefinedIdentifiers.Add(uie.CausedError);
+                        }
+                        catch (Exception)
+                        { }
+                    });
         }
     }
 }

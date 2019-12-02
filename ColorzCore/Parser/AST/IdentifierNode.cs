@@ -20,7 +20,7 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
 		}
 		
-		public override int ToInt()
+		private int ToInt()
         {
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)
@@ -33,14 +33,14 @@ namespace ColorzCore.Parser.AST
             throw new UndefinedIdentifierException(identifier);
         }
 
-        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
         {
             try
             {
                 return new Just<int>(ToInt());
             } catch(UndefinedIdentifierException e)
             {
-                undefinedIdentifiers.Add(e.CausedError);
+                handler(e);
                 return new Nothing<int>();
             }
         }
@@ -67,7 +67,7 @@ namespace ColorzCore.Parser.AST
         public class UndefinedIdentifierException : Exception
         {
             public Token CausedError { get; set; }
-            public UndefinedIdentifierException(Token causedError) 
+            public UndefinedIdentifierException(Token causedError) : base("Undefined identifier: " + causedError.Content)
             {
                 this.CausedError = causedError;
             }
@@ -77,19 +77,5 @@ namespace ColorzCore.Parser.AST
         {
             return identifier.Content;
         }
-
-        public override bool CanEvaluate()
-        {
-            return Enumerable.Any(scope, (Closure c) => c.HasLocalLabel(identifier.Content));
-        }
-
-        public override IAtomNode Simplify()
-        {
-            if (!CanEvaluate())
-                return this;
-            else
-                return new NumberNode(identifier, ToInt());
-        }
-
     }
 }
