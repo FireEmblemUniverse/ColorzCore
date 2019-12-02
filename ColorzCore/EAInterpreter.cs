@@ -18,13 +18,15 @@ namespace ColorzCore
         private EAParser myParser;
         private string game, iFile;
         private Stream sin;
-        private FileStream fout;
         private Log log;
         private EAOptions opts;
+        private IOutput output;
 
-        public EAInterpreter(string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, FileStream fout, Log log, EAOptions opts)
+        public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log, EAOptions opts)
         {
+
             this.game = game;
+            this.output = output;
 
             try
             {
@@ -46,7 +48,6 @@ namespace ColorzCore
             }
 
             this.sin = sin;
-            this.fout = fout;
             this.log = log;
             iFile = inFileName;
             this.opts = opts;
@@ -72,7 +73,6 @@ namespace ColorzCore
         public bool Interpret()
         {
             Tokenizer t = new Tokenizer();
-            ROM myROM = new ROM(fout);
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
@@ -100,7 +100,14 @@ namespace ColorzCore
 
             foreach (Token errCause in undefinedIds)
             {
-                myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                if (errCause.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
+                {
+                    myParser.Error(errCause.Location, "Unpooled data (forgot #pool?)");
+                }
+                else
+                {
+                    myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                }
             }
 
             /* Last step: assembly */
@@ -114,10 +121,10 @@ namespace ColorzCore
                         log.Message(Log.MsgKind.DEBUG, line.PrettyPrint(0));
                     }
 
-                    line.WriteData(myROM);
+                    line.WriteData(output);
                 }
 
-                myROM.WriteROM();
+                output.Commit();
 
                 log.Output.WriteLine("No errors. Please continue being awesome.");
                 return true;

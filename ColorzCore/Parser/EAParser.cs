@@ -46,6 +46,8 @@ namespace ColorzCore.Parser
         }
         public ImmutableStack<bool> Inclusion { get; set; }
 
+        public Pool Pool { get; private set; }
+
         private readonly DirectiveHandler directiveHandler;
 
         private Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
@@ -79,6 +81,8 @@ namespace ColorzCore.Parser
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
             this.directiveHandler = directiveHandler;
+
+            Pool = new Pool();
         }
 
         public bool IsReservedName(string name)
@@ -135,7 +139,7 @@ namespace ColorzCore.Parser
         }
         private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            while (ExpandIdentifier(tokens)) ;
+            while (ExpandIdentifier(tokens, scopes)) { }
             head = tokens.Current;
             tokens.MoveNext();
             //TODO: Replace with real raw information, and error if not valid.
@@ -152,9 +156,11 @@ namespace ColorzCore.Parser
                 tokens.MoveNext();
             }
 
-            if (SpecialCodes.Contains(head.Content.ToUpper()))
+            string upperCodeIdentifier = head.Content.ToUpperInvariant();
+
+            if (SpecialCodes.Contains(upperCodeIdentifier))
             {
-                switch(head.Content.ToUpper())
+                switch (upperCodeIdentifier)
                 {
                     case "ORG":
                         if (parameters.Count != 1)
@@ -272,10 +278,10 @@ namespace ColorzCore.Parser
                 }
                 return new Nothing<StatementNode>();
             }
-            else if (Raws.ContainsKey(head.Content.ToUpper()))
+            else if (Raws.ContainsKey(upperCodeIdentifier))
             {
                 //TODO: Check for matches. Currently should type error.
-                foreach(Raw r in Raws[head.Content.ToUpper()])
+                foreach(Raw r in Raws[upperCodeIdentifier])
                 {
                     if (r.Fits(parameters))
                     {
@@ -379,7 +385,7 @@ namespace ColorzCore.Parser
                     return new Just<IParamNode>(new StringNode(head));
                 case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
-                    if (expandDefs && ExpandIdentifier(tokens))
+                    if (expandDefs && ExpandIdentifier(tokens, scopes))
                     {
                         return ParseParam(tokens, scopes);
                     }
@@ -388,10 +394,10 @@ namespace ColorzCore.Parser
                         tokens.MoveNext();
                         IList<IList<Token>> param = ParseMacroParamList(tokens);
                         //TODO: Smart errors if trying to redefine a macro with the same num of params.
-                        return new Just<IParamNode>(new MacroInvocationNode(this, head, param));
+                        return new Just<IParamNode>(new MacroInvocationNode(this, head, param, scopes));
                     }
                 case TokenType.IDENTIFIER:
-                    if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens))
+                    if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens, scopes))
                         return ParseParam(tokens, scopes, expandDefs);
                     else
                         return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
@@ -523,7 +529,7 @@ namespace ColorzCore.Parser
                 {
                     if (lookAhead.Type == TokenType.IDENTIFIER)
                     {
-                        if (expandDefs && ExpandIdentifier(tokens))
+                        if (expandDefs && ExpandIdentifier(tokens, scopes))
                             continue;
                         if (lookAhead.Content.ToUpper() == "CURRENTOFFSET")
                             grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead, CurrentOffset)));
@@ -532,7 +538,7 @@ namespace ColorzCore.Parser
                     }
                     else if (lookAhead.Type == TokenType.MAYBE_MACRO)
                     {
-                        ExpandIdentifier(tokens);
+                        ExpandIdentifier(tokens, scopes);
                         continue;
                     }
                     else if (lookAhead.Type == TokenType.NUMBER)
@@ -636,7 +642,7 @@ namespace ColorzCore.Parser
                 {
                     case TokenType.IDENTIFIER:
                     case TokenType.MAYBE_MACRO:
-                        if (ExpandIdentifier(tokens))
+                        if (ExpandIdentifier(tokens, scopes))
                         {
                             return ParseLine(tokens, scopes);
                         }
@@ -724,7 +730,7 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             bool ret = false;
             //Macros and Definitions.
@@ -735,7 +741,7 @@ namespace ColorzCore.Parser
                 IList<IList<Token>> parameters = ParseMacroParamList(tokens);
                 if (Macros.HasMacro(head.Content, parameters.Count))
                 {
-                    tokens.PrependEnumerator(Macros.GetMacro(head.Content, parameters.Count).ApplyMacro(head, parameters).GetEnumerator());
+                    tokens.PrependEnumerator(Macros.GetMacro(head.Content, parameters.Count).ApplyMacro(head, parameters, scopes).GetEnumerator());
                 }
                 else
                 {

@@ -1,4 +1,5 @@
-﻿using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace ColorzCore.Parser.Macros
         /***
          *   Precondition: parameters.Count = max(keys(idToParamNum))
          */
-        public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
+        public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             foreach(Token t in body)
             {

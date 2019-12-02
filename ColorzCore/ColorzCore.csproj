@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -56,7 +56,9 @@
     <Compile Include="DataTypes\Maybe.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="DataTypes\Either.cs" />
+    <Compile Include="IO\ASM.cs" />
     <Compile Include="IO\IOUtility.cs" />
+    <Compile Include="IO\IOutput.cs" />
     <Compile Include="IO\ROM.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
@@ -108,6 +110,10 @@
     <Compile Include="Raws\Raw.cs" />
     <Compile Include="IO\Log.cs" />
     <Compile Include="IO\IncludeFileSearcher.cs" />
+    <Compile Include="Parser\Macros\IsDefined.cs" />
+    <Compile Include="Parser\Macros\AddToPool.cs" />
+    <Compile Include="Preprocessor\Directives\PoolDirective.cs" />
+    <Compile Include="Parser\Pool.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
