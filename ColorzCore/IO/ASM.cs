@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.IO
 {
-    class ASM
+    class ASM : IOutput
     {
         private StreamWriter asmStream, ldsStream;
 
@@ -17,7 +17,7 @@ namespace ColorzCore.IO
             this.ldsStream = ldsStream;
         }
 
-        public void WriteToASM(int position, byte[] data)
+        private void WriteToASM(int position, byte[] data)
         {
             string sectionName = String.Format(".ea_{0:x}", 0x8000000 + position);
             asmStream.WriteLine(".section {0},\"ax\",%progbits", sectionName);
@@ -29,7 +29,7 @@ namespace ColorzCore.IO
             asmStream.WriteLine();
         }
 
-        public void WriteToLDS(int position)
+        private void WriteToLDS(int position)
         {
             string sectionName = String.Format(".ea_{0:x}", 0x8000000 + position);
             ldsStream.WriteLine(". = 0x{0:x};", 0x8000000 + position);
@@ -42,10 +42,16 @@ namespace ColorzCore.IO
             WriteToLDS(position);
         }
 
-        public void Flush()
+        public void Commit()
         {
             asmStream.Flush();
             ldsStream.Flush();
+        }
+
+        public void Close()
+        {
+            asmStream.Close();
+            ldsStream.Close();
         }
     }
 }

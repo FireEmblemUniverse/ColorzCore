@@ -21,8 +21,7 @@ namespace ColorzCore.Parser.AST
         public abstract int Size { get; }
 
         public abstract string PrettyPrint(int indentation);
-        public abstract void WriteData(ROM rom);
-        public abstract void WriteData(ASM asm);
+        public abstract void WriteData(IOutput output);
 
         public void Simplify()
         {

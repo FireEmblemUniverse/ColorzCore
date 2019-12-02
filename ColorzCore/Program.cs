@@ -53,13 +53,8 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             string inFileName = "stdin";
 
-            FileStream outStream = null;
+            IOutput output = null;
             string outFileName = "none";
-
-            StreamWriter asmStream = null;
-            string asmFileName = "none";
-
-            StreamWriter ldsStream = null;
             string ldsFileName = "none";
 
             TextWriter errorStream = Console.Error;
@@ -106,15 +101,16 @@ namespace ColorzCore
                                 break;
 
                             case "output":
-                                if (outputASM)
+                                outFileName = flag[1];
+                                if(outputASM)
                                 {
-                                    asmFileName = flag[1];
-                                }
-                                else
+                                    ldsFileName = Path.ChangeExtension(outFileName, "lds");
+                                    output = new ASM(new StreamWriter(outFileName, false),
+                                                     new StreamWriter(ldsFileName, false));
+                                } else
                                 {
-                                    outFileName = flag[1];
-                                    outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite); //TODO: Handle file not found exceptions
-                                }
+                                    output = new ROM(File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite)); //TODO: Handle file not found exceptions
+                                } 
                                 break;
 
                             case "input":
@@ -189,21 +185,12 @@ namespace ColorzCore
                     }
                 }
             }
-
-            if (outputASM)
+            
+            if (output == null)
             {
-                if (asmFileName == "none")
-                    asmFileName = Path.ChangeExtension(inFileName, "s");
-                asmStream = new StreamWriter(asmFileName, false);
-                ldsFileName = Path.ChangeExtension(asmFileName, "lds");
-                ldsStream = new StreamWriter(ldsFileName, false);
+                Console.Error.WriteLine("No output specified for assembly.");
+                return EXIT_FAILURE;
             }
-            else
-                if (outStream == null)
-                {
-                    Console.Error.WriteLine("No output specified for assembly.");
-                    return EXIT_FAILURE;
-                }
 
             if (rawsFolder.IsNothing)
             {
@@ -227,15 +214,15 @@ namespace ColorzCore
             if (options.nomess)
                 log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(outputASM, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, outStream, asmStream, ldsStream, log, options);
+            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log, options);
 
             bool success = myInterpreter.Interpret();
 
             if (success && options.nocashSym)
             {
-                using (var output = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                using (var symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
                 {
-                    if (!(success = myInterpreter.WriteNocashSymbols(output)))
+                    if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
                     {
                         log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
                     }
@@ -243,13 +230,7 @@ namespace ColorzCore
             }
 
             inStream.Close();
-            if (outputASM)
-            {
-                asmStream.Close();
-                ldsStream.Close();
-            }
-            else
-                outStream.Close();
+            output.Close();
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;

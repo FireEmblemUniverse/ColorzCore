@@ -26,14 +26,9 @@ namespace ColorzCore.Parser.AST
             return String.Format("Raw Data Block of Length {0}", Size);
         }
         
-        public void WriteData(ROM rom)
+        public void WriteData(IOutput output)
         {
-            rom.WriteTo(offset, data);
-        }
-
-        public void WriteData(ASM asm)
-        {
-            asm.WriteTo(offset, data);
+            output.WriteTo(offset, data);
         }
 
         public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
