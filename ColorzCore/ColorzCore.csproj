@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == '32bit|AnyCPU'">
     <OutputPath>bin\32bit\</OutputPath>
