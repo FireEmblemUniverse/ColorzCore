@@ -6,3 +6,6 @@ ColorzCore/obj
 ColorzCore/.vs
 *.exe
 *.cache
+
+# Backup when migrating packages config to package reference
+MigrationBackup/
