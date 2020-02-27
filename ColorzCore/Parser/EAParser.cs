@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" };
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
         //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
@@ -137,7 +137,7 @@ namespace ColorzCore.Parser
                 Error(start, "Unmatched brace.");
             return temp;
         }
-        private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<ILineNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             while (ExpandIdentifier(tokens, scopes)) { }
             head = tokens.Current;
@@ -275,8 +275,43 @@ namespace ColorzCore.Parser
                                     Error(parameters[0].MyLocation, err);
                                 });
                         break;
+                    case "FILL":
+                        if (parameters.Count > 2 || parameters.Count == 0)
+                        {
+                            Error(head.Location, "Incorrect number of parameters in FILL: " + parameters.Count);
+                        }
+                        else
+                        {
+                            // FILL <amount> [value]
+
+                            int amount = 0;
+                            int value = 0;
+
+                            if (parameters.Count == 2)
+                            {
+                                parameters[1].TryEvaluate().Case(
+                                    (int val) => { value = val; },
+                                    (string err) => { Error(parameters[0].MyLocation, err); });
+                            }
+
+                            if (parameters.Count >= 1)
+                            {
+                                parameters[0].TryEvaluate().Case(
+                                    (int val) => { amount = val; },
+                                    (string err) => { Error(parameters[0].MyLocation, err); });
+                            }
+
+                            var data = new byte[amount];
+
+                            for (int i = 0; i < amount; ++i)
+                                data[i] = (byte) value;
+
+                            return new Just<ILineNode>(new DataNode(CurrentOffset, data));
+                        }
+
+                        break;
                 }
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else if (Raws.ContainsKey(upperCodeIdentifier))
             {
@@ -296,18 +331,18 @@ namespace ColorzCore.Parser
                         CheckDataWrite(temp.Size);
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
 
-                        return new Just<StatementNode>(temp);
+                        return new Just<ILineNode>(temp);
                     }
                 }
                 //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
                 Error(head.Location, "Incorrect parameters in raw " + head.Content + '.');
                 IgnoreRestOfStatement(tokens);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else //TODO: Move outside of this else.
             {
                 Error(head.Location, "Unrecognized code: " + head.Content);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
         }
 
@@ -670,7 +705,7 @@ namespace ColorzCore.Parser
                             else
                             {
                                 tokens.PutBack(head);
-                                return ParseStatement(tokens, scopes).Fmap((StatementNode n) => (ILineNode)n);
+                                return ParseStatement(tokens, scopes);
                             }
                         }
                     case TokenType.OPEN_BRACE:
