@@ -56,7 +56,9 @@
     <Compile Include="DataTypes\Maybe.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="DataTypes\Either.cs" />
+    <Compile Include="IO\ASM.cs" />
     <Compile Include="IO\IOUtility.cs" />
+    <Compile Include="IO\IOutput.cs" />
     <Compile Include="IO\ROM.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
@@ -74,7 +76,6 @@
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParamType.cs" />
-    <Compile Include="Parser\AST\ParenthesizedAtomNode.cs" />
     <Compile Include="Parser\AST\RawNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\AST\StringNode.cs" />

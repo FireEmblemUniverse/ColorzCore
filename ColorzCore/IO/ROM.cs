@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.IO
 {
-    class ROM
+    class ROM : IOutput
     {
         private BufferedStream myStream;
         private byte[] myData;
@@ -21,7 +21,7 @@ namespace ColorzCore.IO
             myStream.Position = 0;
         }
 
-        public void WriteROM()
+        public void Commit()
         {
             myStream.Write(myData, 0, size);
             myStream.Flush();
@@ -32,6 +32,11 @@ namespace ColorzCore.IO
             Array.Copy(data, 0, myData, position, data.Length);
             if (data.Length + position > size)
                 size = data.Length + position;
+        }
+
+        public void Close()
+        {
+            myStream.Close();
         }
     }
 }
