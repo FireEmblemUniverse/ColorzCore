@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" };
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
         //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
@@ -137,7 +137,7 @@ namespace ColorzCore.Parser
                 Error(start, "Unmatched brace.");
             return temp;
         }
-        private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<ILineNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             while (ExpandIdentifier(tokens, scopes)) { }
             head = tokens.Current;
@@ -279,8 +279,50 @@ namespace ColorzCore.Parser
                                 () => { Error(parameters[0].MyLocation, "Expected atomic param to ALIGN"); }
                            );
                         break;
+                    case "FILL":
+                        if (parameters.Count > 2 || parameters.Count == 0)
+                        {
+                            Error(head.Location, "Incorrect number of parameters in FILL: " + parameters.Count);
+                        }
+                        else
+                        {
+                            // FILL <amount> [value]
+
+                            int amount = 0;
+                            int value = 0;
+
+                            if (parameters.Count == 2)
+                            {
+                                // param 2 (if given) is fill value
+
+                                parameters[1].AsAtom().IfJust(
+                                    (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                                        (int val) => { value = val; }),
+                                    () => { Error(parameters[0].MyLocation, "Expected atomic param to FILL"); });
+                            }
+
+                            // param 1 is amount of bytes to fill
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                                    (int val) => { amount = val; }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to FILL"); });
+
+                            var data = new byte[amount];
+
+                            for (int i = 0; i < amount; ++i)
+                                data[i] = (byte) value;
+
+                            var node = new DataNode(CurrentOffset, data);
+
+                            CheckDataWrite(amount);
+                            CurrentOffset += amount;
+
+                            return new Just<ILineNode>(node);
+                        }
+
+                        break;
                 }
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else if (Raws.ContainsKey(upperCodeIdentifier))
             {
@@ -292,24 +334,25 @@ namespace ColorzCore.Parser
                         if ((CurrentOffset % r.OffsetMod) != 0)
                         {
                             Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
+
                         }
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
 
                         CheckDataWrite(temp.Size);
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
 
-                        return new Just<StatementNode>(temp);
+                        return new Just<ILineNode>(temp);
                     }
                 }
                 //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
                 Error(head.Location, "Incorrect parameters in raw " + head.Content + '.');
                 IgnoreRestOfStatement(tokens);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else //TODO: Move outside of this else.
             {
                 Error(head.Location, "Unrecognized code: " + head.Content);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
         }
 
@@ -672,7 +715,7 @@ namespace ColorzCore.Parser
                             else
                             {
                                 tokens.PutBack(head);
-                                return ParseStatement(tokens, scopes).Fmap((StatementNode n) => (ILineNode)n);
+                                return ParseStatement(tokens, scopes);
                             }
                         }
                     case TokenType.OPEN_BRACE:
