@@ -293,6 +293,8 @@ namespace ColorzCore.Parser
 
                             if (parameters.Count == 2)
                             {
+                                // param 2 (if any) is fill value
+
                                 parameters[1].AsAtom().IfJust(
                                     (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                         (int val) => { value = val; }),
@@ -301,21 +303,24 @@ namespace ColorzCore.Parser
 
                             if (parameters.Count >= 1)
                             {
+                                // param 1 is amount of bytes to fill
                                 parameters[0].AsAtom().IfJust(
                                     (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                         (int val) => { amount = val; }),
                                     () => { Error(parameters[0].MyLocation, "Expected atomic param to FILL"); });
                             }
 
-                            CheckDataWrite(amount);
-                            CurrentOffset += amount;
-
                             var data = new byte[amount];
 
                             for (int i = 0; i < amount; ++i)
                                 data[i] = (byte) value;
 
-                            return new Just<ILineNode>(new DataNode(CurrentOffset, data));
+                            var node = new DataNode(CurrentOffset, data);
+
+                            CheckDataWrite(amount);
+                            CurrentOffset += amount;
+
+                            return new Just<ILineNode>(node);
                         }
 
                         break;
