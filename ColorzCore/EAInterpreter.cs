@@ -24,20 +24,19 @@ namespace ColorzCore
 
         public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log, EAOptions opts)
         {
-
             this.game = game;
             this.output = output;
 
             try
             {
-                allRaws = ProcessRaws(game, LoadAllRaws(rawsFolder, rawsExtension));
+                allRaws = ProcessRaws(game, ListAllRaws(rawsFolder, rawsExtension));
             }
-            catch (Raw.RawParseException e)
+            catch (RawReader.RawParseException e)
             {
                 Location loc = new Location
                 {
-                    file = Raw.RawParseException.filename, // I get that this looks bad, but this exception happens at most once per execution... TODO: Make this less bad.
-                    lineNum = e.rawline.ToInt(),
+                    file = e.Filename,
+                    lineNum = e.LineNumber,
                     colNum = 1
                 };
 
@@ -147,30 +146,35 @@ namespace ColorzCore
             return true;
         }
 
-        private static IList<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
+        private static IEnumerable<Raw> LoadAllRaws(string rawsFolder, string rawsExtension)
         {
-            string folder;
-            DirectoryInfo directoryInfo = new DirectoryInfo(rawsFolder);
-            folder = Path.GetFullPath(rawsFolder);
-            FileInfo[] files = directoryInfo.GetFiles("*" + rawsExtension, SearchOption.AllDirectories);
-            IEnumerable<Raw> allRaws = new List<Raw>();
+            var directoryInfo = new DirectoryInfo(rawsFolder);
+            var files = directoryInfo.GetFiles("*" + rawsExtension, SearchOption.AllDirectories);
+
             foreach (FileInfo fileInfo in files)
             {
-                FileStream fs = new FileStream(fileInfo.FullName, FileMode.Open);
-                allRaws = allRaws.Concat(Raw.ParseAllRaws(fs));
-                fs.Close();
+                using (var fs = new FileStream(fileInfo.FullName, FileMode.Open))
+                    foreach (var raw in RawReader.ParseAllRaws(fs))
+                        yield return raw;
             }
-            return new List<Raw>(allRaws);
         }
+
+        private static IList<Raw> ListAllRaws(string rawsFolder, string rawsExtension)
+        {
+            return new List<Raw>(LoadAllRaws(rawsFolder, rawsExtension));
+        }
+
         private static Dictionary<string, IList<Raw>> ProcessRaws(string game, IList<Raw> allRaws)
         {
-            Dictionary<string, IList<Raw>> retVal = new Dictionary<string, IList<Raw>>();
+            Dictionary<string, IList<Raw>> result = new Dictionary<string, IList<Raw>>();
+
             foreach (Raw r in allRaws)
             {
-                if (r.Game.Contains(game))
-                    retVal.AddTo(r.Name, r);
+                if (r.Game.Count == 0 || r.Game.Contains(game))
+                    result.AddTo(r.Name, r);
             }
-            return retVal;
+
+            return result;
         }
     }
 }
