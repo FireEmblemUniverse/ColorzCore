@@ -8,6 +8,46 @@ namespace ColorzCore.Raws
 {
     static class RawReader
     {
+        /***
+         * Flags: 
+         priority
+          Affects where disassembly uses the code. Existing priorities are:
+          main, low, pointer, unit, moveManual, shopList, ballista, ASM,
+          battleData, reinforcementData and unknown.
+
+         repeatable
+          Means that the last parameter can be repeated and for every 
+          repetition a new code is made. Currently requires code to have
+          only one parameter.
+
+         unsafe
+          EA normally checks for things like parameter collisions and
+          other index errors. With this flag, you can bypass them.
+          Do not use unless you know what you are doing.
+
+         end
+          Means that the code ends disassembly of particular branch in 
+          chapter-wide disassembly or in disassembly to end. 
+
+         indexMode
+          Affect how many bits lengths and positions mean. 8 means lengths 
+          and positions are in bytes. Default is 1.
+
+         terminatingList
+          Means that the code is a variable length array of parameters which
+          ends in specified value. Requires for code to have only one parameter.
+
+         offsetMod
+          The modulus in which the beginning offset of the code has to be 0.
+          Default is 4. 
+
+         noAssembly
+          Forbids code from participating in assembly.
+
+         noDisassembly
+          Forbids code from participating in disassembly.
+        */
+
         public static readonly char CHAR_COMMENT = '#';
 
         // Raw flags
@@ -122,7 +162,7 @@ namespace ColorzCore.Raws
             int size = sizeStr.ToInt() * bitUnit;
 
             var parameters = new List<IRawParam>();
-            var fixedParams = new List<Tuple<int, int, int>>();
+            var fixedParams = new List<Raw.FixedParam>();
 
             while (!source.EndOfStream)
             {
@@ -144,11 +184,11 @@ namespace ColorzCore.Raws
 
                 try
                 {
-                    Either<IRawParam, Tuple<int, int, int>> param = ParseParam(line, bitUnit);
+                    Either<IRawParam, Raw.FixedParam> param = ParseParam(line, bitUnit);
 
                     param.Case(
                         (IRawParam val) => parameters.Add(val),
-                        (Tuple<int, int, int> val) => fixedParams.Add(val));
+                        (Raw.FixedParam val) => fixedParams.Add(val));
                 }
                 catch (Exception e)
                 {
@@ -191,7 +231,7 @@ namespace ColorzCore.Raws
             return new Raw(nameStr, size, (short)code, alignment, game, parameters, fixedParams, listTerminator, isRepeatable);
         }
 
-        private static Either<IRawParam, Tuple<int, int, int>> ParseParam(string line, int bitUnit)
+        private static Either<IRawParam, Raw.FixedParam> ParseParam(string line, int bitUnit)
         {
             if (!char.IsWhiteSpace(line[0]))
                 throw new Exception("Raw param does not start with whitespace.");
@@ -219,7 +259,12 @@ namespace ColorzCore.Raws
             {
                 int fixedValue = nameStr.ToInt();
 
-                return new Right<IRawParam, Tuple<int, int, int>>(new Tuple<int, int, int>(position, size, fixedValue));
+                return new Right<IRawParam, Raw.FixedParam>(new Raw.FixedParam
+                {
+                    position = position,
+                    size = size,
+                    value = fixedValue,
+                });
             }
 
             if (flags.ContainsKey(FLAG_COORDCOUNT))
@@ -230,12 +275,12 @@ namespace ColorzCore.Raws
                     ? coordNum.GetLeft.Max((string s) => s.ToInt())
                     : Math.Max(coordNum.GetRight.Item1, coordNum.GetRight.Item2);
 
-                return new Left<IRawParam, Tuple<int, int, int>>(new ListParam(nameStr, position, size, nCoords));
+                return new Left<IRawParam, Raw.FixedParam>(new ListParam(nameStr, position, size, nCoords));
             }
 
             bool isPointer = flags.ContainsKey(FLAG_POINTER);
 
-            return new Left<IRawParam, Tuple<int, int, int>>(new AtomicParam(nameStr, position, size, isPointer));
+            return new Left<IRawParam, Raw.FixedParam>(new AtomicParam(nameStr, position, size, isPointer));
         }
 
         private static Dictionary<string, Flag> ParseFlags(string flagStr)

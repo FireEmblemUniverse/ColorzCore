@@ -15,7 +15,7 @@ namespace ColorzCore.Raws
         public int Position { get; }
         public int Length { get; }
 
-        private int numCoords;
+        private readonly int numCoords;
 
         public ListParam(string name, int position, int length, int numCoords)
         {
@@ -25,22 +25,24 @@ namespace ColorzCore.Raws
             this.numCoords = numCoords;
         }
 
-        public void Set(BitArray data, IParamNode input)
+        public void Set(byte[] data, IParamNode input)
         {
-            int count = 0;
             IList<IAtomNode> interior = ((ListNode)input).Interior;
+
             int bitsPerAtom = Length / numCoords;
-            foreach(IAtomNode a in interior)
+            int count = 0;
+
+            foreach (IAtomNode a in interior)
             {
-                int res = a.CoerceInt();
-                for(int i=0; i<bitsPerAtom; i++, res >>= 1)
-                {
-                    data[i + Position + count] = (res & 1) == 1;
-                }
+                data.SetBits(Position + count, bitsPerAtom, a.CoerceInt());
                 count += bitsPerAtom;
             }
-            for (; count < Length; count++)
-                data[Position + count] = false;
+
+            // NOTE: do we need this? a unit will always start filled with zeroes,
+            // Setting zeroes here only matters if the code has overlapping parameters
+
+            if (count != Length)
+                data.SetBits(Position + count, Length - count, 0);
         }
 
         public bool Fits(IParamNode input)

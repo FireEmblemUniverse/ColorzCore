@@ -59,5 +59,83 @@ namespace ColorzCore.DataTypes
             }
             return self;
         }
+
+        public static void SetBits(this byte[] array, int bitOffset, int bitSize, int value)
+        {
+            array.SetBits(0, bitOffset, bitSize, value);
+        }
+
+        public static void SetBits(this byte[] array, int byteOffset, int bitOffset, int bitSize, int value)
+        {
+            if (bitOffset >= 8)
+            {
+                array.SetBits(byteOffset + bitOffset / 8, bitOffset % 8, bitSize, value);
+                return;
+            }
+
+            ulong bytes = 0;
+
+            int byteSize = (bitOffset + bitSize + 7) / 8;
+
+            // Read bytes into integer
+
+            for (int i = 0; i < byteSize; ++i)
+                bytes += ((ulong)array[byteOffset + i]) << i * 8;
+
+            // Apply value to integer
+
+            ulong mask = (((ulong)1 << bitSize) - 1) << bitOffset;
+
+            bytes &= ~mask;
+            bytes |= ((ulong)value << bitOffset) & mask;
+
+            // Write integer back into bytes
+
+            for (int i = 0; i < byteSize; ++i)
+                array[byteOffset + i] = (byte)(bytes >> i * 8);
+        }
+
+        public static void SetBits(this byte[] array, int bitOffset, int bitSize, byte[] data)
+        {
+            array.SetBits(0, bitOffset, bitSize, data);
+        }
+
+        public static void SetBits(this byte[] array, int byteOffset, int bitOffset, int bitSize, byte[] data)
+        {
+            if (bitOffset >= 8)
+            {
+                array.SetBits(byteOffset + bitOffset / 8, bitOffset % 8, bitSize, data);
+                return;
+            }
+
+            int byteSize = (bitOffset + bitSize + 7) / 8;
+
+            if (bitOffset == 0)
+            {
+                for (int i = 0; i < byteSize - 1; ++i)
+                    array[byteOffset + i] = data[i];
+
+                int endMask = (1 << (bitSize % 8)) - 1;
+
+                array[byteOffset + byteSize - 1] &= (byte)~endMask;
+                array[byteOffset + byteSize - 1] |= (byte)(data[byteSize - 1] & endMask);
+            }
+            else
+            {
+                for (int i = 0; i < byteSize; ++i)
+                {
+                    int mask = ((1 << Math.Min(bitSize - i * 8, 8)) - 1) << bitOffset;
+
+                    byte loMask = (byte)mask;
+                    byte hiMask = (byte)(mask >> 8);
+
+                    array[byteOffset + i] &= (byte)~loMask;
+                    array[byteOffset + i] |= (byte)((data[i] << bitOffset) & loMask);
+
+                    array[byteOffset + i + 1] &= (byte)~hiMask;
+                    array[byteOffset + i + 1] |= (byte)((data[i] >> (8 - bitOffset)) & hiMask);
+                }
+            }
+        }
     }
 }

@@ -14,7 +14,7 @@ namespace ColorzCore.Raws
         int Position { get; } //Length and position in bits
         int Length { get; }
         bool Fits(IParamNode input);
-        void Set(BitArray data, IParamNode input);
+        void Set(byte[] data, IParamNode input);
         /**
          * From Language.raws:
          * 
