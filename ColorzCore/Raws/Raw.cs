@@ -95,7 +95,7 @@ namespace ColorzCore.Raws
             if (unitCount == 0)
                 return false;
 
-            if (parameters.Count != parameters.Count * unitCount)
+            if (arguments.Count != parameters.Count * unitCount)
                 return false;
 
             for (int i = 0; i < unitCount; ++i)

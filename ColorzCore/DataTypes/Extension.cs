@@ -73,21 +73,21 @@ namespace ColorzCore.DataTypes
                 return;
             }
 
-            ulong bytes = 0;
+            long bytes = 0;
 
             int byteSize = (bitOffset + bitSize + 7) / 8;
 
             // Read bytes into integer
 
             for (int i = 0; i < byteSize; ++i)
-                bytes += ((ulong)array[byteOffset + i]) << i * 8;
+                bytes |= ((long)array[byteOffset + i]) << i * 8;
 
             // Apply value to integer
 
-            ulong mask = (((ulong)1 << bitSize) - 1) << bitOffset;
+            long mask = (((long)1 << bitSize) - 1) << bitOffset;
 
             bytes &= ~mask;
-            bytes |= ((ulong)value << bitOffset) & mask;
+            bytes |= ((long)value << bitOffset) & mask;
 
             // Write integer back into bytes
 
@@ -115,7 +115,8 @@ namespace ColorzCore.DataTypes
                 for (int i = 0; i < byteSize - 1; ++i)
                     array[byteOffset + i] = data[i];
 
-                int endMask = (1 << (bitSize % 8)) - 1;
+                int shift = bitSize % 8 == 0 ? 8 : bitSize % 8;
+                uint endMask = (uint)((1 << shift) - 1);
 
                 array[byteOffset + byteSize - 1] &= (byte)~endMask;
                 array[byteOffset + byteSize - 1] |= (byte)(data[byteSize - 1] & endMask);
