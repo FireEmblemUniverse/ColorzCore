@@ -121,9 +121,11 @@ namespace ColorzCore.Raws
             if (rawLine == null)
                 throw new EndOfStreamException();
 
+            int lineNumber = source.LineNumber;
+
             if (char.IsWhiteSpace(rawLine[0]))
             {
-                throw new RawParseException("Raw not at start of line.", source.FileName, source.LineNumber);
+                throw new RawParseException("Raw not at start of line.", source.FileName, lineNumber);
             }
 
             var parts = rawLine.Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
@@ -131,7 +133,7 @@ namespace ColorzCore.Raws
             if (parts.Length < 3)
             {
                 // Raws need to have at least name+code+size
-                throw new RawParseException("Missing info on raw (need at least name, code and size).", source.FileName, source.LineNumber);
+                throw new RawParseException("Missing info on raw (need at least name, code and size).", source.FileName, lineNumber);
             }
 
             var nameStr = parts[0].Trim().ToUpperInvariant();
@@ -152,7 +154,7 @@ namespace ColorzCore.Raws
             }
             catch (Exception e)
             {
-                throw new RawParseException(e.Message, source.FileName, source.LineNumber);
+                throw new RawParseException(e.Message, source.FileName, lineNumber);
             }
 
             int bitUnit = flags.ContainsKey(FLAG_BITUNIT)
@@ -218,14 +220,36 @@ namespace ColorzCore.Raws
 
             if (!listTerminator.IsNothing && code != 0)
             {
-                throw new RawParseException("TerminatingList with code nonzero.", source.FileName, source.LineNumber);
+                throw new RawParseException("TerminatingList with code nonzero.", source.FileName, lineNumber);
             }
 
             bool isRepeatable = flags.ContainsKey(FLAG_REPEATABLE);
 
             if ((isRepeatable || !listTerminator.IsNothing) && (parameters.Count > 1) && fixedParams.Count > 0)
             {
-                throw new RawParseException("Repeatable or terminatingList code with multiple parameters or fixed parameters.", source.FileName, source.LineNumber);
+                throw new RawParseException("Repeatable or terminatingList code with multiple parameters or fixed parameters.", source.FileName, lineNumber);
+            }
+
+            // HACK: support terminating lists that have a code size of 0 (ugh)
+
+            if (!listTerminator.IsNothing)
+            {
+                foreach (var param in parameters)
+                    size = Math.Max(size, param.Position + param.Length);
+            }
+
+            // Check for integrity
+
+            foreach (var param in parameters)
+            {
+                if (param.Position < 0 || param.Position + param.Length > size)
+                    throw new RawParseException(string.Format("parameter {0} doesn't fit the bounds of {1}", param.Name, nameStr), source.FileName, lineNumber);
+            }
+
+            foreach (var fp in fixedParams)
+            {
+                if (fp.position < 0 || fp.position + fp.size > size)
+                    throw new RawParseException(string.Format("fixed parameter at +{0} doesn't fit the bounds of {1}", fp.position / bitUnit, nameStr), source.FileName, lineNumber);
             }
 
             return new Raw(nameStr, size, (short)code, alignment, game, parameters, fixedParams, listTerminator, isRepeatable);
@@ -378,13 +402,13 @@ namespace ColorzCore.Raws
 
         public class RawParseException : Exception
         {
-            public string Filename { get; }
+            public string FileName { get; }
             public int LineNumber { get; }
 
             public RawParseException(string msg, string filename, int lineNumber)
                 : base(msg)
             {
-                Filename = filename;
+                FileName = filename;
                 LineNumber = lineNumber;
             }
         }

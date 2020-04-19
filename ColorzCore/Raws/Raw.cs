@@ -121,7 +121,7 @@ namespace ColorzCore.Raws
             {
                 var unit = (byte[])baseUnit.Clone();
 
-                for (int j = 0; j < parameters.Count; j++)
+                for (int j = 0; j < parameters.Count; ++j)
                 {
                     parameters[j].Set(unit, arguments[i * parameters.Count + j]);
                 }

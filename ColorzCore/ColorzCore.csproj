@@ -113,6 +113,7 @@
     <Compile Include="Parser\Macros\AddToPool.cs" />
     <Compile Include="Preprocessor\Directives\PoolDirective.cs" />
     <Compile Include="Parser\Pool.cs" />
+    <Compile Include="Raws\RawReader.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

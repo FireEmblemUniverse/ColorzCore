@@ -35,7 +35,7 @@ namespace ColorzCore
             {
                 Location loc = new Location
                 {
-                    file = e.Filename,
+                    file = e.FileName,
                     lineNum = e.LineNumber,
                     colNum = 1
                 };
@@ -43,7 +43,7 @@ namespace ColorzCore
                 log.Message(Log.MsgKind.ERROR, loc, "An error occured while parsing raws");
                 log.Message(Log.MsgKind.ERROR, loc, e.Message);
 
-                Environment.Exit(-1);
+                Environment.Exit(-1); // ew?
             }
 
             this.sin = sin;
