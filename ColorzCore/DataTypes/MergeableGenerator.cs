@@ -53,8 +53,10 @@ namespace ColorzCore.DataTypes
         {
             if (!myEnums.Peek().MoveNext())
             {
-                myEnums.Pop();
-                EOS = myEnums.Count == 1;
+                if (myEnums.Count == 1)
+                    EOS = true;
+                else 
+                    myEnums.Pop();
             }
             else
                 EOS = false;
