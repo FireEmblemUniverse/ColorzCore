@@ -17,6 +17,7 @@ namespace ColorzCore
 
         public List<string> includePaths = new List<string>();
         public List<string> toolsPaths = new List<string>();
+        public List<Tuple<string, string>> defs = new List<Tuple<string, string>>();
 
         public EAOptions()
         {

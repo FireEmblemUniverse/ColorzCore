@@ -48,6 +48,8 @@ namespace ColorzCore
             "   Don't use colored log tags when outputting logs to console/stderr.",
             "-h|--help",
             "   Display this message and exit.",
+            "-[D|def|define]:<defname>=<defvalue>",
+            "   Assembles as if \"#define <defname> <defvalue>\" were at the top of the input stream.",
             "-debug",
             "   Enable debug mode. Not recommended for end users.",
             ""
@@ -188,6 +190,18 @@ namespace ColorzCore
                             case "-help":
                                 Console.Out.WriteLine(helpstring);
                                 return EXIT_SUCCESS;
+
+                            case "D":
+                            case "def":
+                            case "define":
+                                try {
+                                    string[] def_args = flag[1].Split(new char[] { '=' }, 2);
+                                    options.defs.Add(Tuple.Create(def_args[0], def_args[1]));
+                                } catch (IndexOutOfRangeException)
+                                {
+                                    Console.Out.WriteLine("Improperly formed -define directive.");
+                                }
+                                break;
 
                             default:
                                 Console.Error.WriteLine("Unrecognized flag: " + flag[0]);

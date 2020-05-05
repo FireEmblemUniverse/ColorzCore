@@ -74,6 +74,11 @@ namespace ColorzCore
         {
             Tokenizer t = new Tokenizer();
 
+            foreach (Tuple<string, string> defpair in opts.defs)
+            {
+                myParser.ParseAll(t.TokenizeLine("#define " + defpair.Item1 + " " + defpair.Item2, "cmd", 0));
+            }
+
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
 
             /* First pass on AST: Identifier resolution.
