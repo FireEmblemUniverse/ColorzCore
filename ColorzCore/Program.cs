@@ -57,6 +57,8 @@ namespace ColorzCore
             "   Assembles as if \"#define <defname> <defvalue>\" were at the top of the input stream.",
             "-debug",
             "   Enable debug mode. Not recommended for end users.",
+            "--build-times",
+            "   Print build times at the end of build.",
             ""
         };
 
@@ -175,6 +177,10 @@ namespace ColorzCore
                                 options.nocashSym = true;
                                 break;
 
+                            case "-build-times":
+                                options.buildTimes = true;
+                                break;
+
                             case "I":
                             case "-include":
                                 options.includePaths.Add(flag[1]);
@@ -268,6 +274,8 @@ namespace ColorzCore
                 }
             }
 
+            if (options.buildTimes) { 
+
             // Print times
 
             log.Output.WriteLine();
@@ -285,11 +293,15 @@ namespace ColorzCore
 
             log.Output.WriteLine("  " + Timer.TotalTime.ToString());
 
+            }
+
             inStream.Close();
             output.Close();
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;
+
+
         }
 
         public class ExecTimer
