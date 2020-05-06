@@ -73,7 +73,7 @@ namespace ColorzCore
         public bool Interpret()
         {
             Tokenizer t = new Tokenizer();
-            ROM myROM = new ROM(fout);
+            //ROM myROM = new ROM(fout);
 
             Program.Timer.AddTimingPoint(Program.ExecTimer.KEY_GENERIC);
 
