@@ -30,27 +30,17 @@ namespace ColorzCore.Parser.AST
             MyLocation = loc;
             this.value = value;
         }
-
-        public override int ToInt()
-        {
-            return value;
-        }
         
         public override IEnumerable<Token> ToTokens () { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
 
-        public override bool CanEvaluate()
-        {
-            return true;
-        }
-
-        public override IAtomNode Simplify()
-        {
-            return this;
-        }
-
-        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
+        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
         {
             return new Just<int>(value);
+        }
+
+        public override string PrettyPrint()
+        {
+            return "0x" + value.ToString("X");
         }
     }
 }

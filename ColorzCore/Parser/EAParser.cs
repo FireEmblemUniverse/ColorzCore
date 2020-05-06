@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN" };
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
         //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
@@ -137,7 +137,7 @@ namespace ColorzCore.Parser
                 Error(start, "Unmatched brace.");
             return temp;
         }
-        private Maybe<StatementNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private Maybe<ILineNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             while (ExpandIdentifier(tokens, scopes)) { }
             head = tokens.Current;
@@ -167,15 +167,17 @@ namespace ColorzCore.Parser
                             Error(head.Location, "Incorrect number of parameters in ORG: " + parameters.Count);
                         else
                         {
-                            parameters[0].TryEvaluate().Case(
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                 (int temp) =>
                                 {
                                     if (temp > 0x2000000)
                                         Error(parameters[0].MyLocation, "Tried to set offset to 0x" + temp.ToString("X"));
                                     else
                                         CurrentOffset = temp;
-                                },
-                                (string err) => { Error(parameters[0].MyLocation, err); });
+                                }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to ORG."); }
+                            );
                         }
                         break;
                     case "PUSH":
@@ -209,46 +211,49 @@ namespace ColorzCore.Parser
                         if (parameters.Count != 1)
                             Error(head.Location, "Incorrect number of parameters in ASSERT: " + parameters.Count);
                         else
-                            parameters[0].TryEvaluate().Case(
-                                (int temp) =>
+                        {
+
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) =>
                                 {
-                                    if (temp < 0)
-                                        Error(parameters[0].MyLocation, "Assertion error: " + temp);
+                                    atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                                            (int temp) =>
+                                            {
+                                                if (temp < 0)
+                                                    Error(parameters[0].MyLocation, "Assertion error: " + temp);
+                                            });
                                 },
-                                (string err) =>
-                                {
-                                    Error(parameters[0].MyLocation, err);
-                                });
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to ASSERT."); }
+                            );
+                        }
                         break;
                     case "PROTECT":
                         if (parameters.Count == 1)
-                            parameters[0].TryEvaluate().Case(
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                 (int temp) =>
                                 {
                                     protectedRegions.Add(new Tuple<int, int, Location>(temp, 4, head.Location));
-                                },
-                                (string err) =>
-                                {
-                                    Error(parameters[0].MyLocation, err);
-                                });
+                                }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); });
                         else if (parameters.Count == 2)
                         {
                             int start = 0, end = 0;
                             bool errorOccurred = false;
-                            parameters[0].TryEvaluate().Case(
-                                (int temp) => { start = temp; },
-                                (string err) =>
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }).IfJust(
+                                (int temp) =>
                                 {
-                                    Error(parameters[0].MyLocation, err);
-                                    errorOccurred = true;
-                                });
-                            parameters[1].TryEvaluate().Case(
-                                (int temp) => { end = temp; },
-                                (string err) =>
+                                    start = temp;
+                                }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); errorOccurred = true; });
+                            parameters[1].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }).IfJust(
+                                (int temp) =>
                                 {
-                                    Error(parameters[1].MyLocation, err);
-                                    errorOccurred = true;
-                                });
+                                    end = temp;
+                                }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); errorOccurred = true; });
                             if (!errorOccurred)
                             {
                                 int length = end - start;
@@ -265,18 +270,59 @@ namespace ColorzCore.Parser
                         if (parameters.Count != 1)
                             Error(head.Location, "Incorrect number of parameters in ALIGN: " + parameters.Count);
                         else
-                            parameters[0].TryEvaluate().Case(
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                 (int temp) =>
                                 {
                                     CurrentOffset = CurrentOffset % temp != 0 ? CurrentOffset + temp - CurrentOffset % temp : CurrentOffset;
-                                },
-                                (string err) =>
-                                {
-                                    Error(parameters[0].MyLocation, err);
-                                });
+                                }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to ALIGN"); }
+                           );
+                        break;
+                    case "FILL":
+                        if (parameters.Count > 2 || parameters.Count == 0)
+                        {
+                            Error(head.Location, "Incorrect number of parameters in FILL: " + parameters.Count);
+                        }
+                        else
+                        {
+                            // FILL <amount> [value]
+
+                            int amount = 0;
+                            int value = 0;
+
+                            if (parameters.Count == 2)
+                            {
+                                // param 2 (if given) is fill value
+
+                                parameters[1].AsAtom().IfJust(
+                                    (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                                        (int val) => { value = val; }),
+                                    () => { Error(parameters[0].MyLocation, "Expected atomic param to FILL"); });
+                            }
+
+                            // param 1 is amount of bytes to fill
+                            parameters[0].AsAtom().IfJust(
+                                (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                                    (int val) => { amount = val; }),
+                                () => { Error(parameters[0].MyLocation, "Expected atomic param to FILL"); });
+
+                            var data = new byte[amount];
+
+                            for (int i = 0; i < amount; ++i)
+                                data[i] = (byte) value;
+
+                            var node = new DataNode(CurrentOffset, data);
+
+                            CheckDataWrite(amount);
+                            CurrentOffset += amount;
+
+                            return new Just<ILineNode>(node);
+                        }
+
                         break;
                 }
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else if (Raws.ContainsKey(upperCodeIdentifier))
             {
@@ -288,26 +334,25 @@ namespace ColorzCore.Parser
                         if ((CurrentOffset % r.OffsetMod) != 0)
                         {
                             Error(head.Location, string.Format("Bad code alignment (offset: {0:X8})", CurrentOffset));
-                        }
 
+                        }
                         StatementNode temp = new RawNode(r, head, CurrentOffset, parameters);
-                        temp.Simplify();
 
                         CheckDataWrite(temp.Size);
                         CurrentOffset += temp.Size; //TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
 
-                        return new Just<StatementNode>(temp);
+                        return new Just<ILineNode>(temp);
                     }
                 }
                 //TODO: Better error message (a la EA's ATOM ATOM [ATOM,ATOM])
                 Error(head.Location, "Incorrect parameters in raw " + head.Content + '.');
                 IgnoreRestOfStatement(tokens);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
             else //TODO: Move outside of this else.
             {
                 Error(head.Location, "Unrecognized code: " + head.Content);
-                return new Nothing<StatementNode>();
+                return new Nothing<ILineNode>();
             }
         }
 
@@ -379,7 +424,7 @@ namespace ColorzCore.Parser
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new Just<IParamNode>(new ListNode(head.Location, ParseList(tokens, scopes)));
+                    return new Just<IParamNode>(new ListNode(head.Location, ParseList(tokens, scopes)).Simplify());
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new Just<IParamNode>(new StringNode(head));
@@ -400,9 +445,9 @@ namespace ColorzCore.Parser
                     if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens, scopes))
                         return ParseParam(tokens, scopes, expandDefs);
                     else
-                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
+                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
                 default:
-                    return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x);
+                    return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
             }
         }
 
@@ -486,7 +531,7 @@ namespace ColorzCore.Parser
                                 }
                                 else
                                 {
-                                    grammarSymbols.Push(new Left<IAtomNode, Token>(new ParenthesizedAtomNode(lookAhead.Location, interior.FromJust)));
+                                    grammarSymbols.Push(new Left<IAtomNode, Token>(interior.FromJust));
                                     tokens.MoveNext();
                                     break;
                                 }
@@ -670,7 +715,7 @@ namespace ColorzCore.Parser
                             else
                             {
                                 tokens.PutBack(head);
-                                return ParseStatement(tokens, scopes).Fmap((StatementNode n) => (ILineNode)n);
+                                return ParseStatement(tokens, scopes);
                             }
                         }
                     case TokenType.OPEN_BRACE:

@@ -36,9 +36,9 @@ namespace ColorzCore.Parser.AST
             }
             return sb.ToString();
         }
-        public override void WriteData(ROM rom)
+        public override void WriteData(IOutput output)
         {
-            rom.WriteTo(offset, myRaw.GetBytes(Parameters));
+            output.WriteTo(offset, myRaw.GetBytes(Parameters));
         }
     }
 }

@@ -40,11 +40,6 @@ namespace ColorzCore.Parser.AST
             this.op = op;
             Precedence = prec;
 		}
-		
-		public override int ToInt()
-		{
-            return Operators[op.Type](left.ToInt(), right.ToInt());
-		}
 
         public override string PrettyPrint()
         {
@@ -100,26 +95,13 @@ namespace ColorzCore.Parser.AST
             }
         }
 
-        public override bool CanEvaluate()
+        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
         {
-            return left.CanEvaluate() && right.CanEvaluate();
-        }
-
-        public override IAtomNode Simplify()
-        {
-            left = left.Simplify();
-            right = right.Simplify();
-            if (CanEvaluate())
-                return new NumberNode(left.MyLocation, ToInt());
-            else
-                return this;
-        }
-
-        public override Maybe<int> Evaluate(ICollection<Token> undefinedIdentifiers)
-        {
-            Maybe<int> l = left.Evaluate(undefinedIdentifiers);
-            Maybe<int> r = right.Evaluate(undefinedIdentifiers);
-            return l.Bind<int>((int newL) => r.Fmap((int newR) => Operators[op.Type](newL, newR)));
+            Maybe<int> l = left.TryEvaluate(handler);
+            l.IfJust((int i) => { this.left = new NumberNode(left.MyLocation, i); });
+            Maybe<int> r = right.TryEvaluate(handler);
+            r.IfJust((int i) => { this.right = new NumberNode(right.MyLocation, i); });
+            return l.Bind((int newL) => r.Fmap((int newR) => Operators[op.Type](newL, newR)));
         }
     }
 }
