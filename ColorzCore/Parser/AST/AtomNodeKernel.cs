@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,44 +12,27 @@ namespace ColorzCore.Parser.AST
     {
         public abstract int Precedence { get; }
 
-        public abstract int Evaluate();
-
         public ParamType Type { get { return ParamType.ATOM; } }
-
-        public override string ToString()
-        {
-            return "0x"+Evaluate().ToString("X");
-        }
 
         public virtual Maybe<string> GetIdentifier()
         {
             return new Nothing<string>();
         }
 
-        public virtual string PrettyPrint()
-        {
-            return ToString(); //TODO: Mark abstract
-        }
+        public abstract string PrettyPrint();
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public Either<int, string> TryEvaluate()
+        public abstract Maybe<int> TryEvaluate(TAction<Exception> handler);
+
+        public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
-            try
-            {
-                int res = this.Evaluate();
-                return new Left<int, string>(res);
-            }
-            catch (IdentifierNode.UndefinedIdentifierException e)
-            {
-                return new Right<int, string>("Unrecognized identifier: " + e.CausedError.Content);
-            }
-            catch (DivideByZeroException)
-            {
-                return new Right<int, string>("Division by zero.");
-            }
+            return this.Simplify(handler);
         }
-        public abstract bool CanEvaluate();
-        public abstract IAtomNode Simplify();
+
+        public Maybe<IAtomNode> AsAtom()
+        {
+            return new Just<IAtomNode>(this);
+        }
     }
 }

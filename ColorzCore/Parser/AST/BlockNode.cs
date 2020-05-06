@@ -1,5 +1,6 @@
 ﻿using ColorzCore.DataTypes;
 using ColorzCore.IO;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,12 +40,18 @@ namespace ColorzCore.Parser.AST
             return sb.ToString();
         }
 
-        public void WriteData(ROM rom)
+        public void WriteData(IOutput output)
         {
             foreach(ILineNode child in Children)
             {
-                child.WriteData(rom);
+                child.WriteData(output);
             }
+        }
+
+        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        {
+            foreach (ILineNode line in Children)
+                line.EvaluateExpressions(undefinedIdentifiers);
         }
     }
 }

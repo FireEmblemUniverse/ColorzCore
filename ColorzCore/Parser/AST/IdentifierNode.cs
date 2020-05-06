@@ -9,7 +9,7 @@ namespace ColorzCore.Parser.AST
     public class IdentifierNode : AtomNodeKernel
     {
         private Token identifier;
-        ImmutableStack<Closure> scope;
+        readonly ImmutableStack<Closure> scope;
 
 		public override int Precedence { get { return 11; } }
         public override Location MyLocation { get { return identifier.Location; } }
@@ -20,7 +20,7 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
 		}
 		
-		public override int Evaluate()
+		private int ToInt()
         {
             ImmutableStack<Closure> temp = scope;
             while(!temp.IsEmpty)
@@ -32,6 +32,18 @@ namespace ColorzCore.Parser.AST
             }
             throw new UndefinedIdentifierException(identifier);
         }
+
+        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        {
+            try
+            {
+                return new Just<int>(ToInt());
+            } catch(UndefinedIdentifierException e)
+            {
+                handler(e);
+                return new Nothing<int>();
+            }
+        }
         
         public override Maybe<string> GetIdentifier()
         {
@@ -42,7 +54,7 @@ namespace ColorzCore.Parser.AST
         {
             try
             {
-                return "0x"+Evaluate().ToString("X");
+                return "0x"+ToInt().ToString("X");
             }
             catch (UndefinedIdentifierException)
             {
@@ -55,7 +67,7 @@ namespace ColorzCore.Parser.AST
         public class UndefinedIdentifierException : Exception
         {
             public Token CausedError { get; set; }
-            public UndefinedIdentifierException(Token causedError) 
+            public UndefinedIdentifierException(Token causedError) : base("Undefined identifier: " + causedError.Content)
             {
                 this.CausedError = causedError;
             }
@@ -65,19 +77,5 @@ namespace ColorzCore.Parser.AST
         {
             return identifier.Content;
         }
-
-        public override bool CanEvaluate()
-        {
-            return Enumerable.Any(scope, (Closure c) => c.HasLocalLabel(identifier.Content));
-        }
-
-        public override IAtomNode Simplify()
-        {
-            if (!CanEvaluate())
-                return this;
-            else
-                return new NumberNode(identifier, Evaluate());
-        }
-
     }
 }

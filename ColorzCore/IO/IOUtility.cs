@@ -10,41 +10,28 @@ namespace ColorzCore.IO
 {
     static class IOUtility
     {
-
-        /* Modified from Nintenlord's Core's IO.IOHelpers */
-        public static Maybe<string> FindFile(string currentFile, string newFile)
-        {
-            //Reordered so that relative directory is searched first. 
-            if (!string.IsNullOrEmpty(currentFile))
-            {
-                string path = Path.Combine(Path.GetDirectoryName(currentFile), newFile);
-                if (File.Exists(path))
-                    return new Just<string>(path);
-            }
-            if (File.Exists(newFile))
-                return new Just<string>(newFile);
-            return new Nothing<string>();
-        }
-
         public static string UnescapeString(string param)
         {
             StringBuilder sb = new StringBuilder(param);
             return sb.Replace("\\t", "\t").Replace("\\n", "\n").Replace("\\\\", "\\").Replace("\\r", "\r").ToString();
         }
+
         public static string UnescapePath(string param)
         {
             StringBuilder sb = new StringBuilder(param);
             return sb.Replace("\\ ", " ").Replace("\\\\", "\\").ToString();
         }
-        public static string GetToolPath(string toolName)
+
+        public static string GetToolFileName(string name)
         {
             switch (Environment.OSVersion.Platform)
             {
-                case PlatformID.Unix:
-                case PlatformID.MacOSX:
-                    return "./Tools/" + toolName;
+                case PlatformID.Win32Windows: // Who knows, maybe someone runs EA on win 95
+                case PlatformID.Win32NT:
+                    return name + ".exe";
+
                 default:
-                    return ".\\Tools\\" + toolName + ".exe";
+                    return name;
             }
         }
     }

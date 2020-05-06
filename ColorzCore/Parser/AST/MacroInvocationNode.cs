@@ -10,15 +10,26 @@ namespace ColorzCore.Parser.AST
 {
     class MacroInvocationNode : IParamNode
     {
-        private EAParser p;
-        private Token invokeToken;
+        public class MacroException : Exception
+        {
+            public MacroInvocationNode CausedError { get; private set; }
+            public MacroException(MacroInvocationNode min) : base(min.invokeToken.Content)
+            {
+                CausedError = min;
+            }
+        }
+
+        private readonly EAParser p;
+        private readonly Token invokeToken;
+        private readonly ImmutableStack<Closure> scope;
         public IList<IList<Token>> Parameters { get; }
 
-        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters)
+        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             this.p = p;
             this.invokeToken = invokeTok;
             this.Parameters = parameters;
+            this.scope = scopes;
         }
 
         public ParamType Type => ParamType.MACRO;
@@ -43,7 +54,7 @@ namespace ColorzCore.Parser.AST
 
         public IEnumerable<Token> ExpandMacro()
         {
-            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters);
+            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters, scope);
         }
 
         public Either<int, string> TryEvaluate()
@@ -54,5 +65,13 @@ namespace ColorzCore.Parser.AST
         public string Name { get { return invokeToken.Content; } }
 
         public Location MyLocation { get { return invokeToken.Location; } }
+
+        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+
+        public IParamNode SimplifyExpressions(TAction<Exception> handler)
+        {
+            handler(new MacroException(this));
+            return this;
+        }
     }
 }

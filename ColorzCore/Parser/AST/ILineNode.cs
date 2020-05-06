@@ -1,4 +1,5 @@
 ﻿using ColorzCore.IO;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace ColorzCore.Parser.AST
     {
         int Size { get; }
         string PrettyPrint(int indentation);
-        void WriteData(ROM rom);
+        void WriteData(IOutput output);
+        void EvaluateExpressions(ICollection<Token> undefinedIdentifiers); //Return: undefined identifiers
     }
 }

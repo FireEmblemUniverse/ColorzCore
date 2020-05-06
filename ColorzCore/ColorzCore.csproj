@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -31,6 +31,11 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == '32bit|AnyCPU'">
+    <OutputPath>bin\32bit\</OutputPath>
+    <PlatformTarget>x86</PlatformTarget>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -42,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EAOptions.cs" />
     <Compile Include="DataTypes\CaseInsensitiveString.cs" />
     <Compile Include="EAInterpreter.cs" />
     <Compile Include="DataTypes\Extension.cs" />
@@ -50,7 +56,9 @@
     <Compile Include="DataTypes\Maybe.cs" />
     <Compile Include="DataTypes\MergeableGenerator.cs" />
     <Compile Include="DataTypes\Either.cs" />
+    <Compile Include="IO\ASM.cs" />
     <Compile Include="IO\IOUtility.cs" />
+    <Compile Include="IO\IOutput.cs" />
     <Compile Include="IO\ROM.cs" />
     <Compile Include="Lexer\Token.cs" />
     <Compile Include="Lexer\Tokenizer.cs" />
@@ -68,7 +76,6 @@
     <Compile Include="Parser\AST\NumberNode.cs" />
     <Compile Include="Parser\AST\OperatorNode.cs" />
     <Compile Include="Parser\AST\ParamType.cs" />
-    <Compile Include="Parser\AST\ParenthesizedAtomNode.cs" />
     <Compile Include="Parser\AST\RawNode.cs" />
     <Compile Include="Parser\AST\StatementNode.cs" />
     <Compile Include="Parser\AST\StringNode.cs" />
@@ -92,7 +99,7 @@
     <Compile Include="Preprocessor\Directives\IncludeDirective.cs" />
     <Compile Include="Preprocessor\Directives\IncludeToolEventDirective.cs" />
     <Compile Include="Preprocessor\Directives\IncludeExternalDirective.cs" />
-    <Compile Include="Preprocessor\Handler.cs" />
+    <Compile Include="Preprocessor\DirectiveHandler.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Raws\AtomicParam.cs" />
@@ -100,6 +107,12 @@
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
     <Compile Include="Raws\Raw.cs" />
+    <Compile Include="IO\Log.cs" />
+    <Compile Include="IO\IncludeFileSearcher.cs" />
+    <Compile Include="Parser\Macros\IsDefined.cs" />
+    <Compile Include="Parser\Macros\AddToPool.cs" />
+    <Compile Include="Preprocessor\Directives\PoolDirective.cs" />
+    <Compile Include="Parser\Pool.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

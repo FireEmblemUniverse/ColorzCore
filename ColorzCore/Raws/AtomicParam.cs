@@ -29,7 +29,7 @@ namespace ColorzCore.Raws
 
         public void Set(BitArray data, IParamNode input)
         {
-            Set(data, ((IAtomNode)input).Evaluate());
+            Set(data, input.AsAtom().FromJust.CoerceInt());
         }
         public void Set(BitArray data, int res)
         {

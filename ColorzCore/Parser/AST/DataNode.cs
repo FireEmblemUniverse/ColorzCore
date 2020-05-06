@@ -1,4 +1,5 @@
 ﻿using ColorzCore.IO;
+using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,9 +26,14 @@ namespace ColorzCore.Parser.AST
             return String.Format("Raw Data Block of Length {0}", Size);
         }
         
-        public void WriteData(ROM rom)
+        public void WriteData(IOutput output)
         {
-            rom.WriteTo(offset, data);
+            output.WriteTo(offset, data);
+        }
+
+        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        { 
+            // Nothing to be done because we contain no expressions.
         }
     }
 }

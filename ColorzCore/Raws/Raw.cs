@@ -85,10 +85,11 @@ namespace ColorzCore.Raws
         public static IList<Raw> ParseAllRaws(FileStream fs)
         {
             StreamReader r = new StreamReader(fs);
+            RawParseException.filename = fs.Name;
             IList<Raw> myRaws = new List<Raw>();
-            try
+            while (!r.EndOfStream)
             {
-                while (!r.EndOfStream)
+                try
                 {
                     Raw temp = ParseRaw(r);
                     myRaws.Add(temp);
@@ -99,9 +100,8 @@ namespace ColorzCore.Raws
                         ;
                     }
                 }
+                catch (EndOfStreamException) { }
             }
-            catch (EndOfStreamException) { }
-            catch (Exception e) { throw e; }
             return myRaws;
         }
 
@@ -119,13 +119,21 @@ namespace ColorzCore.Raws
             if (rawLine == null)
                 throw new EndOfStreamException();
             if (Char.IsWhiteSpace(rawLine[0]))
-                throw new Exception("Raw not at start of line.");
+                throw new RawParseException("Raw not at start of line.", rawLine);
             string[] parts = rawLine.Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-            string name = parts[0].Trim().ToUpper(); //Note all raws implicitly have all uppercase names -- this is to allow for case-insensitive comparison down the line. TODO: Make case sensitivity a requirement?
+            string name = parts[0].Trim().ToUpperInvariant(); //Note all raws implicitly have all uppercase names -- this is to allow for case-insensitive comparison down the line. TODO: Make case sensitivity a requirement?
             string code = parts[1].Trim();
             string length = parts[2].Trim();
             string flags = parts.Length == 4 ? parts[3].Trim() : "";
-            Dictionary<string, Flag> flagDict = ParseFlags(flags);
+            Dictionary<string, Flag> flagDict;
+            try
+            {
+                flagDict = ParseFlags(flags);
+            }
+            catch (Exception e)
+            {
+                throw new RawParseException(e.Message, rawLine);
+            }
             int indexMode = flagDict.ContainsKey("indexMode") ? flagDict["indexMode"].Values.GetLeft[0].ToInt() : 1;
             int lengthVal = indexMode * length.ToInt();
             IList<IRawParam> parameters = new List<IRawParam>();
@@ -159,12 +167,12 @@ namespace ColorzCore.Raws
             Maybe<int> terminatingList = flagDict.ContainsKey("terminatingList") ? (Maybe<int>)new Just<int>(flagDict["terminatingList"].Values.GetLeft[0].ToInt()) : (Maybe<int>)new Nothing<int>();
             if(!terminatingList.IsNothing && code.ToInt() != 0)
             {
-                throw new Exception("TerminatingList with code nonzero.");
+                throw new RawParseException("TerminatingList with code nonzero.", rawLine);
             }
             bool repeatable = flagDict.ContainsKey("repeatable");
             if((repeatable || !terminatingList.IsNothing) && (parameters.Count > 1) && fixedParams.Count > 0)
             {
-                throw new Exception("Repeatable or terminatingList code with multiple parameters or fixed parameters.");
+                throw new RawParseException("Repeatable or terminatingList code with multiple parameters or fixed parameters.", rawLine);
             }
             return new Raw(name, lengthVal, (short)(code.ToInt()), offsetMod, game, parameters, fixedParams, terminatingList, repeatable);
         } 
@@ -172,13 +180,20 @@ namespace ColorzCore.Raws
         public static Either<IRawParam, Tuple<int, int, int>> ParseParam(string paramLine, int indexMode)
         {
             if (!Char.IsWhiteSpace(paramLine[0]))
-                throw new Exception("Raw param does not start with whitespace.");
+                throw new RawParseException("Raw param does not start with whitespace.", paramLine);
             string[] parts = paramLine.Trim().Split(new char[1] { ',' }, StringSplitOptions.RemoveEmptyEntries);
             string name = parts[0];
             string position = parts[1];
             string length = parts[2];
             string flags = parts.Length == 4 ? parts[3].Trim() : "";
-            Dictionary<string, Flag> flagDict = ParseFlags(flags);
+            Dictionary<string, Flag> flagDict;
+            try
+            {
+                flagDict = ParseFlags(flags);
+            } catch (Exception e)
+            {
+                throw new RawParseException(e.Message, paramLine);
+            }
             int positionBits = position.ToInt() * indexMode;
             int lengthBits = length.ToInt() * indexMode;
 
@@ -334,6 +349,10 @@ namespace ColorzCore.Raws
             data.CopyTo(myBytes, 0);
             return myBytes;
         }
-        
+        public class RawParseException : Exception {
+            public string rawline;
+            public static string filename;
+            public RawParseException(string s, string rawline) : base(s) { this.rawline = rawline; }
+        }
     }
 }

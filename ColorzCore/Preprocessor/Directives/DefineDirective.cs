@@ -30,9 +30,6 @@ namespace ColorzCore.Preprocessor.Directives
                 {
                     if (l1.Count != 1 || l1[0].Type != TokenType.IDENTIFIER)
                     {
-                        /*if (l1.Count == 0)
-                            p.Error(l1[0].Location, "Missing parameter."); //TODO: This shouldn't be reached?
-                        else*/
                         p.Error(l1[0].Location, "Macro parameters must be identifiers (got " + l1[0].Content + ").");
                     }
                     else
@@ -70,15 +67,6 @@ namespace ColorzCore.Preprocessor.Directives
                 if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
                 {
                     string name = maybeIdentifier.FromJust;
-                    /* if(!p.IsValidDefinitionName(name))
-                    {
-                        if (p.IsReservedName(name))
-                        {
-                            p.Error(parameters[0].MyLocation, "Invalid redefinition: " + name);
-                        }
-                        else
-                            p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
-                    } */
                     if(p.Definitions.ContainsKey(name))
                         p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
                     if (parameters.Count == 2)
@@ -148,7 +136,7 @@ namespace ColorzCore.Preprocessor.Directives
                         IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
                         if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros.HasMacro(current.Content, param.Count))
                         {
-                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param))
+                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param, p.GlobalScope))
                             {
                                 yield return t; 
                             }

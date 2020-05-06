@@ -17,7 +17,12 @@ namespace ColorzCore.Parser.Macros
         {
             Macros = new Dictionary<string, Dictionary<int, IMacro>>();
             Parent = parent;
-            BuiltInMacros = new Dictionary<string, BuiltInMacro> { { "String", String.Instance } };
+
+            BuiltInMacros = new Dictionary<string, BuiltInMacro> {
+                { "String", new String() },
+                { "IsDefined", new IsDefined(parent) },
+                { "AddToPool", new AddToPool(parent) },
+            };
         }
 
         public bool HasMacro(string name, int paramNum)

@@ -22,32 +22,9 @@ namespace ColorzCore.Parser.AST
         public override int Precedence => 11;
         public override Location MyLocation => myToken.Location;
 
-        public override bool CanEvaluate()
-        {
-            return interior.CanEvaluate();
-        }
-
-        public override int Evaluate()
-        {
-            return -interior.Evaluate();
-        }
-
         public override string PrettyPrint()
         {
             return '-' + interior.PrettyPrint();
-        }
-
-        public override IAtomNode Simplify()
-        {
-            interior = interior.Simplify();
-            if(CanEvaluate())
-            {
-                return new NumberNode(MyLocation, Evaluate());
-            }
-            else
-            {
-                return this;
-            }
         }
 
         public override IEnumerable<Token> ToTokens()
@@ -55,6 +32,11 @@ namespace ColorzCore.Parser.AST
             yield return myToken;
             foreach(Token t in interior.ToTokens())
                 yield return t;
+        }
+
+        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        {
+            return interior.TryEvaluate(handler).Fmap((int x) => -x);
         }
     }
 }
