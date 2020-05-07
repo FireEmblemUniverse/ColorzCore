@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
 using ColorzCore.IO;
 using ColorzCore.DataTypes;
 
@@ -8,6 +9,7 @@ namespace ColorzCore
     class Program
     {
         public static bool Debug = false;
+
         private static string[] helpstringarr = {
             "EA Colorz Core. Usage:",
             "./ColorzCore <A|D|AA> <game> [-opts]",
@@ -52,6 +54,8 @@ namespace ColorzCore
             "   Assembles as if \"#define <defname> <defvalue>\" were at the top of the input stream.",
             "-debug",
             "   Enable debug mode. Not recommended for end users.",
+            "--build-times",
+            "   Print build times at the end of build.",
             ""
         };
 
@@ -170,6 +174,10 @@ namespace ColorzCore
                                 options.nocashSym = true;
                                 break;
 
+                            case "-build-times":
+                                options.buildTimes = true;
+                                break;
+
                             case "I":
                             case "-include":
                                 options.includePaths.Add(flag[1]);
@@ -246,6 +254,8 @@ namespace ColorzCore
 
             EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log, options);
 
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
+
             bool success = myInterpreter.Interpret();
 
             if (success && options.nocashSym)
@@ -259,11 +269,34 @@ namespace ColorzCore
                 }
             }
 
+            if (options.buildTimes) { 
+
+            // Print times
+
+            log.Output.WriteLine();
+            log.Output.WriteLine("Times:");
+
+            foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
+            {
+                log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
+            }
+
+            // Print total time
+
+            log.Output.WriteLine();
+            log.Output.WriteLine("Total:");
+
+            log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
+
+            }
+
             inStream.Close();
             output.Close();
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;
+
         }
     }
 }
+

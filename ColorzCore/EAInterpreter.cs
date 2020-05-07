@@ -74,6 +74,8 @@ namespace ColorzCore
         {
             Tokenizer t = new Tokenizer();
 
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
+
             foreach (Tuple<string, string> defpair in opts.defs)
             {
                 myParser.ParseAll(t.TokenizeLine("#define " + defpair.Item1 + " " + defpair.Item2, "cmd", 0));
@@ -116,6 +118,8 @@ namespace ColorzCore
             }
 
             /* Last step: assembly */
+
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_DATAWRITE);
 
             if (!log.HasErrored)
             {

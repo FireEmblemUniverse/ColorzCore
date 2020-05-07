@@ -10,6 +10,7 @@ namespace ColorzCore
     {
         public bool werr;
         public bool nowarn, nomess;
+        public bool buildTimes;
 
         public bool noColoredLog;
 
@@ -26,6 +27,7 @@ namespace ColorzCore
             nomess = false;
             noColoredLog = false;
             nocashSym = false;
+            buildTimes = false;
         }
     }
 }
