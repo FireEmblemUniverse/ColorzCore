@@ -10,9 +10,6 @@ namespace ColorzCore
     {
         public static bool Debug = false;
 
-
-        public static ExecTimer Timer = new ExecTimer();
-
         private static string[] helpstringarr = {
             "EA Colorz Core. Usage:",
             "./ColorzCore <A|D|AA> <game> [-opts]",
@@ -239,8 +236,6 @@ namespace ColorzCore
                 return EXIT_FAILURE;
             }
 
-            Timer = new ExecTimer();
-
             string game = args[1];
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
@@ -259,7 +254,7 @@ namespace ColorzCore
 
             EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log, options);
 
-            Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
 
             bool success = myInterpreter.Interpret();
 
@@ -281,9 +276,9 @@ namespace ColorzCore
             log.Output.WriteLine();
             log.Output.WriteLine("Times:");
 
-            foreach (KeyValuePair<TimeSpan, string> time in Timer.SortedTimes)
+            foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
             {
-                log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + Timer.Counts[time.Value] + ")");
+                log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
             }
 
             // Print total time
@@ -291,7 +286,7 @@ namespace ColorzCore
             log.Output.WriteLine();
             log.Output.WriteLine("Total:");
 
-            log.Output.WriteLine("  " + Timer.TotalTime.ToString());
+            log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
 
             }
 

@@ -5,6 +5,9 @@ namespace ColorzCore
 {
     public class ExecTimer
     {
+        private static readonly ExecTimer instance = new ExecTimer();
+        public static ExecTimer Timer { get { return instance; } }
+
         public const string KEY_RESET = "__reset";
         public const string KEY_GENERIC = "parsing-interpreting";
         public const string KEY_RAWPROC = "raw-processing";
@@ -16,6 +19,15 @@ namespace ColorzCore
         private Dictionary<string, int> counts;
 
         private TimeSpan totalTime;
+        
+        private ExecTimer()
+        {
+            timingPoints = new List<Tuple<DateTime, string>>();
+            timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, KEY_RESET));
+
+            times = null;
+            counts = null;
+        }
 
         public SortedList<TimeSpan, string> SortedTimes
         {
@@ -64,15 +76,6 @@ namespace ColorzCore
 
                 return this.totalTime;
             }
-        }
-
-        public ExecTimer()
-        {
-            timingPoints = new List<Tuple<DateTime, string>>();
-            timingPoints.Add(new Tuple<DateTime, string>(DateTime.Now, KEY_RESET));
-
-            times = null;
-            counts = null;
         }
 
         public void AddTimingPoint(string key)

@@ -74,7 +74,7 @@ namespace ColorzCore
         {
             Tokenizer t = new Tokenizer();
 
-            Program.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
             foreach (Tuple<string, string> defpair in opts.defs)
             {
@@ -119,7 +119,7 @@ namespace ColorzCore
 
             /* Last step: assembly */
 
-            Program.Timer.AddTimingPoint(ExecTimer.KEY_DATAWRITE);
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_DATAWRITE);
 
             if (!log.HasErrored)
             {

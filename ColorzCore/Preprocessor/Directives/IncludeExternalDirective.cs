@@ -22,7 +22,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            Program.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
+            ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
             Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()));
 
@@ -76,7 +76,7 @@ namespace ColorzCore.Preprocessor.Directives
                 parse.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
             }
 
-            Program.Timer.AddTimingPoint(parameters[0].ToString().ToLower());
+            ExecTimer.Timer.AddTimingPoint(parameters[0].ToString().ToLower());
 
             return new Just<ILineNode>(new DataNode(parse.CurrentOffset, output));
         }
