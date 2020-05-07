@@ -22,7 +22,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            Program.Timer.AddTimingPoint(Program.ExecTimer.KEY_GENERIC);
+            Program.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
             Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()));
 

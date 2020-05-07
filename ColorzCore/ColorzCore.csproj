@@ -103,6 +103,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Raws\AtomicParam.cs" />
+    <Compile Include="ExecTimer.cs" />
     <Compile Include="Raws\Flag.cs" />
     <Compile Include="Raws\IRawParam.cs" />
     <Compile Include="Raws\ListParam.cs" />
