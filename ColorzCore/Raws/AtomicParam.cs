@@ -17,7 +17,7 @@ namespace ColorzCore.Raws
 
         public int Length { get; }
 
-        private bool pointer;
+        private readonly bool pointer;
 
         public AtomicParam(string name, int position, int length, bool isPointer)
         {
@@ -27,19 +27,19 @@ namespace ColorzCore.Raws
             pointer = isPointer;
         }
 
-        public void Set(BitArray data, IParamNode input)
+        public void Set(byte[] data, IParamNode input)
         {
             Set(data, input.AsAtom().FromJust.CoerceInt());
         }
-        public void Set(BitArray data, int res)
+
+        public void Set(byte[] data, int value)
         {
-            if (pointer && res != 0)
-                res |= 0x08000000;
-            byte[] resBytes = { (byte)res, (byte)(res >> 8), (byte)(res >> 16), (byte)(res >> 24) };
-            BitArray bits = new BitArray(resBytes);
-            for (int i = Position; i < Position + Length; i++)
-                data[i] = bits[i - Position];
+            if (pointer && value != 0)
+                value += 0x08000000; // TODO: better offset-to-address mapping
+
+            data.SetBits(Position, Length, value);
         }
+
         public bool Fits(IParamNode input)
         {
             return input.Type == ParamType.ATOM;
