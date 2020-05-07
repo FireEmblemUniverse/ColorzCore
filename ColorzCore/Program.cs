@@ -11,7 +11,7 @@ namespace ColorzCore
         public static bool Debug = false;
 
 
-        public static ExecTimer Timer = null;
+        public static ExecTimer Timer = new ExecTimer();
 
         private static string[] helpstringarr = {
             "EA Colorz Core. Usage:",
