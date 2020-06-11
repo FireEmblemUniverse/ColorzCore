@@ -133,7 +133,19 @@ namespace ColorzCore
                                                      new StreamWriter(ldsFileName, false));
                                 } else
                                 {
-                                    output = new ROM(File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite)); //TODO: Handle file not found exceptions
+                                    FileStream outStream;
+                                    if(File.Exists(outFileName) && !File.GetAttributes(outFileName).HasFlag(FileAttributes.ReadOnly))
+                                    {
+                                        outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite);
+                                    } else if(!File.Exists(outFileName))
+                                    {
+                                        outStream = File.Create(outFileName);
+                                    } else
+                                    {
+                                        Console.Error.WriteLine("Output file is read-only.");
+                                        return EXIT_FAILURE;
+                                    }
+                                    output = new ROM(outStream);
                                 } 
                                 break;
 
@@ -209,7 +221,7 @@ namespace ColorzCore
                                     EAOptions.Instance.defs.Add(Tuple.Create(def_args[0], def_args[1]));
                                 } catch (IndexOutOfRangeException)
                                 {
-                                    Console.Out.WriteLine("Improperly formed -define directive.");
+                                    Console.Error.WriteLine("Improperly formed -define directive.");
                                 }
                                 break;
 
@@ -218,7 +230,7 @@ namespace ColorzCore
                                 {
                                     EAOptions.Instance.romOffset = Convert.ToInt32(flag[1], 16);
                                 } catch {
-                                    Console.Out.WriteLine("Invalid hex offset given for ROM.");
+                                    Console.Error.WriteLine("Invalid hex offset given for ROM.");
                                 }
                                 break;
 
