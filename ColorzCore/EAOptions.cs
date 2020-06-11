@@ -19,8 +19,11 @@ namespace ColorzCore
         public List<string> includePaths = new List<string>();
         public List<string> toolsPaths = new List<string>();
         public List<Tuple<string, string>> defs = new List<Tuple<string, string>>();
+        public static EAOptions Instance { get; } = new EAOptions();
 
-        public EAOptions()
+        public int romOffset;
+
+        private EAOptions()
         {
             werr = false;
             nowarn = false;
@@ -28,6 +31,7 @@ namespace ColorzCore
             noColoredLog = false;
             nocashSym = false;
             buildTimes = false;
+            romOffset = 0x8000000;
         }
     }
 }

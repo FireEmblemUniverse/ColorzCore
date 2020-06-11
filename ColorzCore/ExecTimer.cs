@@ -5,8 +5,7 @@ namespace ColorzCore
 {
     public class ExecTimer
     {
-        private static readonly ExecTimer instance = new ExecTimer();
-        public static ExecTimer Timer { get { return instance; } }
+        public static ExecTimer Timer { get; } = new ExecTimer();
 
         public const string KEY_RESET = "__reset";
         public const string KEY_GENERIC = "parsing-interpreting";

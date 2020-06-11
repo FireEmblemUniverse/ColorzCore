@@ -35,7 +35,8 @@ namespace ColorzCore.Raws
         public void Set(byte[] data, int value)
         {
             if (pointer && value != 0)
-                value += 0x08000000; // TODO: better offset-to-address mapping
+                value |= EAOptions.Instance.romOffset; 
+                //TODO: Perhaps additional EAOption to add for ROM offsets that aren't address spaces, e.g. program being loaded at 0x100?
 
             data.SetBits(Position, Length, value);
         }

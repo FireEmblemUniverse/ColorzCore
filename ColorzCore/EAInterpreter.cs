@@ -19,10 +19,9 @@ namespace ColorzCore
         private string game, iFile;
         private Stream sin;
         private Log log;
-        private EAOptions opts;
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log, EAOptions opts)
+        public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log)
         {
             this.game = game;
             this.output = output;
@@ -49,18 +48,17 @@ namespace ColorzCore
             this.sin = sin;
             this.log = log;
             iFile = inFileName;
-            this.opts = opts;
 
             IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
             includeSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
 
-            foreach (string path in opts.includePaths)
+            foreach (string path in EAOptions.Instance.includePaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
             IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
             toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
 
-            foreach (string path in opts.toolsPaths)
+            foreach (string path in EAOptions.Instance.toolsPaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
             myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
@@ -75,7 +73,7 @@ namespace ColorzCore
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            foreach (Tuple<string, string> defpair in opts.defs)
+            foreach (Tuple<string, string> defpair in EAOptions.Instance.defs)
             {
                 myParser.ParseAll(t.TokenizeLine("#define " + defpair.Item1 + " " + defpair.Item2, "cmd", 0));
             }

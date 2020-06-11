@@ -48,14 +48,18 @@ namespace ColorzCore
             "   Equivalent to --no-mess --no-warn.",
             "--no-colored-log",
             "   Don't use colored log tags when outputting logs to console/stderr.",
-            "-h|--help",
-            "   Display this message and exit.",
             "-[D|def|define]:<defname>=<defvalue>",
             "   Assembles as if \"#define <defname> <defvalue>\" were at the top of the input stream.",
             "-debug",
             "   Enable debug mode. Not recommended for end users.",
             "--build-times",
             "   Print build times at the end of build.",
+            "-romoffset:<number>",
+            "   Treats the offset of the ROM as the given number,",
+            "   for the purposes of POIN. Addresses are or'd.",
+            "   Hex literals only. Defaults to 0x08000000.",
+            "-h|--help",
+            "   Display this message and exit.",
             ""
         };
 
@@ -67,8 +71,6 @@ namespace ColorzCore
 
         static int Main(string[] args)
         {
-            EAOptions options = new EAOptions();
-
             IncludeFileSearcher rawSearcher = new IncludeFileSearcher();
             rawSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
 
@@ -142,7 +144,7 @@ namespace ColorzCore
 
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
-                                options.noColoredLog = true;
+                                EAOptions.Instance.noColoredLog = true;
                                 break;
 
                             case "debug":
@@ -150,48 +152,48 @@ namespace ColorzCore
                                 break;
 
                             case "werr":
-                                options.werr = true;
+                                EAOptions.Instance.werr = true;
                                 break;
 
                             case "-no-mess":
-                                options.nomess = true;
+                                EAOptions.Instance.nomess = true;
                                 break;
 
                             case "-no-warn":
-                                options.nowarn = true;
+                                EAOptions.Instance.nowarn = true;
                                 break;
 
                             case "-no-colored-log":
-                                options.noColoredLog = true;
+                                EAOptions.Instance.noColoredLog = true;
                                 break;
 
                             case "quiet":
-                                options.nomess = true;
-                                options.nowarn = true;
+                                EAOptions.Instance.nomess = true;
+                                EAOptions.Instance.nowarn = true;
                                 break;
 
                             case "-nocash-sym":
-                                options.nocashSym = true;
+                                EAOptions.Instance.nocashSym = true;
                                 break;
 
                             case "-build-times":
-                                options.buildTimes = true;
+                                EAOptions.Instance.buildTimes = true;
                                 break;
 
                             case "I":
                             case "-include":
-                                options.includePaths.Add(flag[1]);
+                                EAOptions.Instance.includePaths.Add(flag[1]);
                                 break;
 
                             case "T":
                             case "-tools":
-                                options.toolsPaths.Add(flag[1]);
+                                EAOptions.Instance.toolsPaths.Add(flag[1]);
                                 break;
 
                             case "IT":
                             case "TI":
-                                options.includePaths.Add(flag[1]);
-                                options.toolsPaths.Add(flag[1]);
+                                EAOptions.Instance.includePaths.Add(flag[1]);
+                                EAOptions.Instance.toolsPaths.Add(flag[1]);
                                 break;
 
                             case "h":
@@ -204,10 +206,19 @@ namespace ColorzCore
                             case "define":
                                 try {
                                     string[] def_args = flag[1].Split(new char[] { '=' }, 2);
-                                    options.defs.Add(Tuple.Create(def_args[0], def_args[1]));
+                                    EAOptions.Instance.defs.Add(Tuple.Create(def_args[0], def_args[1]));
                                 } catch (IndexOutOfRangeException)
                                 {
                                     Console.Out.WriteLine("Improperly formed -define directive.");
+                                }
+                                break;
+
+                            case "romoffset":
+                                try
+                                {
+                                    EAOptions.Instance.romOffset = Convert.ToInt32(flag[1], 16);
+                                } catch {
+                                    Console.Out.WriteLine("Invalid hex offset given for ROM.");
                                 }
                                 break;
 
@@ -242,23 +253,23 @@ namespace ColorzCore
 
             Log log = new Log {
                 Output = errorStream,
-                WarningsAreErrors = options.werr,
-                NoColoredTags = options.noColoredLog
+                WarningsAreErrors = EAOptions.Instance.werr,
+                NoColoredTags = EAOptions.Instance.noColoredLog
             };
 
-            if (options.nowarn)
+            if (EAOptions.Instance.nowarn)
                 log.IgnoredKinds.Add(Log.MsgKind.WARNING);
 
-            if (options.nomess)
+            if (EAOptions.Instance.nomess)
                 log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log, options);
+            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log);
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
 
             bool success = myInterpreter.Interpret();
 
-            if (success && options.nocashSym)
+            if (success && EAOptions.Instance.nocashSym)
             {
                 using (var symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
                 {
@@ -269,7 +280,7 @@ namespace ColorzCore
                 }
             }
 
-            if (options.buildTimes) { 
+            if (EAOptions.Instance.buildTimes) { 
 
             // Print times
 
