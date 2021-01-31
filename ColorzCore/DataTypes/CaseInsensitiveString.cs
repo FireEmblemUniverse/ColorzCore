@@ -18,15 +18,15 @@ namespace ColorzCore.DataTypes
         }
         public CaseInsensitiveString(string input)
         {
-            String = input;
+            data = input.ToUpper();
         }
         public override int GetHashCode()
         {
             return String.GetHashCode();
         }
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
-            return String == obj.ToString();
+            return obj != null && String == obj.ToString();
         }
         public override string ToString()
         {

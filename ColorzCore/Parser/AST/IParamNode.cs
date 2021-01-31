@@ -10,7 +10,7 @@ namespace ColorzCore.Parser.AST
 {
     public interface IParamNode
     {
-        string ToString(); //For use in other programs.
+        string? ToString(); //For use in other programs.
         ParamType Type { get; }
         string PrettyPrint();
         Location MyLocation { get; }

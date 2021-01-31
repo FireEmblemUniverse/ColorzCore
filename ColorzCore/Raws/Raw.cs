@@ -21,7 +21,7 @@ namespace ColorzCore.Raws
 
         private readonly int unitSize;
         private readonly byte[] baseUnit;
-        private readonly byte[] endUnit; // Note: nullable
+        private readonly byte[]? endUnit;
 
         // TODO: fixed mask?
 

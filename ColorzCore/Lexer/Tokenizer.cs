@@ -305,13 +305,17 @@ namespace ColorzCore.Lexer
             int curLine = 1;
             while (!sin.EndOfStream)
             {
-                string line = sin.ReadLine();
-                foreach (Token t in TokenizeLine(line, fileName, curLine))
+                string? line = sin.ReadLine();
+
+                if (line != null)
                 {
-                    yield return t;
+                    foreach (Token t in TokenizeLine(line, fileName, curLine))
+                    {
+                        yield return t;
+                    }
+                    yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
+                    curLine++;
                 }
-                yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
-                curLine++;
             }
         }
 

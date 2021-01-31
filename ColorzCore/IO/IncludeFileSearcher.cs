@@ -15,7 +15,7 @@ namespace ColorzCore.IO
             return FindFile(null, name);
         }
 
-        public Maybe<string> FindFile(string cwd, string name)
+        public Maybe<string> FindFile(string? cwd, string name)
         {
             // Find the first valid file in the list of possible file paths
 
@@ -33,7 +33,7 @@ namespace ColorzCore.IO
             return FindDirectory(null, name);
         }
 
-        public Maybe<string> FindDirectory(string cwd, string name)
+        public Maybe<string> FindDirectory(string? cwd, string name)
         {
             // Find the first valid directory in the list of possible file paths
 
@@ -46,7 +46,7 @@ namespace ColorzCore.IO
             return new Nothing<string>();
         }
 
-        protected IEnumerable<string> EnumeratePossibleAccessPaths(string cwd, string name)
+        protected IEnumerable<string> EnumeratePossibleAccessPaths(string? cwd, string name)
         {
             if (AllowRelativeInclude)
             {

@@ -77,7 +77,7 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             string inFileName = "stdin";
 
-            IOutput output = null;
+            IOutput? output = null;
             string outFileName = "none";
             string ldsFileName = "none";
 

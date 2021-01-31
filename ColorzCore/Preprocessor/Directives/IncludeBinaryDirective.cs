@@ -20,11 +20,11 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion { get { return true; } }
 
-        public IncludeFileSearcher FileSearcher { get; set; }
+        public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
         public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString());
+            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
 
             if (!existantFile.IsNothing)
             {

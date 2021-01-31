@@ -22,9 +22,9 @@ namespace ColorzCore.Preprocessor.Directives
         {
             foreach (IParamNode parm in parameters)
             {
-                string s = parm.ToString();
+                string s = parm.ToString()!;
                 if (p.Definitions.ContainsKey(s))
-                    p.Definitions.Remove(parm.ToString());
+                    p.Definitions.Remove(s);
                 else
                     p.Warning(parm.MyLocation, "Undefining non-existant definition: " + s);
             }

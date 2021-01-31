@@ -65,7 +65,7 @@ namespace ColorzCore.Parser
         private bool validOffset;
         private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
         private int currentOffset;
-        private Token head; //TODO: Make this make sense
+        private Token? head; //TODO: Make this make sense
 
         public EAParser(Dictionary<string, IList<Raw>> raws, Log log, DirectiveHandler directiveHandler)
         {
@@ -877,7 +877,7 @@ namespace ColorzCore.Parser
             // TODO: maybe make this warning optional?
             if (!offsetInitialized)
             {
-                Warning(head.Location, "Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
+                Warning(head?.Location, "Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
                 offsetInitialized = false; // only warn once
             }
 
@@ -888,7 +888,7 @@ namespace ColorzCore.Parser
             if (!prot.IsNothing)
             {
                 Location l = prot.FromJust;
-                Error(head.Location, System.String.Format("Trying to write data to area protected in file {0} at line {1}, column {2}.", Path.GetFileName(l.file), l.lineNum, l.colNum));
+                Error(head?.Location, System.String.Format("Trying to write data to area protected in file {0} at line {1}, column {2}.", Path.GetFileName(l.file), l.lineNum, l.colNum));
             }
         }
     }

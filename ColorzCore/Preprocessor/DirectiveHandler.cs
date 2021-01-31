@@ -39,7 +39,7 @@ namespace ColorzCore.Preprocessor
         {
             string directiveName = directive.Content.Substring(1);
 
-            if (directives.TryGetValue(directiveName, out IDirective toExec))
+            if (directives.TryGetValue(directiveName, out IDirective? toExec))
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {

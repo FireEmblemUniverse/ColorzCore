@@ -50,6 +50,7 @@ namespace ColorzCore.DataTypes
             }
         }
         public static Dictionary<K, IList<V>> AddTo<K,V>(this Dictionary<K, IList<V>> self, K key, V val)
+            where K: notnull
         {
             if (self.ContainsKey(key))
                 self[key].Add(val);

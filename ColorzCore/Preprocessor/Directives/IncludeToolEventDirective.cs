@@ -18,13 +18,13 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams { get { return null; } }
         public bool RequireInclusion { get { return true; } }
 
-        public IncludeFileSearcher FileSearcher { get; set; }
+        public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
         public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()));
+            Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()!));
 
             if (validFile.IsNothing)
             {
@@ -37,7 +37,7 @@ namespace ColorzCore.Preprocessor.Directives
             System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo.RedirectStandardError = true;
             // Redirect the output stream of the child process.
-            p.StartInfo.WorkingDirectory = Path.GetDirectoryName(self.FileName);
+            p.StartInfo.WorkingDirectory = Path.GetDirectoryName(self.FileName)!;
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.CreateNoWindow = true;
@@ -78,7 +78,7 @@ namespace ColorzCore.Preprocessor.Directives
                 tokens.PrependEnumerator(t.Tokenize(outputBytes, Path.GetFileName(self.FileName) + ", Line " + self.LineNumber + "; " + parameters[0].ToString()).GetEnumerator());
             }
 
-            ExecTimer.Timer.AddTimingPoint(parameters[0].ToString().ToLower());
+            ExecTimer.Timer.AddTimingPoint(parameters[0].ToString()!.ToLower());
 
             return new Nothing<ILineNode>();
         }
