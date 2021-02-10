@@ -66,6 +66,7 @@ namespace ColorzCore.Raws
         // Flag aliases
         public static readonly Dictionary<string, string> FLAG_ALIAS_MAP = new Dictionary<string, string>
         {
+            { "language", FLAG_GAME },
             { "indexMode", FLAG_BITUNIT },
             { "offsetMod", FLAG_ALIGNMENT },
             { "terminatingList", FLAG_LIST_TERMINATOR },
