@@ -34,5 +34,16 @@ namespace ColorzCore.Parser.AST
         {
             return new Just<IAtomNode>(this);
         }
+        
+        public bool Equals(IParamNode other) {
+            if(other.ParamType != ParamType.ATOM) return false;
+            IAtomNode otherAtom = (IAtomNode)other;
+            
+            //TODO: We can try equity of identifiers if we don't fully evaluate. But for now try full evaluation.
+            return this.TryEvaluate.bind((int thisVal) => 
+                otherAtom.TryEvaluate.bind((int otherVal) => 
+                new Just<bool>(thisVal == otherVal)))
+                .IfJust((bool b) => b, () => false);
+        }
     }
 }

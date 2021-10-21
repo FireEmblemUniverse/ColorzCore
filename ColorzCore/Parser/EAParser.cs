@@ -44,7 +44,7 @@ namespace ColorzCore.Parser
             }
 
         }
-        public ImmutableStack<bool> Inclusion { get; set; }
+        public ImmutableStack<bool?> Inclusion { get; set; }
 
         public Pool Pool { get; private set; }
 
@@ -58,8 +58,8 @@ namespace ColorzCore.Parser
         public bool IsIncluding { get
             {
                 bool acc = true;
-                for (ImmutableStack<bool> temp = Inclusion; !temp.IsEmpty && acc; temp = temp.Tail)
-                    acc &= temp.Head;
+                for (ImmutableStack<bool?> temp = Inclusion; !temp.IsEmpty && acc; temp = temp.Tail)
+                    acc &= (temp.Head.HasValue && temp.Head.Value);
                 return acc;
             } }
         private bool validOffset;
@@ -79,7 +79,7 @@ namespace ColorzCore.Parser
             offsetInitialized = false;
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
-            Inclusion = ImmutableStack<bool>.Nil;
+            Inclusion = ImmutableStack<bool?>.Nil;
             this.directiveHandler = directiveHandler;
 
             Pool = new Pool();
@@ -843,7 +843,7 @@ namespace ColorzCore.Parser
             Macros.Clear();
             Definitions.Clear();
             Raws.Clear();
-            Inclusion = ImmutableStack<bool>.Nil;
+            Inclusion = ImmutableStack<bool?>.Nil;
             CurrentOffset = 0;
             pastOffsets.Clear();
         }

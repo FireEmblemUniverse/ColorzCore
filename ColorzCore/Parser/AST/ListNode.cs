@@ -92,5 +92,15 @@ namespace ColorzCore.Parser.AST
         public int NumCoords { get { return Interior.Count; } }
 
         public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+        
+        public bool Equals(IParamNode other) {
+            if(other.ParamType != ParamType.LIST) return false;
+            ListNode otherList = (ListNode)other;
+            if(this.Interior.Count != otherList.Interior.Count) return false;
+            for(int i=0; i<Interior.Count; i++) {
+                if(!Interior[i].equals(otherList.Interior[i])) return false;
+            }
+            return true;
+        }
     }
 }

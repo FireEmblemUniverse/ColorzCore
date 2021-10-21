@@ -54,5 +54,9 @@ namespace ColorzCore.Parser.AST
         public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
 
         public IParamNode SimplifyExpressions(TAction<Exception> handler) { return this; }
+        
+        public bool Equals(IParamNode other) {
+            return other.ParamType == ParamType.STRING && this.ToString() == other.ToString();
+        }
     }
 }

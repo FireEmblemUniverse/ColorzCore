@@ -17,6 +17,8 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams => null;
 
         public bool RequireInclusion => true;
+        
+        public bool ExpandFirstParam => false;
 
         public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {

@@ -32,5 +32,7 @@ namespace ColorzCore.Preprocessor.Directives
          * This may not hold when the parser is skipping, e.g. from an #ifdef.
          */
         bool RequireInclusion { get; }
+        
+        bool ExpandFirstParam { get; }
     }
 }

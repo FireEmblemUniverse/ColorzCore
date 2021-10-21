@@ -19,6 +19,8 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams { get { return 1; } }
 
         public bool RequireInclusion { get { return true; } }
+        
+        public bool ExpandFirstParam => false;
 
         public IncludeFileSearcher FileSearcher { get; set; }
 

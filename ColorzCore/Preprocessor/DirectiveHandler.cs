@@ -32,33 +32,42 @@ namespace ColorzCore.Preprocessor
                 { "define", new DefineDirective() },
                 { "pool", new PoolDirective() },
                 { "undef", new UndefineDirective() },
+                { "ifeq", new IfEqDirective() },
+                { "elifeq", new ElIfEqDirective() },
             };
         }
+        
+        private Maybe<IDirective> GetDirective(Token directive) {
+            string directiveName = directive.Content.Substring(1);
+            if (directives.TryGetValue(directiveName, out IDirective found))
+            {
+                return new Just<IDirective>(found);
+            } else {
+                return new Nothing<IDirective>();
+            }
+        }
+        
+        public bool ExpandFirstParam(Token directive) { return GetDirective(directive).IfJust((IDirective dir) => dir.ExpandFirstParam, () => false); }
 
         public Maybe<ILineNode> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            string directiveName = directive.Content.Substring(1);
-
-            if (directives.TryGetValue(directiveName, out IDirective toExec))
-            {
-                if (!toExec.RequireInclusion || p.IsIncluding)
-                {
-                    if (toExec.MinParams <= parameters.Count && (!toExec.MaxParams.HasValue || parameters.Count <= toExec.MaxParams))
+            return GetDirective(directive).IfJust(
+                (IDirective toExec) => { 
+                    if (!toExec.RequireInclusion || p.IsIncluding)
                     {
-                        return toExec.Execute(p, directive, parameters, tokens);
+                        if (toExec.MinParams <= parameters.Count && (!toExec.MaxParams.HasValue || parameters.Count <= toExec.MaxParams))
+                        {
+                            return toExec.Execute(p, directive, parameters, tokens);
+                        }
+                        else
+                        {
+                            p.Error(directive.Location, "Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
+                            return new Nothing<ILineNode>();
+                        }
                     }
-                    else
-                    {
-                        p.Error(directive.Location, "Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
-                    }
-                }
-            }
-            else
-            {
-                p.Error(directive.Location, "Directive not recognized: " + directiveName);
-            }
-
-            return new Nothing<ILineNode>();
+                },
+                () => { p.Error(directive.Location, "Directive not recognized: " + directiveName); return new Nothing<ILineNode>(); }
+            );
         }
     }
 }

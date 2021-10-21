@@ -16,6 +16,7 @@ namespace ColorzCore.Parser.AST
         Location MyLocation { get; }
         IParamNode SimplifyExpressions(TAction<Exception> handler); //TODO: Abstract this into a general traverse method.
         Maybe<IAtomNode> AsAtom();
+        bool Equals(IParamNode other);
     }
 
     public static class ParamExtensions
