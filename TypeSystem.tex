@@ -1,0 +1,193 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{proof}
+\title{EA Type System Proposal}
+\date{\today}
+\author{Crazycolorz5}
+
+
+% Symbols \wedge and \vee from mathabx
+\DeclareFontFamily{U}{matha}{\hyphenchar\font45}
+\DeclareFontShape{U}{matha}{m}{n}{
+	<5> <6> <7> <8> <9> <10> gen * matha
+	<10.95> matha10 <12> <14.4> <17.28> <20.74> <24.88> matha12
+}{}
+\DeclareSymbolFont{matha}{U}{matha}{m}{n}
+\DeclareMathSymbol{\meet}         {2}{matha}{"5E}
+\DeclareMathSymbol{\join}           {2}{matha}{"5F}
+% https://tex.stackexchange.com/a/227925
+
+\begin{document}
+	\maketitle
+
+\section{New Syntax}
+\begin{verbatim}
+	e : a
+	AssertType(e, a)
+	#setautotype a
+	#clearautotype
+\end{verbatim}
+
+\section{Representation of Types}
+\subsection{Atomic Types}
+Atomic types are represented by an identifier. The set of atomic types is the union of $\{ \texttt{any}, \texttt{raw}, \texttt{pointer} \}$ and a user provided set. Let $A$ represent the set of atomic types.
+
+\subsection{Constructed Types}
+The set of all types is given by the grammar:
+$$
+T ::= A \mid A[c] \mid \texttt{String}
+$$
+where c is a constant integer.
+That is to say, types are either an atomic type, a constant-length homogeneous list of a atomic type, or a string. 
+
+For the remainder of the rules, take $a$ to be a atomic type variable, and $t$ to be a (general) type variable.
+
+\section{Typing Contexts}
+\subsection{Subtyping Lattice}
+$\Gamma$ contains a lattice on atomic types with $\top = \texttt{any}$ and $\bot = \texttt{raw}$. The partial order $\preceq$ is the reflexive, transitive closure of user provided subtype relations.
+
+\subsection{RAWS Parameter Types}
+$\Gamma$ contains a type signature for each RAW. Note that since RAWs may be overloaded, there may be multiple valid type signatures. Each overload of a RAW has a unique type signature.
+
+We shall write a type signature as $raw\_name : arg_1\_type \rightarrow arg_2\_type \rightarrow \dots \rightarrow arg_n\_type \rightarrow \texttt{STATEMENT}$. Note that this is just notation, as the type system has no notion of function types, nor of statements.
+
+The user may provide a type for each argument of a RAW. If one is not provided, assume that the corresponding type in the signature is $any$.
+
+\subsubsection{Built-in RAWs}
+All built-in raws have a provided type.
+$ORG : \texttt{pointer} \rightarrow \texttt{STATEMENT}$
+
+\section{Typing Judgments}
+\subsection{Subtyping}
+Lift $\preceq$ to a partial order on types with the rules
+$$
+\infer[\text{List-Subtype}]
+{t[c] \preceq t'[c]}
+{t \preceq t'}
+$$
+
+$$
+\infer[\text{List-Extend}]
+{t[c] \preceq t[c']}
+{c \leq c'}
+$$
+
+Note that the subtype relation is not a lattice, as all list types, atomic types, and strings are incomparable across groups.
+
+\subsection{Expressions}
+$$
+\infer[\text{Type-Literal}]
+{\Gamma \vdash int\_literal : \texttt{raw}}
+{}
+$$
+
+$$
+\infer[\text{Type-Cast}]
+{\Gamma \vdash (a)e : a}
+{}
+$$
+
+$$
+\infer[\text{Type-Bop}]
+{\Gamma \vdash arg_1 \otimes arg_2 : a_1 \join a_2}
+{\Gamma \vdash arg_1 : a_1 \wedge arg_2 : a_2}
+$$
+Recall that $a$ denotes an atomic type.
+
+$$
+\infer[\text{Type-List}]
+{\Gamma \vdash [arg_1, \dots, arg_n] : a[n]}
+{\Gamma \vdash \forall i: 1 \leq i \leq n \implies arg_i \preceq a}
+$$
+
+\subsection{Well-Typed Scripts}
+
+A \texttt{.event} script is considered well-typed if every expression has a unique type, and every RAW statement and type assertion  is well-typed.
+
+\subsubsection{Well-Typed RAWs}
+$$
+\infer[\text{Type-Raw}]
+{\texttt{raw\_name arg$_1 \dots$ arg$_n$ } \text{is well-typed}}
+{\Gamma \vdash raw\_name : t_1 \rightarrow \dots \rightarrow t_n \rightarrow \texttt{STATEMENT} \wedge \forall i: 1 \leq i \leq n \implies arg_i \preceq t_i}
+$$
+
+\subsubsection{Type Assertions}
+Add the syntactic construct $\texttt{AssertType(e, a)}$.
+{\bf Maybe it would be better to allow for any type and not just atomic types?}
+
+$$
+\infer[\text{Type-Assertion}]
+{\texttt{AssertType(e, a)} \text{ is well-typed.}}
+{\Gamma \vdash e : a}
+$$
+
+\subsection{Value Types}
+The user can provide a type for values (formerly referred to: labels). 
+$$
+\infer[\text{Type-Annotation}]
+{\Gamma \cup \{id : a\} \vdash stmts \text{ is well-typed.}}
+{\Gamma \vdash \texttt{id:a}; stmts \text{ is well-typed.}}
+$$
+
+If an auto-type is set (say, to $a$), then we have:
+$$
+\infer[\text{Autotype-Decl}]
+{\Gamma \vdash a = e; \texttt{stmt} \text{ is well-typed.}}
+{\Gamma \vdash e : a_0 \wedge a_0 \preceq a \wedge \Gamma \cup \{id : a\} \vdash \texttt{stmt} \text{ is well-typed.}}
+$$
+
+\section{Type Inference}
+Allow constraint-based inference of the type of expressions (not of RAWs).
+
+$$
+\infer[\text{Constraint}]
+{\Gamma, () \vDash e : a_1 \meet \dots \meet a_n}
+{\Gamma, () \vDash \{Constraint(e, a_1), \dots, Constraint(e, a_n)\} \cup C \wedge \text{C contains no constraints on e}}
+$$
+
+
+$$
+\infer[\text{Constraint-List}]
+{\Gamma, \Sigma \vDash \{Constraint(e_1, a), \dots, Constraint(e_n, a)\} \cup C}
+{\Gamma, \Sigma \vDash \{Constraint([e_1, \dots, e_n], a[n])\}\cup C}
+$$
+
+$$
+\infer[\text{Infer-Label}]
+{\Gamma, \texttt{stmt} \vDash \{Constraint(e, \texttt{pointer})\} \cup C}
+{\Gamma, \texttt{e:; stmt} \vDash C}
+$$
+
+$$
+\infer[\text{Infer-Raw}]
+{\Gamma, \texttt{raw\_name arg$_1 \dots$ arg$_n$; stmt} \vDash \{Constraint(arg_i, t_i) \mid 1 \leq i \leq n\} \cup C}
+{\Gamma \vdash raw\_name : t_1 \rightarrow \dots \rightarrow t_n \rightarrow \texttt{STATEMENT} \wedge \Gamma, \texttt{stmt} \vDash \{Constraint(e, \texttt{pointer})\} \cup C}
+$$
+
+\newpage
+
+\section{Example}
+Suppose we have $\texttt{UNIT} : character \rightarrow class \rightarrow item[4]$ (for simplicity). Then if we assert 
+\begin{verbatim}
+	Eirika = 1
+	Eirika : character
+	EirikaLord = 1
+	EirikaLord : class
+	IronSword = 1
+	IronSword : item
+	SteelSword = 2
+\end{verbatim}
+We have the following results:
+\begin{verbatim}
+	UNIT Eirika EirikaLord [IronSword] // Success
+	UNIT Eirika 0x1 [IronSword] // 0x1 is of type raw, which subtypes class; success
+	UNIT Eirika EirikaLord [IronSword, SteelSword] 
+	// Success and infer that SteelSword : item
+	UNIT EirikaLord Eirika [IronSword] 
+	// TypeError -- class does not subtype character (and vice-versa)
+\end{verbatim}
+\end{document}
