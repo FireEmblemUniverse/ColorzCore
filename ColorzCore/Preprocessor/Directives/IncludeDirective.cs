@@ -22,9 +22,9 @@ namespace ColorzCore.Preprocessor.Directives
 
         public IncludeFileSearcher FileSearcher { get; set; }
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
-        {
-            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString());
+        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens) {
+            var file = parameters[0].ToString().Replace("\\", "/");
+            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), file);
 
             if (!existantFile.IsNothing)
             {
@@ -38,12 +38,12 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 catch(Exception)
                 {
-                    p.Error(self.Location, "Error reading file \"" + parameters[0].ToString() + "\".");
+                    p.Error(self.Location, "Error reading file \"" + file + "\".");
                 }
             }
             else
             {
-                p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
+                p.Error(parameters[0].MyLocation, "Could not find file \"" + file + "\".");
             }
             return new Nothing<ILineNode>();
         }

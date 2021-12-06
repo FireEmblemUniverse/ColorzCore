@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -24,14 +25,10 @@ namespace ColorzCore.IO
 
         public static string GetToolFileName(string name)
         {
-            switch (Environment.OSVersion.Platform)
-            {
-                case PlatformID.Win32Windows: // Who knows, maybe someone runs EA on win 95
-                case PlatformID.Win32NT:
-                    return name + ".exe";
-
-                default:
-                    return name;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return name + ".exe";
+            } else {
+                return name;
             }
         }
     }

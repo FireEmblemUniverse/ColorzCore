@@ -321,6 +321,26 @@ namespace ColorzCore.Parser
                         }
 
                         break;
+                    case "BASE64": {
+                        if (parameters.Count != 1)
+                        {
+                            Error(head.Location, "Incorrect number of parameters in BASE64: " + parameters.Count);
+                        }
+                        var paramStr = parameters[0].ToString();
+                        try {
+                            if (string.IsNullOrWhiteSpace(paramStr)) {
+                                throw new FormatException();
+                            }
+                            var data = Convert.FromBase64String(paramStr);
+                            var node = new DataNode(CurrentOffset, data);
+                            CheckDataWrite(data.Length);
+                            CurrentOffset += data.Length;
+                            return new Just<ILineNode>(node);
+                        } catch (FormatException e) {
+                            Error(head.Location, "Invalid base64 string: " + parameters[0].ToString());
+                        }
+                        break;
+                    }
                 }
                 return new Nothing<ILineNode>();
             }
