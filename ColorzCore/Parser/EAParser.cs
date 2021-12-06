@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL", "BASE64" };
         //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
@@ -321,6 +321,26 @@ namespace ColorzCore.Parser
                         }
 
                         break;
+                    case "BASE64": {
+                        if (parameters.Count != 1)
+                        {
+                            Error(head.Location, "Incorrect number of parameters in BASE64: " + parameters.Count);
+                        }
+                        var paramStr = parameters[0].ToString();
+                        try {
+                            if (string.IsNullOrWhiteSpace(paramStr)) {
+                                throw new FormatException();
+                            }
+                            var data = Convert.FromBase64String(paramStr);
+                            var node = new DataNode(CurrentOffset, data);
+                            CheckDataWrite(data.Length);
+                            CurrentOffset += data.Length;
+                            return new Just<ILineNode>(node);
+                        } catch (FormatException e) {
+                            Error(head.Location, "Invalid base64 string: " + parameters[0].ToString());
+                        }
+                        break;
+                    }
                 }
                 return new Nothing<ILineNode>();
             }
