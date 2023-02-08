@@ -311,7 +311,7 @@ namespace ColorzCore.Lexer
                 while (line.Length > 0 && line.Substring(line.Length-1) == "\\")
                 {
                     curLine++;
-                    line = line.Substring(0, line.Length - 1) + ";" + sin.ReadLine();
+                    line = line.Substring(0, line.Length - 1) + " " + sin.ReadLine();
                 }
                 
                 foreach (Token t in TokenizeLine(line, fileName, curLine))
