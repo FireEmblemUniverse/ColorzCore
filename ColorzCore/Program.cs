@@ -98,7 +98,7 @@ namespace ColorzCore
             else
                 if (args[0] != "A")
             {
-                Console.WriteLine("Only assembly is supported currently.");
+                Console.WriteLine("Only assembly is supported currently. Please run as \"./ColorzCore.exe A ...\".");
                 return EXIT_FAILURE;
             }
 
