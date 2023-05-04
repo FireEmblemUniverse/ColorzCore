@@ -306,8 +306,15 @@ namespace ColorzCore.Lexer
             while (!sin.EndOfStream)
             {
                 string? line = sin.ReadLine();
-
-                if (line != null)
+                
+                //allow escaping newlines
+                while (line.Length > 0 && line.Substring(line.Length-1) == "\\")
+                {
+                    curLine++;
+                    line = line.Substring(0, line.Length - 1) + " " + sin.ReadLine();
+                }
+                
+                foreach (Token t in TokenizeLine(line, fileName, curLine))
                 {
                     foreach (Token t in TokenizeLine(line, fileName, curLine))
                     {
