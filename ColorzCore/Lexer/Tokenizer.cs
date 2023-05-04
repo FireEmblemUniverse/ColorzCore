@@ -313,16 +313,13 @@ namespace ColorzCore.Lexer
                     curLine++;
                     line = line.Substring(0, line.Length - 1) + " " + sin.ReadLine();
                 }
-                
+
                 foreach (Token t in TokenizeLine(line, fileName, curLine))
                 {
-                    foreach (Token t in TokenizeLine(line, fileName, curLine))
-                    {
-                        yield return t;
-                    }
-                    yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
-                    curLine++;
+                    yield return t;
                 }
+                yield return new Token(TokenType.NEWLINE, fileName, curLine, line.Length);
+                curLine++;
             }
         }
 
