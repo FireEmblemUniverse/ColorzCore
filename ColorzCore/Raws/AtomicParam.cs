@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections;
+using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.DataTypes;
-using System.Collections;
 
 namespace ColorzCore.Raws
 {
@@ -34,9 +31,10 @@ namespace ColorzCore.Raws
 
         public void Set(byte[] data, int value)
         {
-            if (pointer && value != 0)
-                value |= EAOptions.Instance.romOffset; 
-                //TODO: Perhaps additional EAOption to add for ROM offsets that aren't address spaces, e.g. program being loaded at 0x100?
+            if (pointer)
+            {
+                value = EAParser.ConvertToAddress(value);
+            }
 
             data.SetBits(Position, Length, value);
         }

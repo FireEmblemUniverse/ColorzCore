@@ -13,11 +13,11 @@ namespace ColorzCore.IO
         private byte[] myData;
         private int size;
 
-        public ROM(Stream myROM)
+        public ROM(Stream myROM, int maximumSize)
         {
             myStream = new BufferedStream(myROM);
-            myData = new byte[0x2000000];
-            size = myStream.Read(myData, 0, 0x2000000);
+            myData = new byte[maximumSize];
+            size = myStream.Read(myData, 0, maximumSize);
             myStream.Position = 0;
         }
 

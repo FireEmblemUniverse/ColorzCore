@@ -21,7 +21,8 @@ namespace ColorzCore
         public List<Tuple<string, string>> defs = new List<Tuple<string, string>>();
         public static EAOptions Instance { get; } = new EAOptions();
 
-        public int romOffset;
+        public int romBaseAddress;
+        public int maximumRomSize;
 
         private EAOptions()
         {
@@ -31,7 +32,8 @@ namespace ColorzCore
             noColoredLog = false;
             nocashSym = false;
             buildTimes = false;
-            romOffset = 0x8000000;
+            romBaseAddress = 0x8000000;
+            maximumRomSize = 0x2000000;
         }
     }
 }

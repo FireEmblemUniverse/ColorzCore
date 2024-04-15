@@ -25,9 +25,12 @@ namespace ColorzCore.Parser
         //TODO: Built in macros.
         //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
         public ImmutableStack<Closure> GlobalScope { get; }
-        public int CurrentOffset { get { return currentOffset; } private set
+        public int CurrentOffset
+        {
+            get { return currentOffset; }
+            private set
             {
-                if (value > 0x2000000)
+                if (value > EAOptions.Instance.maximumRomSize)
                 {
                     if (validOffset) //Error only the first time.
                     {
@@ -55,13 +58,16 @@ namespace ColorzCore.Parser
 
         public Log log;
 
-        public bool IsIncluding { get
+        public bool IsIncluding
+        {
+            get
             {
                 bool acc = true;
                 for (ImmutableStack<bool> temp = Inclusion; !temp.IsEmpty && acc; temp = temp.Tail)
                     acc &= temp.Head;
                 return acc;
-            } }
+            }
+        }
         private bool validOffset;
         private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
         private int currentOffset;
@@ -114,7 +120,7 @@ namespace ColorzCore.Parser
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                 {
                     Maybe<ILineNode> retVal = ParseLine(tokens, GlobalScope);
-                    retVal.IfJust( (ILineNode n) => myLines.Add(n));
+                    retVal.IfJust((ILineNode n) => myLines.Add(n));
                 }
             }
             return myLines;
@@ -137,6 +143,35 @@ namespace ColorzCore.Parser
                 Error(start, "Unmatched brace.");
             return temp;
         }
+
+        // TODO: these next two functions should probably be moved into their own module
+
+        public static int ConvertToAddress(int value)
+        {
+            /*
+                NOTE: Offset 0 is always converted to a null address
+                If one wants to instead refer to ROM offset 0 they would want to use the address directly instead.
+                If ROM offset 0 is already address 0 then this is a moot point.
+            */
+
+            if (value > 0 && value < EAOptions.Instance.maximumRomSize)
+            {
+                value += EAOptions.Instance.romBaseAddress;
+            }
+
+            return value;
+        }
+
+        public static int ConvertToOffset(int value)
+        {
+            if (value >= EAOptions.Instance.romBaseAddress && value <= EAOptions.Instance.romBaseAddress + EAOptions.Instance.maximumRomSize)
+            {
+                value -= EAOptions.Instance.romBaseAddress;
+            }
+
+            return value;
+        }
+
         private Maybe<ILineNode> ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             while (ExpandIdentifier(tokens, scopes)) { }
@@ -171,10 +206,7 @@ namespace ColorzCore.Parser
                                 (IAtomNode atom) => atom.TryEvaluate((Exception e) => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
                                 (int temp) =>
                                 {
-                                    if (temp > 0x2000000)
-                                        Error(parameters[0].MyLocation, "Tried to set offset to 0x" + temp.ToString("X"));
-                                    else
-                                        CurrentOffset = temp;
+                                    CurrentOffset = ConvertToOffset(temp);
                                 }),
                                 () => { Error(parameters[0].MyLocation, "Expected atomic param to ORG."); }
                             );
@@ -191,7 +223,8 @@ namespace ColorzCore.Parser
                             Error(head.Location, "Incorrect number of parameters in POP: " + parameters.Count);
                         else if (pastOffsets.Count == 0)
                             Error(head.Location, "POP without matching PUSH.");
-                        else {
+                        else
+                        {
                             Tuple<int, bool> tuple = pastOffsets.Pop();
 
                             CurrentOffset = tuple.Item1;
@@ -310,7 +343,7 @@ namespace ColorzCore.Parser
                             var data = new byte[amount];
 
                             for (int i = 0; i < amount; ++i)
-                                data[i] = (byte) value;
+                                data[i] = (byte)value;
 
                             var node = new DataNode(CurrentOffset, data);
 
@@ -327,7 +360,7 @@ namespace ColorzCore.Parser
             else if (Raws.ContainsKey(upperCodeIdentifier))
             {
                 //TODO: Check for matches. Currently should type error.
-                foreach(Raw r in Raws[upperCodeIdentifier])
+                foreach (Raw r in Raws[upperCodeIdentifier])
                 {
                     if (r.Fits(parameters))
                     {
@@ -377,7 +410,7 @@ namespace ColorzCore.Parser
                 }
                 parameters.Add(currentParam);
             } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
-            if(tokens.Current.Type != TokenType.CLOSE_PAREN || parenNestings != 0)
+            if (tokens.Current.Type != TokenType.CLOSE_PAREN || parenNestings != 0)
             {
                 Error(tokens.Current.Location, "Unmatched open parenthesis.");
             }
@@ -408,9 +441,9 @@ namespace ColorzCore.Parser
         private IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             IList<IParamNode> temp = ParseParamList(tokens, scopes, false);
-            for(int i=0; i<temp.Count; i++)
+            for (int i = 0; i < temp.Count; i++)
             {
-                if(temp[i].Type == ParamType.STRING && ((StringNode)temp[i]).IsValidIdentifier())
+                if (temp[i].Type == ParamType.STRING && ((StringNode)temp[i]).IsValidIdentifier())
                 {
                     temp[i] = ((StringNode)temp[i]).ToIdentifier(scopes);
                 }
@@ -445,7 +478,7 @@ namespace ColorzCore.Parser
                     if (expandDefs && Definitions.ContainsKey(head.Content) && ExpandIdentifier(tokens, scopes))
                         return ParseParam(tokens, scopes, expandDefs);
                     else
-                        return ParseAtom(tokens,scopes,expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
+                        return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
                 default:
                     return ParseAtom(tokens, scopes, expandDefs).Fmap((IAtomNode x) => (IParamNode)x.Simplify());
             }
@@ -541,12 +574,12 @@ namespace ColorzCore.Parser
                                 //Assume unary negation.
                                 tokens.MoveNext();
                                 Maybe<IAtomNode> interior = ParseAtom(tokens, scopes);
-                                if(interior.IsNothing)
+                                if (interior.IsNothing)
                                 {
                                     Error(lookAhead.Location, "Expected expression after negation. ");
                                     return new Nothing<IAtomNode>();
                                 }
-                                grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust))); 
+                                grammarSymbols.Push(new Left<IAtomNode, Token>(new NegationNode(lookAhead, interior.FromJust)));
                                 break;
                             }
                         case TokenType.COMMA:
@@ -628,7 +661,7 @@ namespace ColorzCore.Parser
                 //These shouldn't error...
                 IAtomNode r = grammarSymbols.Pop().GetLeft;
 
-                if(precedences[grammarSymbols.Peek().GetRight.Type] > targetPrecedence)
+                if (precedences[grammarSymbols.Peek().GetRight.Type] > targetPrecedence)
                 {
                     grammarSymbols.Push(new Left<IAtomNode, Token>(r));
                     break;
@@ -701,7 +734,7 @@ namespace ColorzCore.Parser
                                 {
                                     Warning(head.Location, "Label already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
                                 }
-                                else if(!IsValidLabelName(head.Content))
+                                else if (!IsValidLabelName(head.Content))
                                 {
                                     Error(head.Location, "Invalid label name " + head.Content + '.');
                                 }
@@ -794,7 +827,7 @@ namespace ColorzCore.Parser
                 }
                 return true;
             }
-            else if(tokens.Current.Type == TokenType.MAYBE_MACRO)
+            else if (tokens.Current.Type == TokenType.MAYBE_MACRO)
             {
                 Token head = tokens.Current;
                 tokens.MoveNext();
@@ -851,7 +884,7 @@ namespace ColorzCore.Parser
         private string PrettyPrintParams(IList<IParamNode> parameters)
         {
             StringBuilder sb = new StringBuilder();
-            foreach(IParamNode parameter in parameters)
+            foreach (IParamNode parameter in parameters)
             {
                 sb.Append(parameter.PrettyPrint());
                 sb.Append(' ');

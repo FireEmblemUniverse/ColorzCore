@@ -54,10 +54,14 @@ namespace ColorzCore
             "   Enable debug mode. Not recommended for end users.",
             "--build-times",
             "   Print build times at the end of build.",
+            "--base-address:<number>",
+            "   Treats the base load address of the binary as the given (hexadecimal) number,",
+            "   for the purposes of POIN, ORG and CURRENTOFFSET. Defaults to 0x08000000.",
+            "   Addresses are added to offsets from 0 to the maximum binary size.",
+            "--maximum-size:<number>",
+            "   Sets the maximum size of the binary. Defaults to 0x02000000.",
             "-romoffset:<number>",
-            "   Treats the offset of the ROM as the given number,",
-            "   for the purposes of POIN. Addresses are or'd.",
-            "   Hex literals only. Defaults to 0x08000000.",
+            "   Compatibility alias for --base-address:<number>",
             "-h|--help",
             "   Display this message and exit.",
             ""
@@ -77,7 +81,6 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             string inFileName = "stdin";
 
-            IOutput? output = null;
             string outFileName = "none";
             string ldsFileName = "none";
 
@@ -88,7 +91,7 @@ namespace ColorzCore
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Required parameters missing.");
+                Console.WriteLine(helpstring);
                 return EXIT_FAILURE;
             }
 
@@ -126,27 +129,6 @@ namespace ColorzCore
 
                             case "output":
                                 outFileName = flag[1];
-                                if(outputASM)
-                                {
-                                    ldsFileName = Path.ChangeExtension(outFileName, "lds");
-                                    output = new ASM(new StreamWriter(outFileName, false),
-                                                     new StreamWriter(ldsFileName, false));
-                                } else
-                                {
-                                    FileStream outStream;
-                                    if(File.Exists(outFileName) && !File.GetAttributes(outFileName).HasFlag(FileAttributes.ReadOnly))
-                                    {
-                                        outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite);
-                                    } else if(!File.Exists(outFileName))
-                                    {
-                                        outStream = File.Create(outFileName);
-                                    } else
-                                    {
-                                        Console.Error.WriteLine("Output file is read-only.");
-                                        return EXIT_FAILURE;
-                                    }
-                                    output = new ROM(outStream);
-                                } 
                                 break;
 
                             case "input":
@@ -216,21 +198,37 @@ namespace ColorzCore
                             case "D":
                             case "def":
                             case "define":
-                                try {
+                                try
+                                {
                                     string[] def_args = flag[1].Split(new char[] { '=' }, 2);
                                     EAOptions.Instance.defs.Add(Tuple.Create(def_args[0], def_args[1]));
-                                } catch (IndexOutOfRangeException)
+                                }
+                                catch (IndexOutOfRangeException)
                                 {
                                     Console.Error.WriteLine("Improperly formed -define directive.");
                                 }
                                 break;
 
                             case "romoffset":
+                            case "-base-address":
                                 try
                                 {
-                                    EAOptions.Instance.romOffset = Convert.ToInt32(flag[1], 16);
-                                } catch {
-                                    Console.Error.WriteLine("Invalid hex offset given for ROM.");
+                                    EAOptions.Instance.romBaseAddress = Convert.ToInt32(flag[1], 16);
+                                }
+                                catch
+                                {
+                                    Console.Error.WriteLine("Invalid hex base address given for binary.");
+                                }
+                                break;
+
+                            case "-maximum-size":
+                                try
+                                {
+                                    EAOptions.Instance.maximumRomSize = Convert.ToInt32(flag[1], 16);
+                                }
+                                catch
+                                {
+                                    Console.Error.WriteLine("Invalid hex size given for binary.");
                                 }
                                 break;
 
@@ -246,8 +244,8 @@ namespace ColorzCore
                     }
                 }
             }
-            
-            if (output == null)
+
+            if (outFileName == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
                 return EXIT_FAILURE;
@@ -259,11 +257,41 @@ namespace ColorzCore
                 return EXIT_FAILURE;
             }
 
+            IOutput output;
+
+            if (outputASM)
+            {
+                ldsFileName = Path.ChangeExtension(outFileName, "lds");
+                output = new ASM(new StreamWriter(outFileName, false),
+                                 new StreamWriter(ldsFileName, false));
+            }
+            else
+            {
+                FileStream outStream;
+
+                if (File.Exists(outFileName) && !File.GetAttributes(outFileName).HasFlag(FileAttributes.ReadOnly))
+                {
+                    outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite);
+                }
+                else if (!File.Exists(outFileName))
+                {
+                    outStream = File.Create(outFileName);
+                }
+                else
+                {
+                    Console.Error.WriteLine("Output file is read-only.");
+                    return EXIT_FAILURE;
+                }
+
+                output = new ROM(outStream, EAOptions.Instance.maximumRomSize);
+            }
+
             string game = args[1];
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            Log log = new Log {
+            Log log = new Log
+            {
                 Output = errorStream,
                 WarningsAreErrors = EAOptions.Instance.werr,
                 NoColoredTags = EAOptions.Instance.noColoredLog
@@ -292,25 +320,24 @@ namespace ColorzCore
                 }
             }
 
-            if (EAOptions.Instance.buildTimes) { 
-
-            // Print times
-
-            log.Output.WriteLine();
-            log.Output.WriteLine("Times:");
-
-            foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
+            if (EAOptions.Instance.buildTimes)
             {
-                log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
-            }
+                // Print times
 
-            // Print total time
+                log.Output.WriteLine();
+                log.Output.WriteLine("Times:");
 
-            log.Output.WriteLine();
-            log.Output.WriteLine("Total:");
+                foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
+                {
+                    log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
+                }
 
-            log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
+                // Print total time
 
+                log.Output.WriteLine();
+                log.Output.WriteLine("Total:");
+
+                log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
             }
 
             inStream.Close();
