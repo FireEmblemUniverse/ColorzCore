@@ -18,8 +18,8 @@ namespace ColorzCore
         private Dictionary<string, TimeSpan>? times;
         private Dictionary<string, int>? counts;
 
-        private TimeSpan totalTime;
-        
+        private TimeSpan totalTime = TimeSpan.Zero;
+
         private ExecTimer()
         {
             timingPoints = new List<Tuple<DateTime, string>>();
@@ -72,7 +72,7 @@ namespace ColorzCore
         {
             get
             {
-                if (this.totalTime == null)
+                if (this.totalTime == TimeSpan.Zero)
                     ComputeTimes();
 
                 return this.totalTime;

@@ -305,8 +305,8 @@ namespace ColorzCore.Lexer
             int curLine = 1;
             while (!sin.EndOfStream)
             {
-                string? line = sin.ReadLine();
-                
+                string line = sin.ReadLine()!;
+
                 //allow escaping newlines
                 while (line.Length > 0 && line.Substring(line.Length-1) == "\\")
                 {
