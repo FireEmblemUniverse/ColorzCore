@@ -25,10 +25,10 @@ namespace ColorzCore.Parser.AST
         {
             StringBuilder sb = new StringBuilder();
             sb.Append('[');
-            for(int i=0; i<Interior.Count; i++)
+            for (int i = 0; i < Interior.Count; i++)
             {
                 sb.Append(Interior[i].CoerceInt());
-                if(i < Interior.Count - 1)
+                if (i < Interior.Count - 1)
                     sb.Append(',');
             }
             sb.Append(']');
@@ -52,7 +52,7 @@ namespace ColorzCore.Parser.AST
         {
             //Similar code to ParenthesizedAtom
             IList<IList<Token>> temp = new List<IList<Token>>();
-            foreach(IAtomNode n in Interior)
+            foreach (IAtomNode n in Interior)
             {
                 temp.Add(new List<Token>(n.ToTokens()));
             }
@@ -82,7 +82,7 @@ namespace ColorzCore.Parser.AST
         public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
             IEnumerable<Token> acc = new List<Token>();
-            for(int i=0; i<Interior.Count; i++)
+            for (int i = 0; i < Interior.Count; i++)
             {
                 Interior[i] = Interior[i].Simplify(handler);
             }
@@ -91,6 +91,6 @@ namespace ColorzCore.Parser.AST
 
         public int NumCoords { get { return Interior.Count; } }
 
-        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+        public IAtomNode? AsAtom() { return null; }
     }
 }

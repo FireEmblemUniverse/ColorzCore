@@ -86,7 +86,7 @@ namespace ColorzCore
 
             TextWriter errorStream = Console.Error;
 
-            Maybe<string> rawsFolder = rawSearcher.FindDirectory("Language Raws");
+            string? rawsFolder = rawSearcher.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
 
             if (args.Length < 2)
@@ -251,7 +251,7 @@ namespace ColorzCore
                 return EXIT_FAILURE;
             }
 
-            if (rawsFolder.IsNothing)
+            if (rawsFolder == null)
             {
                 Console.Error.WriteLine("Couldn't find raws folder");
                 return EXIT_FAILURE;
@@ -303,7 +303,7 @@ namespace ColorzCore
             if (EAOptions.Instance.nomess)
                 log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log);
+            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
 

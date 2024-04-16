@@ -6,74 +6,70 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    public delegate R UnaryFunction<T,R>(T val);
+    public delegate R UnaryFunction<T, R>(T val);
     public delegate R RConst<R>();
     public delegate void TAction<T>(T val);
     public delegate void NullaryAction();
-    public delegate Maybe<R> MaybeAction<T, R>(T val);
+    public delegate R? MaybeAction<T, R>(T val);
 
-#pragma warning disable IDE1006 // Naming Styles
-    public interface Maybe<T>
-#pragma warning restore IDE1006 // Naming Styles
+    public static class MaybeExtensions
     {
-        bool IsNothing { get; }
-        T FromJust { get; }
-        Maybe<R> Fmap<R>(UnaryFunction<T, R> f);
-        Maybe<R> Bind<R>(MaybeAction<T, R> f);
-        R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing);
-        void IfJust(TAction<T> just, NullaryAction? nothing = null);
-    }
-    public class Just<T> : Maybe<T>
-    {
-        public bool IsNothing { get { return false; } }
-        public T FromJust { get; }
-
-        public Just(T val)
+        public static R? Fmap<T, R>(this T? self, UnaryFunction<T, R> f)
+            where T : class
         {
-            FromJust = val;
+            return self != null ? f(self) : default;
         }
 
-        public Maybe<R> Fmap<R>(UnaryFunction<T, R> f)
+        public static R IfJust<T, R>(this T? self, UnaryFunction<T, R> just, RConst<R> nothing)
+            where T : class
         {
-            return new Just<R>(f(FromJust));
+            if (self != null)
+            {
+                return just(self);
+            }
+            else
+            {
+                return nothing();
+            }
         }
-        public Maybe<R> Bind<R>(MaybeAction<T, R> f)
-        {
-            return f(FromJust);
-        }
-        public R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing)
-        {
-            return just(FromJust);
-        }
-        public void IfJust(TAction<T> just, NullaryAction? nothing)
-        {
-            just(FromJust);
-        }
-    }
-    public class Nothing<T> : Maybe<T>
-    {
-        public bool IsNothing { get { return true; } }
-        public T FromJust { get { throw new MaybeException(); } }
 
-        public Nothing() { }
+        public static R IfJust<T, R>(this T? self, UnaryFunction<T, R> just, RConst<R> nothing)
+            where T : struct
+        {
+            if (self.HasValue)
+            {
+                return just(self.Value);
+            }
+            else
+            {
+                return nothing();
+            }
+        }
 
-        public Maybe<R> Fmap<R>(UnaryFunction<T, R> f)
+        public static void IfJust<T>(this T? self, TAction<T> just, NullaryAction? nothing = null)
+            where T : class
         {
-            return new Nothing<R>();
+            if (self != null)
+            {
+                just(self);
+            }
+            else
+            {
+                nothing?.Invoke();
+            }
         }
-        public Maybe<R> Bind<R>(MaybeAction<T, R> f)
+
+        public static void IfJust<T>(this T? self, TAction<T> just, NullaryAction? nothing = null)
+            where T : struct
         {
-            return new Nothing<R>();
-        }
-        public R IfJust<R>(UnaryFunction<T, R> just, RConst<R> nothing)
-        {
-            return nothing();
-        }
-        public void IfJust(TAction<T> just, NullaryAction? nothing)
-        {
-            nothing?.Invoke();
+            if (self.HasValue)
+            {
+                just(self.Value);
+            }
+            else
+            {
+                nothing?.Invoke();
+            }
         }
     }
-
-    public class MaybeException : Exception { }
 }

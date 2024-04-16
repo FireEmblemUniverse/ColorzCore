@@ -51,7 +51,7 @@ namespace ColorzCore.Parser.AST
             return new IdentifierNode(MyToken, scope);
         }
 
-        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+        public IAtomNode? AsAtom() { return null; }
 
         public IParamNode SimplifyExpressions(TAction<Exception> handler) { return this; }
     }

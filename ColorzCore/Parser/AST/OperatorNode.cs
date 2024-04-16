@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace ColorzCore.Parser.AST
 {
     delegate int BinaryIntOp(int a, int b);
-    
+
     class OperatorNode : AtomNodeKernel
     {
         public static readonly Dictionary<TokenType, BinaryIntOp> Operators = new Dictionary<TokenType, BinaryIntOp> {
@@ -24,27 +24,27 @@ namespace ColorzCore.Parser.AST
                 { TokenType.SIGNED_RSHIFT_OP , (x, y) => x>>y },
                 { TokenType.AND_OP , (x, y) => x&y },
                 { TokenType.XOR_OP , (x, y) => x^y },
-                { TokenType.OR_OP , (x, y) => x|y }    
+                { TokenType.OR_OP , (x, y) => x|y }
         };
-        
+
         private IAtomNode left, right;
         private Token op;
-		public override int Precedence { get; }
+        public override int Precedence { get; }
 
         public override Location MyLocation { get { return op.Location; } }
-		
-		public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
-		{
+
+        public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
+        {
             left = l;
             right = r;
             this.op = op;
             Precedence = prec;
-		}
+        }
 
         public override string PrettyPrint()
         {
             StringBuilder sb = new StringBuilder(left.PrettyPrint());
-            switch(op.Type)
+            switch (op.Type)
             {
                 case TokenType.MUL_OP:
                     sb.Append("*");
@@ -84,24 +84,28 @@ namespace ColorzCore.Parser.AST
         }
         public override IEnumerable<Token> ToTokens()
         {
-            foreach(Token t in left.ToTokens())
+            foreach (Token t in left.ToTokens())
             {
                 yield return t;
             }
             yield return op;
-            foreach(Token t in right.ToTokens())
+            foreach (Token t in right.ToTokens())
             {
                 yield return t;
             }
         }
 
-        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        public override int? TryEvaluate(TAction<Exception> handler)
         {
-            Maybe<int> l = left.TryEvaluate(handler);
-            l.IfJust((int i) => { this.left = new NumberNode(left.MyLocation, i); });
-            Maybe<int> r = right.TryEvaluate(handler);
-            r.IfJust((int i) => { this.right = new NumberNode(right.MyLocation, i); });
-            return l.Bind((int newL) => r.Fmap((int newR) => Operators[op.Type](newL, newR)));
+            int? l = left.TryEvaluate(handler);
+            l.IfJust(i => left = new NumberNode(left.MyLocation, i));
+            int? r = right.TryEvaluate(handler);
+            r.IfJust(i => right = new NumberNode(right.MyLocation, i));
+
+            if (l is int li && r is int ri)
+                return Operators[op.Type](li, ri);
+
+            return null;
         }
     }
 }

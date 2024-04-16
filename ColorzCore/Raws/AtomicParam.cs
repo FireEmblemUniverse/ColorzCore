@@ -26,7 +26,7 @@ namespace ColorzCore.Raws
 
         public void Set(byte[] data, IParamNode input)
         {
-            Set(data, input.AsAtom().FromJust.CoerceInt());
+            Set(data, input.AsAtom()!.CoerceInt());
         }
 
         public void Set(byte[] data, int value)

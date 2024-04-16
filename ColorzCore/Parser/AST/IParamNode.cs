@@ -15,7 +15,7 @@ namespace ColorzCore.Parser.AST
         string PrettyPrint();
         Location MyLocation { get; }
         IParamNode SimplifyExpressions(TAction<Exception> handler); //TODO: Abstract this into a general traverse method.
-        Maybe<IAtomNode> AsAtom();
+        IAtomNode? AsAtom();
     }
 
     public static class ParamExtensions

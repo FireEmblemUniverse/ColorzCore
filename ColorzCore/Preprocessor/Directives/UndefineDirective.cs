@@ -18,7 +18,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion => true;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             foreach (IParamNode parm in parameters)
             {
@@ -28,7 +28,7 @@ namespace ColorzCore.Preprocessor.Directives
                 else
                     p.Warning(parm.MyLocation, "Undefining non-existant definition: " + s);
             }
-            return new Nothing<ILineNode>();
+            return null;
         }
     }
 }

@@ -30,13 +30,13 @@ namespace ColorzCore.Parser.AST
         public override IEnumerable<Token> ToTokens()
         {
             yield return myToken;
-            foreach(Token t in interior.ToTokens())
+            foreach (Token t in interior.ToTokens())
                 yield return t;
         }
 
-        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        public override int? TryEvaluate(TAction<Exception> handler)
         {
-            return interior.TryEvaluate(handler).Fmap((int x) => -x);
+            return -interior.TryEvaluate(handler);
         }
     }
 }

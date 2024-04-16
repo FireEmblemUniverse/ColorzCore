@@ -14,25 +14,25 @@ namespace ColorzCore.Parser.AST
 
         public ParamType Type { get { return ParamType.ATOM; } }
 
-        public virtual Maybe<string> GetIdentifier()
+        public virtual string? GetIdentifier()
         {
-            return new Nothing<string>();
+            return null;
         }
 
         public abstract string PrettyPrint();
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public abstract Maybe<int> TryEvaluate(TAction<Exception> handler);
+        public abstract int? TryEvaluate(TAction<Exception> handler);
 
         public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {
             return this.Simplify(handler);
         }
 
-        public Maybe<IAtomNode> AsAtom()
+        public IAtomNode? AsAtom()
         {
-            return new Just<IAtomNode>(this);
+            return this;
         }
     }
 }

@@ -18,15 +18,15 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion => false;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             bool flag = true;
-            Maybe<string> identifier;
+            string? identifier;
             foreach (IParamNode parameter in parameters)
             {
-                if(parameter.Type==ParamType.ATOM && !(identifier = ((IAtomNode)parameter).GetIdentifier()).IsNothing)
+                if (parameter.Type == ParamType.ATOM && (identifier = ((IAtomNode)parameter).GetIdentifier()) != null)
                 {
-                    flag &= !p.Macros.ContainsName(identifier.FromJust) && !p.Definitions.ContainsKey(identifier.FromJust); //TODO: Built in definitions?
+                    flag &= !p.Macros.ContainsName(identifier) && !p.Definitions.ContainsKey(identifier); //TODO: Built in definitions?
                 }
                 else
                 {
@@ -34,7 +34,7 @@ namespace ColorzCore.Preprocessor.Directives
                 }
             }
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
-            return new Nothing<ILineNode>();
+            return null;
         }
     }
 }

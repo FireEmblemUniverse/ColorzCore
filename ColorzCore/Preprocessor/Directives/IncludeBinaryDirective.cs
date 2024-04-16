@@ -22,16 +22,16 @@ namespace ColorzCore.Preprocessor.Directives
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
+            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
 
-            if (!existantFile.IsNothing)
+            if (existantFile != null)
             {
                 try
                 {
-                    string pathname = existantFile.FromJust;
-                    return new Just<ILineNode>(new DataNode(p.CurrentOffset, File.ReadAllBytes(pathname)));
+                    string pathname = existantFile;
+                    return new DataNode(p.CurrentOffset, File.ReadAllBytes(pathname));
                 }
                 catch (Exception)
                 {
@@ -42,7 +42,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
             }
-            return new Nothing<ILineNode>();
+            return null;
         }
     }
 }

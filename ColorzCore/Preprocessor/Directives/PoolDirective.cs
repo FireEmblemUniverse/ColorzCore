@@ -13,7 +13,7 @@ namespace ColorzCore.Preprocessor.Directives
         public int? MaxParams => 0;
         public bool RequireInclusion => true;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             BlockNode result = new BlockNode();
 
@@ -36,7 +36,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             p.Pool.Lines.Clear();
 
-            return new Just<ILineNode>(result);
+            return result;
         }
     }
 }

@@ -19,18 +19,17 @@ namespace ColorzCore.Preprocessor.Directives
 
         public bool RequireInclusion => true;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            if (parameters[0].Type == ParamType.MACRO)
+            if (parameters[0] is MacroInvocationNode signature)
             {
-                MacroInvocationNode signature = (MacroInvocationNode)(parameters[0]);
                 string name = signature.Name;
                 IList<Token> myParams = new List<Token>();
                 foreach (IList<Token> l1 in signature.Parameters)
                 {
                     if (l1.Count != 1 || l1[0].Type != TokenType.IDENTIFIER)
                     {
-                        p.Error(l1[0].Location, "Macro parameters must be identifiers (got " + l1[0].Content + ").");
+                        p.Error(l1[0].Location, $"Macro parameters must be identifiers (got {l1[0].Content}).");
                     }
                     else
                     {
@@ -46,35 +45,34 @@ namespace ColorzCore.Preprocessor.Directives
                     else
                         p.Warning(signature.MyLocation, "Redefining " + name + '.');
                 }*/
-                if(p.Macros.HasMacro(name, myParams.Count))
-                    p.Warning(signature.MyLocation, "Redefining " + name + '.');
-                Maybe<IList<Token>> toRepl;
+                if (p.Macros.HasMacro(name, myParams.Count))
+                    p.Warning(signature.MyLocation, $"Redefining {name}.");
+                IList<Token>? toRepl;
                 if (parameters.Count != 2)
                 {
-                    toRepl = new Just<IList<Token>>(new List<Token>());
+                    toRepl = new List<Token>();
                 }
                 else
                     toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
-                if (!toRepl.IsNothing)
+                if (toRepl != null)
                 {
-                    p.Macros.AddMacro(new Macro(myParams, toRepl.FromJust), name, myParams.Count);
+                    p.Macros.AddMacro(new Macro(myParams, toRepl), name, myParams.Count);
                 }
             }
             else
             {
                 //Note [mutually] recursive definitions are handled by Parser expansion.
-                Maybe<string> maybeIdentifier;
-                if (parameters[0].Type == ParamType.ATOM && !(maybeIdentifier = ((IAtomNode)parameters[0]).GetIdentifier()).IsNothing)
+                string? name;
+                if (parameters[0].Type == ParamType.ATOM && (name = ((IAtomNode)parameters[0]).GetIdentifier()) != null)
                 {
-                    string name = maybeIdentifier.FromJust;
-                    if(p.Definitions.ContainsKey(name))
+                    if (p.Definitions.ContainsKey(name))
                         p.Warning(parameters[0].MyLocation, "Redefining " + name + '.');
                     if (parameters.Count == 2)
                     {
-                        Maybe<IList<Token>> toRepl = ExpandParam(p, parameters[1], Enumerable.Empty<string>());
-                        if (!toRepl.IsNothing)
+                        IList<Token>? toRepl = ExpandParam(p, parameters[1], Enumerable.Empty<string>());
+                        if (toRepl != null)
                         {
-                            p.Definitions[name] = new Definition(toRepl.FromJust);
+                            p.Definitions[name] = new Definition(toRepl);
                         }
                     }
                     else
@@ -84,30 +82,32 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 else
                 {
-                    p.Error(parameters[0].MyLocation, "Definition names must be identifiers (got " + parameters[0].ToString() + ").");
+                    p.Error(parameters[0].MyLocation, $"Definition names must be identifiers (got {parameters[0].ToString()}).");
                 }
             }
-            return new Nothing<ILineNode>();
+            return null;
         }
-        delegate Maybe<IList<Token>> ExpParamType(EAParser p, IParamNode param, IEnumerable<string> myParams);
-        private static ExpParamType ExpandParam = (EAParser p, IParamNode param, IEnumerable<string> myParams) =>
-            TokenizeParam(p, param).Fmap<IEnumerable<Token>>( (IList<Token> l) => 
-            ExpandAllIdentifiers(p, new Queue<Token>(l), ImmutableStack<string>.FromEnumerable(myParams), ImmutableStack<Tuple<string, int>>.Nil)).Fmap(
-            (IEnumerable<Token> x) => (IList<Token>)new List<Token>(x));
-        private static Maybe<IList<Token>> TokenizeParam(EAParser p, IParamNode param)
-        {
 
+        private static IList<Token>? ExpandParam(EAParser p, IParamNode param, IEnumerable<string> myParams)
+        {
+            return TokenizeParam(p, param).Fmap(tokens => ExpandAllIdentifiers(p,
+                new Queue<Token>(tokens), ImmutableStack<string>.FromEnumerable(myParams),
+                ImmutableStack<Tuple<string, int>>.Nil)).Fmap(x => new List<Token>(x));
+        }
+
+        private static IList<Token>? TokenizeParam(EAParser p, IParamNode param)
+        {
             switch (param.Type)
             {
                 case ParamType.STRING:
                     Token input = ((StringNode)param).MyToken;
                     Tokenizer t = new Tokenizer();
-                    return new Just<IList<Token>>(new List<Token>(t.TokenizeLine(input.Content, input.FileName, input.LineNumber, input.ColumnNumber)));
+                    return new List<Token>(t.TokenizeLine(input.Content, input.FileName, input.LineNumber, input.ColumnNumber));
                 case ParamType.MACRO:
                     try
                     {
                         IList<Token> myBody = new List<Token>(((MacroInvocationNode)param).ExpandMacro());
-                        return new Just<IList<Token>>(myBody);
+                        return myBody;
                     }
                     catch (KeyNotFoundException)
                     {
@@ -117,31 +117,30 @@ namespace ColorzCore.Preprocessor.Directives
                     break;
                 case ParamType.LIST:
                     ListNode n = (ListNode)param;
-                    return new Just<IList<Token>>(new List<Token>(n.ToTokens()));
+                    return new List<Token>(n.ToTokens());
                 case ParamType.ATOM:
-                    return new Just<IList<Token>>(new List<Token>(((IAtomNode)param).ToTokens()));
+                    return new List<Token>(((IAtomNode)param).ToTokens());
             }
-            return new Nothing<IList<Token>>();
+            return null;
         }
         private static IEnumerable<Token> ExpandAllIdentifiers(EAParser p, Queue<Token> tokens, ImmutableStack<string> seenDefs, ImmutableStack<Tuple<string, int>> seenMacros)
         {
-            IEnumerable<Token> output = new List<Token>();
-            while(tokens.Count > 0)
+            while (tokens.Count > 0)
             {
                 Token current = tokens.Dequeue();
-                if(current.Type == TokenType.IDENTIFIER)
+                if (current.Type == TokenType.IDENTIFIER)
                 {
-                    if(p.Macros.ContainsName(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
+                    if (p.Macros.ContainsName(current.Content) && tokens.Count > 0 && tokens.Peek().Type == TokenType.OPEN_PAREN)
                     {
                         IList<IList<Token>> param = p.ParseMacroParamList(new MergeableGenerator<Token>(tokens)); //TODO: I don't like wrapping this in a mergeable generator..... Maybe interface the original better?
                         if (!seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)) && p.Macros.HasMacro(current.Content, param.Count))
                         {
-                            foreach(Token t in  p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param, p.GlobalScope))
+                            foreach (Token t in p.Macros.GetMacro(current.Content, param.Count).ApplyMacro(current, param, p.GlobalScope))
                             {
-                                yield return t; 
+                                yield return t;
                             }
                         }
-                        else if(seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)))
+                        else if (seenMacros.Contains(new Tuple<string, int>(current.Content, param.Count)))
                         {
                             yield return current;
                             foreach (IList<Token> l in param)
@@ -153,7 +152,7 @@ namespace ColorzCore.Preprocessor.Directives
                             yield return current;
                         }
                     }
-                    else if(!seenDefs.Contains(current.Content) && p.Definitions.ContainsKey(current.Content))
+                    else if (!seenDefs.Contains(current.Content) && p.Definitions.ContainsKey(current.Content))
                     {
                         foreach (Token t in p.Definitions[current.Content].ApplyDefinition(current))
                             yield return t;
@@ -162,7 +161,7 @@ namespace ColorzCore.Preprocessor.Directives
                     {
                         yield return current;
                     }
-                } 
+                }
                 else
                 {
                     yield return current;

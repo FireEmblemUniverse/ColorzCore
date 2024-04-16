@@ -39,7 +39,7 @@ namespace ColorzCore.Parser.AST
             StringBuilder sb = new StringBuilder();
             sb.Append(invokeToken.Content);
             sb.Append('(');
-            for(int i=0; i<Parameters.Count; i++)
+            for (int i = 0; i < Parameters.Count; i++)
             {
                 foreach (Token t in Parameters[i])
                 {
@@ -66,7 +66,7 @@ namespace ColorzCore.Parser.AST
 
         public Location MyLocation { get { return invokeToken.Location; } }
 
-        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
+        public IAtomNode? AsAtom() { return null; }
 
         public IParamNode SimplifyExpressions(TAction<Exception> handler)
         {

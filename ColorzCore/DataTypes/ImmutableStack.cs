@@ -9,42 +9,32 @@ namespace ColorzCore.DataTypes
 {
     public class ImmutableStack<T> : IEnumerable<T>
     {
-        private Maybe<Tuple<T, ImmutableStack<T>>> member;
-        int? count;
+        private readonly Tuple<T, ImmutableStack<T>>? member;
+        private int? count;
 
         public ImmutableStack(T elem, ImmutableStack<T> tail)
-        { member = new Just<Tuple<T,ImmutableStack<T>>>(new Tuple<T, ImmutableStack<T>>(elem, tail)); }
+        {
+            member = new Tuple<T, ImmutableStack<T>>(elem, tail);
+        }
+
         private ImmutableStack()
         {
-            member = new Nothing<Tuple<T, ImmutableStack<T>>>();
-            count = null;
+            member = null;
+            count = 0;
         }
 
-        private static ImmutableStack<T> emptyList = new ImmutableStack<T>();
-        public static ImmutableStack<T> Nil { get { return emptyList;} }
+        public static ImmutableStack<T> Nil { get; } = new ImmutableStack<T>();
 
-        public bool IsEmpty { get { return member.IsNothing; } }
-        public T Head { get { return member.FromJust.Item1; } }
-        public ImmutableStack<T> Tail { get { return member.FromJust.Item2; } }
-        public int Count { get
-            {
-                if (count.HasValue)
-                    return count.Value;
-                else
-                    return (count = Tail.Count + 1).Value;
-            } }
-        /*
-        public bool Contains(T toLookFor)
-        {
-            bool acc = false;
-            for(ImmutableStack<T> temp = this; !acc && !temp.IsEmpty; temp = temp.Tail) acc |= temp.Head.Equals(toLookFor);
-            return acc;
-        }
-        */
+        public bool IsEmpty => member == null;
+        public T Head => member!.Item1;
+        public ImmutableStack<T> Tail => member!.Item2;
+        public int Count => count ?? (count = Tail.Count + 1).Value;
+
         public IEnumerator<T> GetEnumerator()
         {
             ImmutableStack<T> temp = this;
-            while(!temp.IsEmpty)
+
+            while (!temp.IsEmpty)
             {
                 yield return temp.Head;
                 temp = temp.Tail;
@@ -54,6 +44,7 @@ namespace ColorzCore.DataTypes
         IEnumerator IEnumerable.GetEnumerator()
         {
             ImmutableStack<T> temp = this;
+
             while (!temp.IsEmpty)
             {
                 yield return temp.Head;
@@ -63,7 +54,7 @@ namespace ColorzCore.DataTypes
 
         public static ImmutableStack<T> FromEnumerable(IEnumerable<T> content)
         {
-            return content.Reverse().Aggregate(Nil, (ImmutableStack<T> acc, T elem) => new ImmutableStack<T>(elem, acc));
+            return content.Reverse().Aggregate(Nil, (acc, elem) => new ImmutableStack<T>(elem, acc));
         }
     }
 }

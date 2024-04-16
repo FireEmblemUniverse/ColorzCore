@@ -11,21 +11,21 @@ namespace ColorzCore.Parser.AST
         private Token identifier;
         readonly ImmutableStack<Closure> scope;
 
-		public override int Precedence { get { return 11; } }
+        public override int Precedence { get { return 11; } }
         public override Location MyLocation { get { return identifier.Location; } }
 
         public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
-		{
+        {
             identifier = id;
             scope = scopes;
-		}
-		
-		private int ToInt()
+        }
+
+        private int ToInt()
         {
             ImmutableStack<Closure> temp = scope;
-            while(!temp.IsEmpty)
+            while (!temp.IsEmpty)
             {
-                if(temp.Head.HasLocalLabel(identifier.Content))
+                if (temp.Head.HasLocalLabel(identifier.Content))
                     return temp.Head.GetLabel(identifier.Content);
                 else
                     temp = temp.Tail;
@@ -33,28 +33,29 @@ namespace ColorzCore.Parser.AST
             throw new UndefinedIdentifierException(identifier);
         }
 
-        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        public override int? TryEvaluate(TAction<Exception> handler)
         {
             try
             {
-                return new Just<int>(ToInt());
-            } catch(UndefinedIdentifierException e)
+                return ToInt();
+            }
+            catch (UndefinedIdentifierException e)
             {
                 handler(e);
-                return new Nothing<int>();
+                return null;
             }
         }
-        
-        public override Maybe<string> GetIdentifier()
+
+        public override string? GetIdentifier()
         {
-            return new Just<string>(identifier.Content);
+            return identifier.Content;
         }
 
         public override string PrettyPrint()
         {
             try
             {
-                return "0x"+ToInt().ToString("X");
+                return "0x" + ToInt().ToString("X");
             }
             catch (UndefinedIdentifierException)
             {

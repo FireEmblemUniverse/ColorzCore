@@ -18,7 +18,7 @@ namespace ColorzCore.Preprocessor.Directives
          * 
          * Return: If a string is returned, it is interpreted as an error.
          */
-        Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens);
+        ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens);
         /***
          * Minimum number of parameters, inclusive. 
          */

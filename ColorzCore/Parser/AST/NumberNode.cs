@@ -15,10 +15,10 @@ namespace ColorzCore.Parser.AST
         public override Location MyLocation { get; }
         public override int Precedence { get { return 11; } }
 
-		public NumberNode(Token num)
-		{
+        public NumberNode(Token num)
+        {
             MyLocation = num.Location;
-            value = num.Content.ToInt(); 
+            value = num.Content.ToInt();
         }
         public NumberNode(Token text, int value)
         {
@@ -30,12 +30,12 @@ namespace ColorzCore.Parser.AST
             MyLocation = loc;
             this.value = value;
         }
-        
-        public override IEnumerable<Token> ToTokens () { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
 
-        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
+        public override IEnumerable<Token> ToTokens() { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
+
+        public override int? TryEvaluate(TAction<Exception> handler)
         {
-            return new Just<int>(value);
+            return value;
         }
 
         public override string PrettyPrint()

@@ -20,16 +20,16 @@ namespace ColorzCore.Preprocessor.Directives
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public Maybe<ILineNode> Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            Maybe<string> validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()!));
+            string? validFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), IOUtility.GetToolFileName(parameters[0].ToString()!));
 
-            if (validFile.IsNothing)
+            if (validFile == null)
             {
                 parse.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
-                return new Nothing<ILineNode>();
+                return null;
             }
             //TODO: abstract out all this running stuff into a method so I don't have code duplication with inctext
 
@@ -42,11 +42,11 @@ namespace ColorzCore.Preprocessor.Directives
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.CreateNoWindow = true;
-            p.StartInfo.FileName = validFile.FromJust;
+            p.StartInfo.FileName = validFile;
             StringBuilder argumentBuilder = new StringBuilder();
             for (int i = 1; i < parameters.Count; i++)
             {
-                if(parameters[i].Type == ParamType.ATOM)
+                if (parameters[i].Type == ParamType.ATOM)
                 {
                     parameters[i] = ((IAtomNode)parameters[i]).Simplify();
                 }
@@ -78,7 +78,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             ExecTimer.Timer.AddTimingPoint(parameters[0].ToString()!.ToLower());
 
-            return new Just<ILineNode>(new DataNode(parse.CurrentOffset, output));
+            return new DataNode(parse.CurrentOffset, output);
         }
     }
 }

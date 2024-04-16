@@ -35,7 +35,7 @@ namespace ColorzCore.Preprocessor
             };
         }
 
-        public Maybe<ILineNode> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             string directiveName = directive.Content.Substring(1);
 
@@ -58,7 +58,7 @@ namespace ColorzCore.Preprocessor
                 p.Error(directive.Location, "Directive not recognized: " + directiveName);
             }
 
-            return new Nothing<ILineNode>();
+            return null;
         }
     }
 }

@@ -25,8 +25,8 @@ namespace ColorzCore.Raws
 
         // TODO: fixed mask?
 
-        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams, 
-            IList<FixedParam> fixedParams, Maybe<int> terminatingList, bool repeatable)
+        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams,
+            IList<FixedParam> fixedParams, int? terminatingList, bool repeatable)
         {
             Name = name;
             Game = game;
@@ -48,10 +48,8 @@ namespace ColorzCore.Raws
 
             // Build end unit, if needed
 
-            if (!terminatingList.IsNothing)
+            if (terminatingList is int terminator)
             {
-                int terminator = terminatingList.FromJust;
-
                 if (parameters.Count == 0)
                     return;
 
@@ -109,7 +107,7 @@ namespace ColorzCore.Raws
 
             return true;
         }
-        
+
         /* Precondition: params fits the shape of this raw's params. */
         public byte[] GetBytes(IList<IParamNode> arguments)
         {
