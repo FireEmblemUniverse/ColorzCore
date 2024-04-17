@@ -111,7 +111,7 @@ namespace ColorzCore
                 }
                 else
                 {
-                    myParser.Error(errCause.Location, "Undefined identifier: " + errCause.Content);
+                    myParser.Error(errCause.Location, $"Undefined identifier `{errCause.Content}`");
                 }
             }
 

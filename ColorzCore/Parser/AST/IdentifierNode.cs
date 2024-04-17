@@ -68,7 +68,7 @@ namespace ColorzCore.Parser.AST
         public class UndefinedIdentifierException : Exception
         {
             public Token CausedError { get; set; }
-            public UndefinedIdentifierException(Token causedError) : base("Undefined identifier: " + causedError.Content)
+            public UndefinedIdentifierException(Token causedError) : base($"Undefined identifier `{causedError.Content}`")
             {
                 this.CausedError = causedError;
             }

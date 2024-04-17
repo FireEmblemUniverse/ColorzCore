@@ -539,9 +539,10 @@ namespace ColorzCore.Parser
             return paramList;
         }
 
-        private IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool allowsFirstExpanded)
         {
-            IList<IParamNode> temp = ParseParamList(tokens, scopes, false);
+            IList<IParamNode> temp = ParseParamList(tokens, scopes, allowsFirstExpanded);
+
             for (int i = 0; i < temp.Count; i++)
             {
                 if (temp[i].Type == ParamType.STRING && ((StringNode)temp[i]).IsValidIdentifier())
@@ -549,6 +550,7 @@ namespace ColorzCore.Parser
                     temp[i] = ((StringNode)temp[i]).ToIdentifier(scopes);
                 }
             }
+
             return temp;
         }
 
@@ -932,17 +934,18 @@ namespace ColorzCore.Parser
             head = tokens.Current;
             tokens.MoveNext();
 
-            //Note: Not a ParseParamList because no commas.
-            IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes);
-            ILineNode? retVal = directiveHandler.HandleDirective(this, head, paramList, tokens);
+            // Note: Not a ParseParamList because no commas.
+            // HACK: #if wants its parameters to be expanded, but other directives (define, ifdef, undef, etc) do not
+            IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes, head.Content == "#if");
+            ILineNode? result = directiveHandler.HandleDirective(this, head, paramList, tokens);
 
-            if (retVal != null)
+            if (result != null)
             {
-                CheckDataWrite(retVal.Size);
-                CurrentOffset += retVal.Size;
+                CheckDataWrite(result.Size);
+                CurrentOffset += result.Size;
             }
 
-            return retVal;
+            return result;
         }
 
         /***

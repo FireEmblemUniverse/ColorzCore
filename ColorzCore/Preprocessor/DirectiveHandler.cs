@@ -27,6 +27,7 @@ namespace ColorzCore.Preprocessor
                 { "inctevent", new IncludeToolEventDirective { FileSearcher = toolSearcher } },
                 { "ifdef", new IfDefinedDirective() },
                 { "ifndef", new IfNotDefinedDirective() },
+                { "if", new IfDirective() },
                 { "else", new ElseDirective() },
                 { "endif", new EndIfDirective() },
                 { "define", new DefineDirective() },
@@ -37,7 +38,7 @@ namespace ColorzCore.Preprocessor
 
         public ILineNode? HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            string directiveName = directive.Content.Substring(1);
+            string directiveName = directive.Content[1..];
 
             if (directives.TryGetValue(directiveName, out IDirective? toExec))
             {
@@ -49,13 +50,13 @@ namespace ColorzCore.Preprocessor
                     }
                     else
                     {
-                        p.Error(directive.Location, "Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
+                        p.Error(directive.Location, $"Invalid number of parameters ({parameters.Count}) to directive {directiveName}.");
                     }
                 }
             }
             else
             {
-                p.Error(directive.Location, "Directive not recognized: " + directiveName);
+                p.Error(directive.Location, $"Directive not recognized: {directiveName}");
             }
 
             return null;
