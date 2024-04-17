@@ -21,14 +21,14 @@ namespace ColorzCore
         private Log log;
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string game, string rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log)
+        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log)
         {
             this.game = game;
             this.output = output;
 
             try
             {
-                allRaws = ProcessRaws(game, ListAllRaws(rawsFolder, rawsExtension));
+                allRaws = SelectRaws(game, ListAllRaws(rawsFolder, rawsExtension));
             }
             catch (RawReader.RawParseException e)
             {
@@ -39,8 +39,8 @@ namespace ColorzCore
                     colNum = 1
                 };
 
-                log.Message(Log.MsgKind.ERROR, loc, "An error occured while parsing raws");
-                log.Message(Log.MsgKind.ERROR, loc, e.Message);
+                log.Message(Log.MessageKind.ERROR, loc, "An error occured while parsing raws");
+                log.Message(Log.MessageKind.ERROR, loc, e.Message);
 
                 Environment.Exit(-1); // ew?
             }
@@ -96,7 +96,8 @@ namespace ColorzCore
                 try
                 {
                     line.EvaluateExpressions(undefinedIds);
-                } catch (MacroInvocationNode.MacroException e)
+                }
+                catch (MacroInvocationNode.MacroException e)
                 {
                     myParser.Error(e.CausedError.MyLocation, "Unexpanded macro.");
                 }
@@ -124,7 +125,7 @@ namespace ColorzCore
                 {
                     if (Program.Debug)
                     {
-                        log.Message(Log.MsgKind.DEBUG, line.PrettyPrint(0));
+                        log.Message(Log.MessageKind.DEBUG, line.PrettyPrint(0));
                     }
 
                     line.WriteData(output);
@@ -146,8 +147,7 @@ namespace ColorzCore
         {
             foreach (var label in myParser.GlobalScope.Head.LocalLabels())
             {
-                // TODO: more elegant offset to address mapping
-                output.WriteLine("{0:X8} {1}", label.Value + 0x8000000, label.Key);
+                output.WriteLine("{0:X8} {1}", EAParser.ConvertToAddress(label.Value), label.Key);
             }
 
             return true;
@@ -160,18 +160,50 @@ namespace ColorzCore
 
             foreach (FileInfo fileInfo in files)
             {
-                using (var fs = new FileStream(fileInfo.FullName, FileMode.Open))
-                    foreach (var raw in RawReader.ParseAllRaws(fs))
-                        yield return raw;
+                using var fs = new FileStream(fileInfo.FullName, FileMode.Open);
+
+                foreach (var raw in RawReader.ParseAllRaws(fs))
+                    yield return raw;
             }
         }
 
-        private static IList<Raw> ListAllRaws(string rawsFolder, string rawsExtension)
+        private static IList<Raw> ListAllRaws(string? rawsFolder, string rawsExtension)
         {
-            return new List<Raw>(LoadAllRaws(rawsFolder, rawsExtension));
+            if (rawsFolder != null)
+            {
+                return new List<Raw>(LoadAllRaws(rawsFolder, rawsExtension));
+            }
+            else
+            {
+                return GetFallbackRaws();
+            }
         }
 
-        private static Dictionary<string, IList<Raw>> ProcessRaws(string game, IList<Raw> allRaws)
+        private static IList<Raw> GetFallbackRaws()
+        {
+            static List<IRawParam> CreateParams(int bitSize, bool isPointer)
+            {
+                return new() { new AtomicParam("Data", 0, bitSize, isPointer) };
+            }
+
+            static Raw CreateRaw(string name, int byteSize, int alignment, bool isPointer)
+            {
+                return new(name, byteSize * 8, 0, alignment, CreateParams(byteSize * 8, isPointer), true);
+            }
+
+            return new List<Raw>()
+            {
+                CreateRaw("BYTE", 1, 1, false),
+                CreateRaw("SHORT", 2, 2, false),
+                CreateRaw("WORD", 4, 4, false),
+                CreateRaw("POIN", 4, 4, true),
+                CreateRaw("SHORT2", 2, 1, false),
+                CreateRaw("WORD2", 4, 1, false),
+                CreateRaw("POIN2", 4, 1, true),
+            };
+        }
+
+        private static Dictionary<string, IList<Raw>> SelectRaws(string game, IList<Raw> allRaws)
         {
             Dictionary<string, IList<Raw>> result = new Dictionary<string, IList<Raw>>();
 

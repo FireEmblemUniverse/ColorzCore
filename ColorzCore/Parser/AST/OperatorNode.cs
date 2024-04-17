@@ -14,17 +14,25 @@ namespace ColorzCore.Parser.AST
     class OperatorNode : AtomNodeKernel
     {
         public static readonly Dictionary<TokenType, BinaryIntOp> Operators = new Dictionary<TokenType, BinaryIntOp> {
-                { TokenType.MUL_OP , (x, y) => x*y },
-                { TokenType.DIV_OP , (x, y) => x/y },
-                { TokenType.MOD_OP , (x, y) => x%y },
-                { TokenType.ADD_OP , (x, y) => x+y },
-                { TokenType.SUB_OP , (x, y) => x-y },
-                { TokenType.LSHIFT_OP , (x, y) => x<<y },
-                { TokenType.RSHIFT_OP , (x, y) => (int)(((uint)x)>>y) },
-                { TokenType.SIGNED_RSHIFT_OP , (x, y) => x>>y },
-                { TokenType.AND_OP , (x, y) => x&y },
-                { TokenType.XOR_OP , (x, y) => x^y },
-                { TokenType.OR_OP , (x, y) => x|y }
+            { TokenType.MUL_OP , (lhs, rhs) => lhs * rhs },
+            { TokenType.DIV_OP , (lhs, rhs) => lhs / rhs },
+            { TokenType.MOD_OP , (lhs, rhs) => lhs % rhs },
+            { TokenType.ADD_OP , (lhs, rhs) => lhs + rhs },
+            { TokenType.SUB_OP , (lhs, rhs) => lhs - rhs },
+            { TokenType.LSHIFT_OP , (lhs, rhs) => lhs << rhs },
+            { TokenType.RSHIFT_OP , (lhs, rhs) => (int)(((uint)lhs) >> rhs) },
+            { TokenType.SIGNED_RSHIFT_OP , (lhs, rhs) => lhs >> rhs },
+            { TokenType.AND_OP , (lhs, rhs) => lhs & rhs },
+            { TokenType.XOR_OP , (lhs, rhs) => lhs ^ rhs },
+            { TokenType.OR_OP , (lhs, rhs) => lhs | rhs },
+            { TokenType.LOGAND_OP, (lhs, rhs) => lhs != 0 ? rhs : 0 },
+            { TokenType.LOGOR_OP, (lhs, rhs) => lhs != 0 ? lhs : rhs },
+            { TokenType.COMPARE_EQ, (lhs, rhs) => lhs == rhs ? 1 : 0 },
+            { TokenType.COMPARE_NE, (lhs, rhs) => lhs != rhs ? 1 : 0 },
+            { TokenType.COMPARE_LT, (lhs, rhs) => lhs < rhs ? 1 : 0 },
+            { TokenType.COMPARE_LE, (lhs, rhs) => lhs <= rhs ? 1 : 0 },
+            { TokenType.COMPARE_GE, (lhs, rhs) => lhs >= rhs ? 1 : 0 },
+            { TokenType.COMPARE_GT, (lhs, rhs) => lhs > rhs ? 1 : 0 },
         };
 
         private IAtomNode left, right;
@@ -43,45 +51,36 @@ namespace ColorzCore.Parser.AST
 
         public override string PrettyPrint()
         {
-            StringBuilder sb = new StringBuilder(left.PrettyPrint());
-            switch (op.Type)
+            static string GetOperatorString(TokenType tokenType)
             {
-                case TokenType.MUL_OP:
-                    sb.Append("*");
-                    break;
-                case TokenType.DIV_OP:
-                    sb.Append("/");
-                    break;
-                case TokenType.ADD_OP:
-                    sb.Append("+");
-                    break;
-                case TokenType.SUB_OP:
-                    sb.Append("-");
-                    break;
-                case TokenType.LSHIFT_OP:
-                    sb.Append("<<");
-                    break;
-                case TokenType.RSHIFT_OP:
-                    sb.Append(">>");
-                    break;
-                case TokenType.SIGNED_RSHIFT_OP:
-                    sb.Append(">>>");
-                    break;
-                case TokenType.AND_OP:
-                    sb.Append("&");
-                    break;
-                case TokenType.XOR_OP:
-                    sb.Append("^");
-                    break;
-                case TokenType.OR_OP:
-                    sb.Append("|");
-                    break;
-                default:
-                    break;
+                return tokenType switch
+                {
+                    TokenType.MUL_OP => "*",
+                    TokenType.DIV_OP => "/",
+                    TokenType.MOD_OP => "%",
+                    TokenType.ADD_OP => "+",
+                    TokenType.SUB_OP => "-",
+                    TokenType.LSHIFT_OP => "<<",
+                    TokenType.RSHIFT_OP => ">>",
+                    TokenType.SIGNED_RSHIFT_OP => ">>>",
+                    TokenType.AND_OP => "&",
+                    TokenType.XOR_OP => "^",
+                    TokenType.OR_OP => "|",
+                    TokenType.LOGAND_OP => "&&",
+                    TokenType.LOGOR_OP => "||",
+                    TokenType.COMPARE_EQ => "==",
+                    TokenType.COMPARE_NE => "!=",
+                    TokenType.COMPARE_LT => "<",
+                    TokenType.COMPARE_LE => "<=",
+                    TokenType.COMPARE_GT => ">",
+                    TokenType.COMPARE_GE => ">=",
+                    _ => "<bad operator>"
+                };
             }
-            sb.Append(right.PrettyPrint());
-            return sb.ToString();
+
+            return $"({left.PrettyPrint()} {GetOperatorString(op.Type)} {right.PrettyPrint()})";
         }
+
         public override IEnumerable<Token> ToTokens()
         {
             foreach (Token t in left.ToTokens())

@@ -7,7 +7,7 @@ namespace ColorzCore.IO
 {
     public class Log
     {
-        public enum MsgKind
+        public enum MessageKind
         {
             ERROR,
             WARNING,
@@ -21,7 +21,7 @@ namespace ColorzCore.IO
 
         public bool NoColoredTags { get; set; } = false;
 
-        public List<MsgKind> IgnoredKinds { get; } = new List<MsgKind>();
+        public List<MessageKind> IgnoredKinds { get; } = new List<MessageKind>();
 
         public TextWriter Output { get; set; } = Console.Error;
 
@@ -31,32 +31,32 @@ namespace ColorzCore.IO
             public ConsoleColor? tagColor;
         }
 
-        protected static readonly Dictionary<MsgKind, LogDisplayConfig> KIND_DISPLAY_DICT = new Dictionary<MsgKind, LogDisplayConfig> {
-            { MsgKind.ERROR, new LogDisplayConfig { tag = "error", tagColor = ConsoleColor.Red } },
-            { MsgKind.WARNING, new LogDisplayConfig { tag = "warning", tagColor = ConsoleColor.Magenta } },
-            { MsgKind.NOTE, new LogDisplayConfig { tag = "note", tagColor = null } },
-            { MsgKind.MESSAGE, new LogDisplayConfig { tag = "message", tagColor = ConsoleColor.Blue } },
-            { MsgKind.DEBUG, new LogDisplayConfig { tag = "debug", tagColor = ConsoleColor.Green } }
+        protected static readonly Dictionary<MessageKind, LogDisplayConfig> KIND_DISPLAY_DICT = new Dictionary<MessageKind, LogDisplayConfig> {
+            { MessageKind.ERROR, new LogDisplayConfig { tag = "error", tagColor = ConsoleColor.Red } },
+            { MessageKind.WARNING, new LogDisplayConfig { tag = "warning", tagColor = ConsoleColor.Magenta } },
+            { MessageKind.NOTE, new LogDisplayConfig { tag = "note", tagColor = null } },
+            { MessageKind.MESSAGE, new LogDisplayConfig { tag = "message", tagColor = ConsoleColor.Blue } },
+            { MessageKind.DEBUG, new LogDisplayConfig { tag = "debug", tagColor = ConsoleColor.Green } }
         };
 
         public void Message(string message)
         {
-            Message(MsgKind.MESSAGE, null, message);
+            Message(MessageKind.MESSAGE, null, message);
         }
 
-        public void Message(MsgKind kind, string message)
+        public void Message(MessageKind kind, string message)
         {
             Message(kind, null, message);
         }
 
-        public void Message(MsgKind kind, Location? source, string message)
+        public void Message(MessageKind kind, Location? source, string message)
         {
-            if (WarningsAreErrors && (kind == MsgKind.WARNING))
+            if (WarningsAreErrors && (kind == MessageKind.WARNING))
             {
-                kind = MsgKind.ERROR;
+                kind = MessageKind.ERROR;
             }
 
-            HasErrored |= (kind == MsgKind.ERROR);
+            HasErrored |= (kind == MessageKind.ERROR);
 
             if (!IgnoredKinds.Contains(kind))
             {

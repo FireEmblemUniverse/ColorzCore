@@ -121,6 +121,13 @@ namespace ColorzCore
                         {
                             case "raws":
                                 rawsFolder = rawSearcher.FindDirectory(flag[1]);
+
+                                if (rawsFolder == null)
+                                {
+                                    Console.Error.WriteLine($"No such folder: {flag[1]}");
+                                    return EXIT_FAILURE;
+                                }
+
                                 break;
 
                             case "rawsExt":
@@ -251,12 +258,6 @@ namespace ColorzCore
                 return EXIT_FAILURE;
             }
 
-            if (rawsFolder == null)
-            {
-                Console.Error.WriteLine("Couldn't find raws folder");
-                return EXIT_FAILURE;
-            }
-
             IOutput output;
 
             if (outputASM)
@@ -298,10 +299,10 @@ namespace ColorzCore
             };
 
             if (EAOptions.Instance.nowarn)
-                log.IgnoredKinds.Add(Log.MsgKind.WARNING);
+                log.IgnoredKinds.Add(Log.MessageKind.WARNING);
 
             if (EAOptions.Instance.nomess)
-                log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
+                log.IgnoredKinds.Add(Log.MessageKind.MESSAGE);
 
             EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
 
@@ -311,12 +312,11 @@ namespace ColorzCore
 
             if (success && EAOptions.Instance.nocashSym)
             {
-                using (var symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                using StreamWriter symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym"));
+
+                if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
                 {
-                    if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
-                    {
-                        log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
-                    }
+                    log.Message(Log.MessageKind.ERROR, "Error trying to write no$gba symbol file.");
                 }
             }
 
@@ -345,7 +345,6 @@ namespace ColorzCore
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;
-
         }
     }
 }

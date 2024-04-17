@@ -321,9 +321,9 @@ namespace ColorzCore.Raws
                     if (flag[0] != '-')
                         throw new Exception("Flag does not start with '-'");
 
-                    var withoutDash = flag.Substring(1);
+                    var withoutDash = flag[1..];
 
-                    var name = string.Empty;
+                    string name;
                     var value = new Flag();
 
                     if (withoutDash.Contains(':'))
@@ -365,7 +365,7 @@ namespace ColorzCore.Raws
             // Helper wrapper class for reading lines from file while counting them
             // That way we can print line number in error messages
 
-            private StreamReader reader;
+            private readonly StreamReader reader;
 
             public string FileName { get; }
             public int LineNumber { get; private set; }
@@ -385,7 +385,7 @@ namespace ColorzCore.Raws
                 string? line = reader.ReadLine();
 
                 if (line != null)
-                    LineNumber = LineNumber + 1;
+                    LineNumber++;
 
                 return line;
             }

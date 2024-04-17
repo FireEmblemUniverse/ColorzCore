@@ -7,22 +7,24 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    public class MergeableGenerator<T>: IEnumerable<T>
+    public class MergeableGenerator<T> : IEnumerable<T>
     {
-        private Stack<IEnumerator<T>> myEnums;
+        private readonly Stack<IEnumerator<T>> myEnums;
         public bool EOS { get; private set; }
+
         public MergeableGenerator(IEnumerable<T> baseEnum)
         {
             myEnums = new Stack<IEnumerator<T>>();
             myEnums.Push(baseEnum.GetEnumerator());
         }
 
-        public T Current { get { return myEnums.Peek().Current; } }
+        public T Current => myEnums.Peek().Current;
+
         public bool MoveNext()
         {
-            if(!myEnums.Peek().MoveNext())
+            if (!myEnums.Peek().MoveNext())
             {
-                if(myEnums.Count > 1)
+                if (myEnums.Count > 1)
                 {
                     myEnums.Pop();
                     return true;
@@ -38,43 +40,55 @@ namespace ColorzCore.DataTypes
                 return true;
             }
         }
+
         public void PrependEnumerator(IEnumerator<T> nextEnum)
         {
             if (EOS)
+            {
                 myEnums.Pop();
+            }
+
             myEnums.Push(nextEnum);
             Prime();
         }
+
         public void PutBack(T elem)
         {
-            this.PrependEnumerator(new List<T> { elem }.GetEnumerator());
+            PrependEnumerator(new List<T> { elem }.GetEnumerator());
         }
+
         private bool Prime()
         {
             if (!myEnums.Peek().MoveNext())
             {
                 if (myEnums.Count == 1)
                     EOS = true;
-                else 
+                else
                     myEnums.Pop();
             }
             else
+            {
                 EOS = false;
+            }
+
             return !EOS;
         }
+
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            while(!EOS) {
-                yield return this.Current;
-                this.MoveNext();
+            while (!EOS)
+            {
+                yield return Current;
+                MoveNext();
             }
         }
+
         public IEnumerator GetEnumerator()
         {
             while (!EOS)
             {
-                yield return this.Current;
-                this.MoveNext();
+                yield return Current;
+                MoveNext();
             }
         }
     }

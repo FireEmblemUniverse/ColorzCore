@@ -16,6 +16,9 @@ namespace ColorzCore.Raws
         public int Alignment { get; }
         public HashSet<string> Game { get; }
 
+        // symbolic helper
+        public static HashSet<string> AnyGame { get; } = new();
+
         private readonly IList<IRawParam> parameters;
         private readonly bool repeatable;
 
@@ -25,8 +28,15 @@ namespace ColorzCore.Raws
 
         // TODO: fixed mask?
 
+        public struct FixedParam
+        {
+            public int position;
+            public int size;
+            public int value;
+        }
+
         public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams,
-            IList<FixedParam> fixedParams, int? terminatingList, bool repeatable)
+            IList<FixedParam>? fixedParams, int? terminatingList, bool repeatable)
         {
             Name = name;
             Game = game;
@@ -41,10 +51,15 @@ namespace ColorzCore.Raws
             // Build base unit
 
             if (code != 0)
+            {
                 baseUnit.SetBits(0, 16, code);
+            }
 
-            foreach (var fp in fixedParams)
-                baseUnit.SetBits(fp.position, fp.size, fp.value);
+            if (fixedParams != null)
+            {
+                foreach (var fp in fixedParams)
+                    baseUnit.SetBits(fp.position, fp.size, fp.value);
+            }
 
             // Build end unit, if needed
 
@@ -59,6 +74,11 @@ namespace ColorzCore.Raws
                 // force repeatable to be true if this is terminating list
                 this.repeatable = true;
             }
+        }
+
+        public Raw(string name, int length, short code, int offsetMod, IList<IRawParam> varParams, bool repeatable)
+            : this(name, length, code, offsetMod, AnyGame, varParams, null, null, repeatable)
+        {
         }
 
         public int UnitCount(int paramCount)
@@ -133,11 +153,23 @@ namespace ColorzCore.Raws
             return result;
         }
 
-        public struct FixedParam
+        public string ToPrettyString()
         {
-            public int position;
-            public int size;
-            public int value;
+            StringBuilder sb = new();
+
+            sb.Append(Name);
+
+            foreach (IRawParam param in parameters)
+            {
+                sb.Append(' ').Append((param is ListParam) ? $"[{param.Name}...]" : param.Name);
+            }
+
+            if (repeatable)
+            {
+                sb.Append("...");
+            }
+
+            return sb.ToString();
         }
     }
 }

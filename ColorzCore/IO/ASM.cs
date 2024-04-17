@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ColorzCore.Parser;
 
 namespace ColorzCore.IO
 {
@@ -19,21 +20,21 @@ namespace ColorzCore.IO
 
         private void WriteToASM(int position, byte[] data)
         {
-            string sectionName = String.Format(".ea_{0:x}", 0x8000000 + position);
-            asmStream.WriteLine(".section {0},\"ax\",%progbits", sectionName);
-            asmStream.WriteLine(".global {0}", sectionName);
-            asmStream.WriteLine("{0}:", sectionName);
+            string sectionName = $".ea_{EAParser.ConvertToAddress(position):x}";
+            asmStream.WriteLine($".section {sectionName},\"ax\",%progbits");
+            asmStream.WriteLine($".global {sectionName}");
+            asmStream.WriteLine($"{sectionName}:");
             asmStream.Write("\t.byte ");
             foreach (byte value in data)
-                asmStream.Write("0x{0:x}, ", value);
+                asmStream.Write($"0x{value:x}, ");
             asmStream.WriteLine();
         }
 
         private void WriteToLDS(int position)
         {
-            string sectionName = String.Format(".ea_{0:x}", 0x8000000 + position);
-            ldsStream.WriteLine(". = 0x{0:x};", 0x8000000 + position);
-            ldsStream.WriteLine("{0} : {{*.o({0})}}", sectionName);
+            string sectionName = $".ea_{EAParser.ConvertToAddress(position):x}";
+            ldsStream.WriteLine($". = 0x{EAParser.ConvertToAddress(position):x};");
+            ldsStream.WriteLine($"{sectionName} : {{*.o({sectionName})}}");
         }
 
         public void WriteTo(int position, byte[] data)
