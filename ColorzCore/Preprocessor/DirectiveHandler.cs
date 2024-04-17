@@ -38,7 +38,7 @@ namespace ColorzCore.Preprocessor
 
         public ILineNode? HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            string directiveName = directive.Content[1..];
+            string directiveName = directive.Content.Substring(1);
 
             if (directives.TryGetValue(directiveName, out IDirective? toExec))
             {

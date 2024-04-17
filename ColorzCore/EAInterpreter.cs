@@ -183,12 +183,12 @@ namespace ColorzCore
         {
             static List<IRawParam> CreateParams(int bitSize, bool isPointer)
             {
-                return new() { new AtomicParam("Data", 0, bitSize, isPointer) };
+                return new List<IRawParam>() { new AtomicParam("Data", 0, bitSize, isPointer) };
             }
 
             static Raw CreateRaw(string name, int byteSize, int alignment, bool isPointer)
             {
-                return new(name, byteSize * 8, 0, alignment, CreateParams(byteSize * 8, isPointer), true);
+                return new Raw(name, byteSize * 8, 0, alignment, CreateParams(byteSize * 8, isPointer), true);
             }
 
             return new List<Raw>()

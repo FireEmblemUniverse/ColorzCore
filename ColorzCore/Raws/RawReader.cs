@@ -321,7 +321,7 @@ namespace ColorzCore.Raws
                     if (flag[0] != '-')
                         throw new Exception("Flag does not start with '-'");
 
-                    var withoutDash = flag[1..];
+                    var withoutDash = flag.Substring(1);
 
                     string name;
                     var value = new Flag();

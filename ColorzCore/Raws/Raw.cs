@@ -17,7 +17,7 @@ namespace ColorzCore.Raws
         public HashSet<string> Game { get; }
 
         // symbolic helper
-        public static HashSet<string> AnyGame { get; } = new();
+        public static HashSet<string> AnyGame { get; } = new HashSet<string>();
 
         private readonly IList<IRawParam> parameters;
         private readonly bool repeatable;
@@ -155,7 +155,7 @@ namespace ColorzCore.Raws
 
         public string ToPrettyString()
         {
-            StringBuilder sb = new();
+            StringBuilder sb = new StringBuilder();
 
             sb.Append(Name);
 
