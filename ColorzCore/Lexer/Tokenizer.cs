@@ -99,6 +99,13 @@ namespace ColorzCore.Lexer
                         yield return new Token(TokenType.SEMICOLON, fileName, lineNum, curCol + offset);
                         break;
                     case ':':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '=') // ':='
+                        {
+                            yield return new Token(TokenType.ASSIGN, fileName, lineNum, curCol + offset);
+                            curCol++;
+                            break;
+                        }
+
                         yield return new Token(TokenType.COLON, fileName, lineNum, curCol + offset);
                         break;
                     case '{':

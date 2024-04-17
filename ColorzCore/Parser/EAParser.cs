@@ -864,28 +864,26 @@ namespace ColorzCore.Parser
                         else
                         {
                             tokens.MoveNext();
-                            if (tokens.Current.Type == TokenType.COLON)
+                            switch (tokens.Current.Type)
                             {
-                                tokens.MoveNext();
-                                if (scopes.Head.HasLocalLabel(head.Content))
-                                {
-                                    Warning("Label already in scope, ignoring: " + head.Content);//replacing: " + head.Content);
-                                }
-                                else if (!IsValidLabelName(head.Content))
-                                {
-                                    Error("Invalid label name " + head.Content + '.');
-                                }
-                                else
-                                {
-                                    scopes.Head.AddLabel(head.Content, CurrentOffset);
-                                }
+                                case TokenType.COLON:
+                                    tokens.MoveNext();
+                                    TryDefineSymbol(scopes, head.Content, CurrentOffset);
+                                    return null;
+                                case TokenType.ASSIGN:
+                                    tokens.MoveNext();
 
-                                return null;
-                            }
-                            else
-                            {
-                                tokens.PutBack(head);
-                                return ParseStatement(tokens, scopes);
+                                    ParseAtom(tokens, scopes, true).IfJust(
+                                        atom => atom.TryEvaluate(
+                                            e => Error($"Couldn't define symbol `{head.Content}`: can't resolve value.")).IfJust(
+                                            value => TryDefineSymbol(scopes, head.Content, value)),
+                                        () => Error($"Couldn't define symbol `{head.Content}`: exprected expression."));
+
+                                    return null;
+
+                                default:
+                                    tokens.PutBack(head);
+                                    return ParseStatement(tokens, scopes);
                             }
                         }
                     case TokenType.OPEN_BRACE:
@@ -926,6 +924,23 @@ namespace ColorzCore.Parser
                     Error(null, $"Missing {Inclusion.Count} endif(s).");
                     return null;
                 }
+            }
+        }
+
+        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, int value)
+        {
+            if (scopes.Head.HasLocalLabel(name))
+            {
+                Warning($"Symbol already in scope, ignoring: {name}");
+            }
+            else if (!IsValidLabelName(name))
+            {
+                // NOTE: IsValidLabelName returns true always. This is dead code
+                Error($"Invalid symbol name {name}.");
+            }
+            else
+            {
+                scopes.Head.AddLabel(name, value);
             }
         }
 

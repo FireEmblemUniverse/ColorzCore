@@ -37,6 +37,7 @@ namespace ColorzCore.Lexer
         COMPARE_LE,
         COMPARE_GT,
         COMPARE_GE,
+        ASSIGN,
         NUMBER,
         OPEN_BRACKET,
         CLOSE_BRACKET,
