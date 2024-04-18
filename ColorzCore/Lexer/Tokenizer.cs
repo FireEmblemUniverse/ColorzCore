@@ -273,6 +273,9 @@ namespace ColorzCore.Lexer
                             yield return new Token(TokenType.LOGNOT_OP, fileName, lineNum, curCol + offset);
                             break;
                         }
+                    case '~':
+                        yield return new Token(TokenType.NOT_OP, fileName, lineNum, curCol + offset);
+                        break;
                     case '\n':
                         yield return new Token(TokenType.NEWLINE, fileName, lineNum, curCol + offset);
                         break;

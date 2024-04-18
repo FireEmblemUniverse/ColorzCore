@@ -27,6 +27,7 @@ namespace ColorzCore.Parser.AST
             string operatorString = myToken.Type switch
             {
                 TokenType.SUB_OP => "-",
+                TokenType.NOT_OP => "~",
                 TokenType.LOGNOT_OP => "!",
                 _ => "<bad operator>",
             };
@@ -47,9 +48,12 @@ namespace ColorzCore.Parser.AST
 
             if (inner != null)
             {
+                // int? is magic and all of these operations conveniently propagate nulls
+
                 return myToken.Type switch
                 {
                     TokenType.SUB_OP => -inner,
+                    TokenType.NOT_OP => ~inner,
                     TokenType.LOGNOT_OP => inner != 0 ? 0 : 1,
                     _ => null,
                 };

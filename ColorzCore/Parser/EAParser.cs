@@ -693,6 +693,7 @@ namespace ColorzCore.Parser
                             }
                         case TokenType.SUB_OP:
                         case TokenType.LOGNOT_OP:
+                        case TokenType.NOT_OP:
                             {
                                 //Assume unary negation.
                                 tokens.MoveNext();
