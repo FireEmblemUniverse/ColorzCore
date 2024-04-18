@@ -876,7 +876,7 @@ namespace ColorzCore.Parser
 
                                     ParseAtom(tokens, scopes, true).IfJust(
                                         atom => atom.TryEvaluate(
-                                            e => Error($"Couldn't define symbol `{head.Content}`: can't resolve value.")).IfJust(
+                                            e => TryDefineSymbol(scopes, head.Content, atom)).IfJust(
                                             value => TryDefineSymbol(scopes, head.Content, value)),
                                         () => Error($"Couldn't define symbol `{head.Content}`: exprected expression."));
 
@@ -930,7 +930,7 @@ namespace ColorzCore.Parser
 
         private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, int value)
         {
-            if (scopes.Head.HasLocalLabel(name))
+            if (scopes.Head.HasLocalSymbol(name))
             {
                 Warning($"Symbol already in scope, ignoring: {name}");
             }
@@ -941,7 +941,24 @@ namespace ColorzCore.Parser
             }
             else
             {
-                scopes.Head.AddLabel(name, value);
+                scopes.Head.AddSymbol(name, value);
+            }
+        }
+
+        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, IAtomNode expression)
+        {
+            if (scopes.Head.HasLocalSymbol(name))
+            {
+                Warning($"Symbol already in scope, ignoring: {name}");
+            }
+            else if (!IsValidLabelName(name))
+            {
+                // NOTE: IsValidLabelName returns true always. This is dead code
+                Error($"Invalid symbol name {name}.");
+            }
+            else
+            {
+                scopes.Head.AddSymbol(name, expression);
             }
         }
 
@@ -1091,7 +1108,7 @@ namespace ColorzCore.Parser
 
             if (IsProtected(CurrentOffset, length) is Location prot)
             {
-                Error($"Trying to write data to area protected in file {Path.GetFileName(prot.file)} at line {prot.lineNum}, column {prot.colNum}.");
+                Error($"Trying to write data to area protected by {prot}");
             }
         }
     }

@@ -1,4 +1,5 @@
-﻿using ColorzCore.IO;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Raws;
 using System;
@@ -23,22 +24,17 @@ namespace ColorzCore.Parser.AST
         public abstract string PrettyPrint(int indentation);
         public abstract void WriteData(IOutput output);
 
-        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors)
         {
             for (int i = 0; i < Parameters.Count; i++)
-                Parameters[i] = Parameters[i].SimplifyExpressions((Exception e) =>
-                    {
-                        try
-                        {
-                            throw e;
-                        }
-                        catch (IdentifierNode.UndefinedIdentifierException uie)
-                        {
-                            undefinedIdentifiers.Add(uie.CausedError);
-                        }
-                        catch (Exception)
-                        { }
-                    });
+            {
+                Parameters[i] = Parameters[i].SimplifyExpressions(e => evaluationErrors.Add(e switch
+                {
+                    IdentifierNode.UndefinedIdentifierException uie => (uie.CausedError.Location, uie),
+                    Closure.SymbolComputeException sce => (sce.Expression.MyLocation, sce),
+                    _ => (Parameters[i].MyLocation, e),
+                }));
+            }
         }
     }
 }

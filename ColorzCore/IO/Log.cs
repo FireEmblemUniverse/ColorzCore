@@ -31,7 +31,8 @@ namespace ColorzCore.IO
             public ConsoleColor? tagColor;
         }
 
-        protected static readonly Dictionary<MessageKind, LogDisplayConfig> KIND_DISPLAY_DICT = new Dictionary<MessageKind, LogDisplayConfig> {
+        protected static readonly Dictionary<MessageKind, LogDisplayConfig> KIND_DISPLAY_DICT = new Dictionary<MessageKind, LogDisplayConfig>
+        {
             { MessageKind.ERROR, new LogDisplayConfig { tag = "error", tagColor = ConsoleColor.Red } },
             { MessageKind.WARNING, new LogDisplayConfig { tag = "warning", tagColor = ConsoleColor.Magenta } },
             { MessageKind.NOTE, new LogDisplayConfig { tag = "note", tagColor = null } },
@@ -65,14 +66,14 @@ namespace ColorzCore.IO
                     if (!NoColoredTags && config.tagColor.HasValue)
                         Console.ForegroundColor = config.tagColor.Value;
 
-                    Output.Write("{0}: ", config.tag);
+                    Output.Write($"{config.tag}: ");
 
                     if (!NoColoredTags)
                         Console.ResetColor();
 
                     if (source.HasValue)
                     {
-                        Output.Write("{0}:{1}:{2}: ", source.Value.file, source.Value.lineNum, source.Value.colNum);
+                        Output.Write($"{source.Value}: ");
                     }
 
                     Output.WriteLine(message);

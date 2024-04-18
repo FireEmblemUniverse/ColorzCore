@@ -90,12 +90,12 @@ namespace ColorzCore
              * At parse time, myLabel did not exist for the POIN. 
              * It is at this point we want to make sure all references to identifiers are valid, before assembling.
              */
-            List<Token> undefinedIds = new List<Token>();
+            List<(Location, Exception)> evaluationErrors = new List<(Location, Exception)>();
             foreach (ILineNode line in lines)
             {
                 try
                 {
-                    line.EvaluateExpressions(undefinedIds);
+                    line.EvaluateExpressions(evaluationErrors);
                 }
                 catch (MacroInvocationNode.MacroException e)
                 {
@@ -103,15 +103,16 @@ namespace ColorzCore
                 }
             }
 
-            foreach (Token errCause in undefinedIds)
+            foreach ((Location location, Exception e) in evaluationErrors)
             {
-                if (errCause.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
+                if (e is IdentifierNode.UndefinedIdentifierException uie
+                    && uie.CausedError.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
                 {
-                    myParser.Error(errCause.Location, "Unpooled data (forgot #pool?)");
+                    myParser.Error(location, "Unpooled data (forgot #pool?)");
                 }
                 else
                 {
-                    myParser.Error(errCause.Location, $"Undefined identifier `{errCause.Content}`");
+                    myParser.Error(location, e.Message);
                 }
             }
 
@@ -145,7 +146,7 @@ namespace ColorzCore
 
         public bool WriteNocashSymbols(TextWriter output)
         {
-            foreach (var label in myParser.GlobalScope.Head.LocalLabels())
+            foreach (var label in myParser.GlobalScope.Head.LocalSymbols())
             {
                 output.WriteLine("{0:X8} {1}", EAParser.ConvertToAddress(label.Value), label.Key);
             }

@@ -13,11 +13,7 @@ namespace ColorzCore.Parser.AST
     {
         public IList<ILineNode> Children { get; }
 
-        public int Size {
-            get
-            {
-                return Children.Sum((ILineNode n) => n.Size);
-            } }
+        public int Size => Children.Sum(n => n.Size);
 
         public BlockNode()
         {
@@ -30,7 +26,7 @@ namespace ColorzCore.Parser.AST
             sb.Append(' ', indentation);
             sb.Append('{');
             sb.Append('\n');
-            foreach(ILineNode i in Children)
+            foreach (ILineNode i in Children)
             {
                 sb.Append(i.PrettyPrint(indentation + 4));
                 sb.Append('\n');
@@ -42,16 +38,18 @@ namespace ColorzCore.Parser.AST
 
         public void WriteData(IOutput output)
         {
-            foreach(ILineNode child in Children)
+            foreach (ILineNode child in Children)
             {
                 child.WriteData(output);
             }
         }
 
-        public void EvaluateExpressions(ICollection<Token> undefinedIdentifiers)
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors)
         {
             foreach (ILineNode line in Children)
-                line.EvaluateExpressions(undefinedIdentifiers);
+            {
+                line.EvaluateExpressions(evaluationErrors);
+            }
         }
     }
 }

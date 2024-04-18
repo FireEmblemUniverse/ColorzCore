@@ -25,8 +25,8 @@ namespace ColorzCore.Parser.AST
             ImmutableStack<Closure> temp = scope;
             while (!temp.IsEmpty)
             {
-                if (temp.Head.HasLocalLabel(identifier.Content))
-                    return temp.Head.GetLabel(identifier.Content);
+                if (temp.Head.HasLocalSymbol(identifier.Content))
+                    return temp.Head.GetSymbol(identifier.Content);
                 else
                     temp = temp.Tail;
             }
@@ -44,6 +44,11 @@ namespace ColorzCore.Parser.AST
                 handler(e);
                 return null;
             }
+            catch (Closure.SymbolComputeException e)
+            {
+                handler(e);
+                return null;
+            }
         }
 
         public override string? GetIdentifier()
@@ -55,7 +60,7 @@ namespace ColorzCore.Parser.AST
         {
             try
             {
-                return "0x" + ToInt().ToString("X");
+                return $"0x{ToInt():X}";
             }
             catch (UndefinedIdentifierException)
             {

@@ -17,5 +17,7 @@ namespace ColorzCore.DataTypes
             this.lineNum = lineNum;
             this.colNum = colNum;
         }
+
+        public override readonly string ToString() => $"{file}:{lineNum}:{colNum}";
     }
 }
