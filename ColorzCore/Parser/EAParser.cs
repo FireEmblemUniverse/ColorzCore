@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 //TODO: Make errors less redundant (due to recursive nature, many paths will give several redundant errors).
 
@@ -221,9 +222,9 @@ namespace ColorzCore.Parser
                     "PROTECT" => ParseProtectStatement(parameters),
                     "ALIGN" => ParseAlignStatement(parameters),
                     "FILL" => ParseFillStatement(parameters),
-                    "MESSAGE" => ParseMessageStatement(parameters),
-                    "WARNING" => ParseWarningStatement(parameters),
-                    "ERROR" => ParseErrorStatement(parameters),
+                    "MESSAGE" => ParseMessageStatement(parameters, scopes),
+                    "WARNING" => ParseWarningStatement(parameters, scopes),
+                    "ERROR" => ParseErrorStatement(parameters, scopes),
                     _ => null, // TODO: this is an error
                 };
             }
@@ -500,21 +501,21 @@ namespace ColorzCore.Parser
             return null;
         }
 
-        private ILineNode? ParseMessageStatement(IList<IParamNode> parameters)
+        private ILineNode? ParseMessageStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
-            Message(PrettyPrintParams(parameters));
+            Message(PrettyPrintParamsForMessage(parameters, scopes));
             return null;
         }
 
-        private ILineNode? ParseWarningStatement(IList<IParamNode> parameters)
+        private ILineNode? ParseWarningStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
-            Warning(PrettyPrintParams(parameters));
+            Warning(PrettyPrintParamsForMessage(parameters, scopes));
             return null;
         }
 
-        private ILineNode? ParseErrorStatement(IList<IParamNode> parameters)
+        private ILineNode? ParseErrorStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
-            Error(PrettyPrintParams(parameters));
+            Error(PrettyPrintParamsForMessage(parameters, scopes));
             return null;
         }
 
@@ -926,7 +927,7 @@ namespace ColorzCore.Parser
                                     return ParseLine(tokens, scopes);
 
                                 default:
-                                    // it is common for users to do '#define Foo 0xABCD' and then later 'Foo:'
+                                    // it is somewhat common for users to do '#define Foo 0xABCD' and then later 'Foo:'
                                     Error($"Expansion of macro `{head.Content}` did not result in a valid statement. Did you perhaps attempt to define a label or symbol with that name?");
                                     IgnoreRestOfLine(tokens);
 
@@ -1148,12 +1149,58 @@ namespace ColorzCore.Parser
             pastOffsets.Clear();
         }
 
-        private string PrettyPrintParams(IList<IParamNode> parameters)
+        private static readonly Regex formatItemRegex = new Regex(@"\{(?<expr>[^:]+)(?:\:(?<format>\w*))?\}");
+
+        private string PrettyPrintParamsForMessage(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
             StringBuilder sb = new StringBuilder();
+
             foreach (IParamNode parameter in parameters)
             {
-                sb.Append(parameter.PrettyPrint()).Append(' ');
+                if (parameter is StringNode node)
+                {
+                    string theString = formatItemRegex.Replace(node.MyToken.Content, match =>
+                    {
+                        string expr = match.Groups["expr"].Value!;
+                        string? format = match.Groups["format"].Value;
+
+                        MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
+                            new Tokenizer().TokenizeLine(
+                                $"{expr} \n", parameter.MyLocation.file, parameter.MyLocation.lineNum, parameter.MyLocation.colNum + match.Index + 1));
+                        tokens.MoveNext();
+
+                        IAtomNode? node = ParseAtom(tokens, scopes);
+
+                        if (node == null || tokens.Current.Type != TokenType.NEWLINE)
+                        {
+                            return $"<bad expression: '{expr}'>";
+                        }
+
+                        if (node.TryEvaluate(e => Error(node.MyLocation, e.Message),
+                            EvaluationPhase.Early) is int value)
+                        {
+                            try
+                            {
+                                return value.ToString(format);
+                            }
+                            catch (FormatException e)
+                            {
+                                // TODO: this seems to never happen
+                                return $"<bad format specifier: '{format}' ({e.Message})>";
+                            }
+                        }
+                        else
+                        {
+                            return $"<failed to evaluate: '{expr}'>";
+                        }
+                    });
+
+                    sb.Append(theString).Append(' ');
+                }
+                else
+                {
+                    sb.Append(parameter.PrettyPrint()).Append(' ');
+                }
             }
             return sb.ToString();
         }
