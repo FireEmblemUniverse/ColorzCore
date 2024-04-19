@@ -95,7 +95,7 @@ namespace ColorzCore
             {
                 try
                 {
-                    line.EvaluateExpressions(evaluationErrors);
+                    line.EvaluateExpressions(evaluationErrors, EvaluationPhase.Final);
                 }
                 catch (MacroInvocationNode.MacroException e)
                 {

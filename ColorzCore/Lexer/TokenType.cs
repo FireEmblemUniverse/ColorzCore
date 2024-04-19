@@ -25,6 +25,7 @@ namespace ColorzCore.Lexer
         LSHIFT_OP,
         RSHIFT_OP,
         SIGNED_RSHIFT_OP,
+        UNDEFINED_COALESCE_OP,
         NOT_OP,
         AND_OP,
         XOR_OP,

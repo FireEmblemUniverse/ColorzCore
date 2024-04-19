@@ -276,6 +276,18 @@ namespace ColorzCore.Lexer
                     case '~':
                         yield return new Token(TokenType.NOT_OP, fileName, lineNum, curCol + offset);
                         break;
+                    case '?':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '?')
+                        {
+                            yield return new Token(TokenType.UNDEFINED_COALESCE_OP, fileName, lineNum, curCol + offset);
+                            curCol++;
+                            break;
+                        }
+                        else
+                        {
+                            yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, "?");
+                            break;
+                        }
                     case '\n':
                         yield return new Token(TokenType.NEWLINE, fileName, lineNum, curCol + offset);
                         break;

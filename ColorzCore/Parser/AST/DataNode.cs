@@ -32,7 +32,7 @@ namespace ColorzCore.Parser.AST
             output.WriteTo(offset, data);
         }
 
-        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors)
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase)
         {
             // Nothing to be done because we contain no expressions.
         }

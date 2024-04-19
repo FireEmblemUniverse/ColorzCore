@@ -37,22 +37,17 @@ namespace ColorzCore.Parser.AST
         }
         public IEnumerable<Token> ToTokens() { yield return MyToken; }
 
-        public Either<int, string> TryEvaluate()
-        {
-            return new Right<int, string>("Expected atomic parameter.");
-        }
-
         public bool IsValidIdentifier()
         {
             return idRegex.IsMatch(MyToken.Content);
         }
+
         public IdentifierNode ToIdentifier(ImmutableStack<Closure> scope)
         {
             return new IdentifierNode(MyToken, scope);
         }
 
-        public IAtomNode? AsAtom() { return null; }
-
-        public IParamNode SimplifyExpressions(TAction<Exception> handler) { return this; }
+        public IAtomNode? AsAtom() => null;
+        public IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase) => this;
     }
 }

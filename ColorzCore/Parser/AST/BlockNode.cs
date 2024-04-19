@@ -44,11 +44,11 @@ namespace ColorzCore.Parser.AST
             }
         }
 
-        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors)
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase)
         {
             foreach (ILineNode line in Children)
             {
-                line.EvaluateExpressions(evaluationErrors);
+                line.EvaluateExpressions(evaluationErrors, evaluationPhase);
             }
         }
     }

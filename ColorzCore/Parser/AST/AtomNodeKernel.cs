@@ -12,7 +12,7 @@ namespace ColorzCore.Parser.AST
     {
         public abstract int Precedence { get; }
 
-        public ParamType Type { get { return ParamType.ATOM; } }
+        public ParamType Type => ParamType.ATOM;
 
         public virtual string? GetIdentifier()
         {
@@ -23,11 +23,11 @@ namespace ColorzCore.Parser.AST
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public abstract int? TryEvaluate(TAction<Exception> handler);
+        public abstract int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase);
 
-        public IParamNode SimplifyExpressions(TAction<Exception> handler)
+        public IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            return this.Simplify(handler);
+            return this.Simplify(handler, evaluationPhase);
         }
 
         public IAtomNode? AsAtom()

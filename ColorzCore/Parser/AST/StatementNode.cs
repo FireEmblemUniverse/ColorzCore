@@ -24,7 +24,7 @@ namespace ColorzCore.Parser.AST
         public abstract string PrettyPrint(int indentation);
         public abstract void WriteData(IOutput output);
 
-        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors)
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase)
         {
             for (int i = 0; i < Parameters.Count; i++)
             {
@@ -33,7 +33,7 @@ namespace ColorzCore.Parser.AST
                     IdentifierNode.UndefinedIdentifierException uie => (uie.CausedError.Location, uie),
                     Closure.SymbolComputeException sce => (sce.Expression.MyLocation, sce),
                     _ => (Parameters[i].MyLocation, e),
-                }));
+                }), evaluationPhase);
             }
         }
     }

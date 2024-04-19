@@ -14,15 +14,15 @@ namespace ColorzCore.Parser.AST
         ParamType Type { get; }
         string PrettyPrint();
         Location MyLocation { get; }
-        IParamNode SimplifyExpressions(TAction<Exception> handler); //TODO: Abstract this into a general traverse method.
+        IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase); //TODO: Abstract this into a general traverse method.
         IAtomNode? AsAtom();
     }
 
     public static class ParamExtensions
     {
-        public static IParamNode Simplify(this IParamNode n)
+        public static IParamNode Simplify(this IParamNode n, EvaluationPhase evaluationPhase)
         {
-            return n.SimplifyExpressions((Exception e) => { });
+            return n.SimplifyExpressions(e => { }, evaluationPhase);
         }
     }
 }

@@ -48,7 +48,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if (parameters[i].Type == ParamType.ATOM)
                 {
-                    parameters[i] = ((IAtomNode)parameters[i]).Simplify();
+                    parameters[i] = ((IAtomNode)parameters[i]).Simplify(EvaluationPhase.Early);
                 }
                 argumentBuilder.Append(parameters[i].PrettyPrint());
                 argumentBuilder.Append(' ');

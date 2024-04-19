@@ -20,24 +20,24 @@ namespace ColorzCore.Parser.AST
             scope = scopes;
         }
 
-        private int ToInt()
+        private int ToInt(EvaluationPhase evaluationPhase)
         {
             ImmutableStack<Closure> temp = scope;
             while (!temp.IsEmpty)
             {
                 if (temp.Head.HasLocalSymbol(identifier.Content))
-                    return temp.Head.GetSymbol(identifier.Content);
+                    return temp.Head.GetSymbol(identifier.Content, evaluationPhase);
                 else
                     temp = temp.Tail;
             }
             throw new UndefinedIdentifierException(identifier);
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler)
+        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
         {
             try
             {
-                return ToInt();
+                return ToInt(evaluationPhase);
             }
             catch (UndefinedIdentifierException e)
             {
@@ -60,9 +60,13 @@ namespace ColorzCore.Parser.AST
         {
             try
             {
-                return $"0x{ToInt():X}";
+                return $"0x{ToInt(EvaluationPhase.Immediate):X}";
             }
             catch (UndefinedIdentifierException)
+            {
+                return identifier.Content;
+            }
+            catch (Closure.SymbolComputeException)
             {
                 return identifier.Content;
             }

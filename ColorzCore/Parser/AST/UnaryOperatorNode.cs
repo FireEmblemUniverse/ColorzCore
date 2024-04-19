@@ -10,21 +10,22 @@ namespace ColorzCore.Parser.AST
 {
     class UnaryOperatorNode : AtomNodeKernel
     {
-        private readonly Token myToken;
         private readonly IAtomNode interior;
+
+        public Token OperatorToken { get; }
 
         public UnaryOperatorNode(Token token, IAtomNode inside)
         {
-            myToken = token;
+            OperatorToken = token;
             interior = inside;
         }
 
         public override int Precedence => 11;
-        public override Location MyLocation => myToken.Location;
+        public override Location MyLocation => OperatorToken.Location;
 
         public override string PrettyPrint()
         {
-            string operatorString = myToken.Type switch
+            string operatorString = OperatorToken.Type switch
             {
                 TokenType.SUB_OP => "-",
                 TokenType.NOT_OP => "~",
@@ -37,20 +38,20 @@ namespace ColorzCore.Parser.AST
 
         public override IEnumerable<Token> ToTokens()
         {
-            yield return myToken;
+            yield return OperatorToken;
             foreach (Token t in interior.ToTokens())
                 yield return t;
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler)
+        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            int? inner = interior.TryEvaluate(handler);
+            int? inner = interior.TryEvaluate(handler, evaluationPhase);
 
             if (inner != null)
             {
                 // int? is magic and all of these operations conveniently propagate nulls
 
-                return myToken.Type switch
+                return OperatorToken.Type switch
                 {
                     TokenType.SUB_OP => -inner,
                     TokenType.NOT_OP => ~inner,

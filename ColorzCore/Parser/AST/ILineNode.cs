@@ -12,6 +12,6 @@ namespace ColorzCore.Parser.AST
         int Size { get; }
         string PrettyPrint(int indentation);
         void WriteData(IOutput output);
-        void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors); //Return: undefined identifiers
+        void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase); // outputs errors into evaluationErrors
     }
 }

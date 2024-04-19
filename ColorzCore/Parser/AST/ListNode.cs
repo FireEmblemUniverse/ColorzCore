@@ -79,12 +79,12 @@ namespace ColorzCore.Parser.AST
             return new Right<int, string>("Expected atomic parameter.");
         }
 
-        public IParamNode SimplifyExpressions(TAction<Exception> handler)
+        public IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase)
         {
             IEnumerable<Token> acc = new List<Token>();
             for (int i = 0; i < Interior.Count; i++)
             {
-                Interior[i] = Interior[i].Simplify(handler);
+                Interior[i] = Interior[i].Simplify(handler, evaluationPhase);
             }
             return this;
         }

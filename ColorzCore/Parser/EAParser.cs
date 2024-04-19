@@ -282,7 +282,7 @@ namespace ColorzCore.Parser
             }
 
             parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message)).IfJust(
+                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
                     offsetValue => { CurrentOffset = ConvertToOffset(offsetValue); },
                     () => Error(parameters[0].MyLocation, "Expected atomic param to ORG.")));
 
@@ -332,16 +332,54 @@ namespace ColorzCore.Parser
                 return null;
             }
 
-            parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message)).IfJust(
+            // helper for distinguishing boolean expressions and other expressions
+            static bool IsConditionalOperatorHelper(IAtomNode node)
+            {
+                return node switch
+                {
+                    UnaryOperatorNode uon => uon.OperatorToken.Type switch
+                    {
+                        TokenType.LOGNOT_OP => true,
+                        _ => false,
+                    },
+
+                    OperatorNode on => on.OperatorToken.Type switch
+                    {
+                        TokenType.LOGAND_OP => true,
+                        TokenType.LOGOR_OP => true,
+                        TokenType.COMPARE_EQ => true,
+                        TokenType.COMPARE_NE => true,
+                        TokenType.COMPARE_GT => true,
+                        TokenType.COMPARE_GE => true,
+                        TokenType.COMPARE_LE => true,
+                        TokenType.COMPARE_LT => true,
+                        _ => false,
+                    },
+
+                    _ => false,
+                };
+            }
+
+            IAtomNode? atom = parameters[0].AsAtom();
+
+            if (atom != null)
+            {
+                bool isBoolean = IsConditionalOperatorHelper(atom);
+
+                atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
                     temp =>
                     {
-                        if (temp < 0)
+                        // if boolean expession => fail if 0, else (legacy behavoir) fail if negative
+                        if (isBoolean && temp == 0 || !isBoolean && temp < 0)
                         {
                             Error(parameters[0].MyLocation, "Assertion error: " + temp);
                         }
-                    }),
-                () => Error(parameters[0].MyLocation, "Expected atomic param to ASSERT."));
+                    });
+            }
+            else
+            {
+                Error(parameters[0].MyLocation, "Expected atomic param to ASSERT.");
+            }
 
             return null;
         }
@@ -351,7 +389,7 @@ namespace ColorzCore.Parser
             if (parameters.Count == 1)
             {
                 parameters[0].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); }).IfJust(
+                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); }, EvaluationPhase.Immediate).IfJust(
                     temp =>
                     {
                         protectedRegions.Add(new Tuple<int, int, Location>(temp, 4, head!.Location));
@@ -363,14 +401,14 @@ namespace ColorzCore.Parser
                 int start = 0, end = 0;
                 bool errorOccurred = false;
                 parameters[0].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }).IfJust(
+                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }, EvaluationPhase.Immediate).IfJust(
                     temp =>
                     {
                         start = temp;
                     }),
                     () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); errorOccurred = true; });
                 parameters[1].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }).IfJust(
+                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }, EvaluationPhase.Immediate).IfJust(
                     temp =>
                     {
                         end = temp;
@@ -406,7 +444,7 @@ namespace ColorzCore.Parser
             }
 
             parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message)).IfJust(
+                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
                 temp => CurrentOffset = CurrentOffset % temp != 0 ? CurrentOffset + temp - CurrentOffset % temp : CurrentOffset),
                 () => Error(parameters[0].MyLocation, "Expected atomic param to ALIGN"));
 
@@ -431,14 +469,14 @@ namespace ColorzCore.Parser
                 // param 2 (if given) is fill value
 
                 parameters[1].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message)).IfJust(
+                    atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
                         val => { value = val; }),
                     () => Error(parameters[0].MyLocation, "Expected atomic param to FILL"));
             }
 
             // param 1 is amount of bytes to fill
             parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message)).IfJust(
+                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
                     val => { amount = val; }),
                 () => Error(parameters[0].MyLocation, "Expected atomic param to FILL"));
 
@@ -560,7 +598,7 @@ namespace ColorzCore.Parser
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(localHead.Location, ParseList(tokens, scopes)).Simplify();
+                    return new ListNode(localHead.Location, ParseList(tokens, scopes)).Simplify(EvaluationPhase.Early);
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new StringNode(localHead);
@@ -584,11 +622,11 @@ namespace ColorzCore.Parser
                     }
                     else
                     {
-                        return ParseAtom(tokens, scopes, expandDefs)?.Simplify();
+                        return ParseAtom(tokens, scopes, expandDefs)?.Simplify(EvaluationPhase.Early);
                     }
 
                 default:
-                    return ParseAtom(tokens, scopes, expandDefs)?.Simplify();
+                    return ParseAtom(tokens, scopes, expandDefs)?.Simplify(EvaluationPhase.Early);
             }
         }
 
@@ -612,6 +650,7 @@ namespace ColorzCore.Parser
             { TokenType.OR_OP, 10 },
             { TokenType.LOGAND_OP, 11 },
             { TokenType.LOGOR_OP, 12 },
+            { TokenType.UNDEFINED_COALESCE_OP, 13 },
         };
 
         private IAtomNode? ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
@@ -653,6 +692,10 @@ namespace ColorzCore.Parser
                             {
                                 Reduce(grammarSymbols, precedence);
                             }
+                            shift = true;
+                            break;
+                        case TokenType.UNDEFINED_COALESCE_OP:
+                            // '??' is right-associative, so don't reduce here
                             shift = true;
                             break;
                         default:
@@ -728,6 +771,7 @@ namespace ColorzCore.Parser
                         case TokenType.COMPARE_NE:
                         case TokenType.COMPARE_GE:
                         case TokenType.COMPARE_GT:
+                        case TokenType.UNDEFINED_COALESCE_OP:
                         default:
                             Error(lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + ": " + lookAhead.Content + '.');
                             IgnoreRestOfStatement(tokens);
@@ -778,7 +822,7 @@ namespace ColorzCore.Parser
             }
             while (grammarSymbols.Count > 1)
             {
-                Reduce(grammarSymbols, 11);
+                Reduce(grammarSymbols, int.MaxValue);
             }
             if (grammarSymbols.Peek().IsRight)
             {
@@ -876,7 +920,7 @@ namespace ColorzCore.Parser
 
                                     ParseAtom(tokens, scopes, true).IfJust(
                                         atom => atom.TryEvaluate(
-                                            e => TryDefineSymbol(scopes, head.Content, atom)).IfJust(
+                                            e => TryDefineSymbol(scopes, head.Content, atom), EvaluationPhase.Early).IfJust(
                                             value => TryDefineSymbol(scopes, head.Content, value)),
                                         () => Error($"Couldn't define symbol `{head.Content}`: exprected expression."));
 

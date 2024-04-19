@@ -9,43 +9,20 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    delegate int BinaryIntOp(int a, int b);
-
     class OperatorNode : AtomNodeKernel
     {
-        public static readonly Dictionary<TokenType, BinaryIntOp> Operators = new Dictionary<TokenType, BinaryIntOp> {
-            { TokenType.MUL_OP , (lhs, rhs) => lhs * rhs },
-            { TokenType.DIV_OP , (lhs, rhs) => lhs / rhs },
-            { TokenType.MOD_OP , (lhs, rhs) => lhs % rhs },
-            { TokenType.ADD_OP , (lhs, rhs) => lhs + rhs },
-            { TokenType.SUB_OP , (lhs, rhs) => lhs - rhs },
-            { TokenType.LSHIFT_OP , (lhs, rhs) => lhs << rhs },
-            { TokenType.RSHIFT_OP , (lhs, rhs) => (int)(((uint)lhs) >> rhs) },
-            { TokenType.SIGNED_RSHIFT_OP , (lhs, rhs) => lhs >> rhs },
-            { TokenType.AND_OP , (lhs, rhs) => lhs & rhs },
-            { TokenType.XOR_OP , (lhs, rhs) => lhs ^ rhs },
-            { TokenType.OR_OP , (lhs, rhs) => lhs | rhs },
-            { TokenType.LOGAND_OP, (lhs, rhs) => lhs != 0 ? rhs : 0 },
-            { TokenType.LOGOR_OP, (lhs, rhs) => lhs != 0 ? lhs : rhs },
-            { TokenType.COMPARE_EQ, (lhs, rhs) => lhs == rhs ? 1 : 0 },
-            { TokenType.COMPARE_NE, (lhs, rhs) => lhs != rhs ? 1 : 0 },
-            { TokenType.COMPARE_LT, (lhs, rhs) => lhs < rhs ? 1 : 0 },
-            { TokenType.COMPARE_LE, (lhs, rhs) => lhs <= rhs ? 1 : 0 },
-            { TokenType.COMPARE_GE, (lhs, rhs) => lhs >= rhs ? 1 : 0 },
-            { TokenType.COMPARE_GT, (lhs, rhs) => lhs > rhs ? 1 : 0 },
-        };
-
         private IAtomNode left, right;
-        private Token op;
-        public override int Precedence { get; }
 
-        public override Location MyLocation { get { return op.Location; } }
+        public Token OperatorToken { get; }
+
+        public override int Precedence { get; }
+        public override Location MyLocation => OperatorToken.Location;
 
         public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
         {
             left = l;
             right = r;
-            this.op = op;
+            OperatorToken = op;
             Precedence = prec;
         }
 
@@ -63,6 +40,7 @@ namespace ColorzCore.Parser.AST
                     TokenType.LSHIFT_OP => "<<",
                     TokenType.RSHIFT_OP => ">>",
                     TokenType.SIGNED_RSHIFT_OP => ">>>",
+                    TokenType.UNDEFINED_COALESCE_OP => "??",
                     TokenType.AND_OP => "&",
                     TokenType.XOR_OP => "^",
                     TokenType.OR_OP => "|",
@@ -78,7 +56,7 @@ namespace ColorzCore.Parser.AST
                 };
             }
 
-            return $"({left.PrettyPrint()} {GetOperatorString(op.Type)} {right.PrettyPrint()})";
+            return $"({left.PrettyPrint()} {GetOperatorString(OperatorToken.Type)} {right.PrettyPrint()})";
         }
 
         public override IEnumerable<Token> ToTokens()
@@ -87,22 +65,102 @@ namespace ColorzCore.Parser.AST
             {
                 yield return t;
             }
-            yield return op;
+            yield return OperatorToken;
             foreach (Token t in right.ToTokens())
             {
                 yield return t;
             }
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler)
+        private int? TryCoalesceUndefined(TAction<Exception> handler)
         {
-            int? l = left.TryEvaluate(handler);
-            l.IfJust(i => left = new NumberNode(left.MyLocation, i));
-            int? r = right.TryEvaluate(handler);
-            r.IfJust(i => right = new NumberNode(right.MyLocation, i));
+            List<Exception>? leftExceptions = null;
 
-            if (l is int li && r is int ri)
-                return Operators[op.Type](li, ri);
+            // the left side of an undefined coalescing operation is allowed to raise exactly UndefinedIdentifierException
+            // we need to catch that, so don't forward all exceptions raised by left just yet
+
+            int? leftValue = left.TryEvaluate(e => (leftExceptions ??= new List<Exception>()).Add(e), EvaluationPhase.Final);
+
+            if (leftExceptions == null)
+            {
+                // left evaluated properly => result is left
+                return leftValue;
+            }
+            else if (leftExceptions.All(e => e is IdentifierNode.UndefinedIdentifierException))
+            {
+                // left did not evalute due to undefined identifier => result is right
+                return right.TryEvaluate(handler, EvaluationPhase.Final);
+            }
+            else
+            {
+                // left did evaluate
+                foreach (Exception e in leftExceptions.Where(e => e is not IdentifierNode.UndefinedIdentifierException))
+                {
+                    handler(e);
+                }
+
+                return null;
+            }
+        }
+
+        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        {
+            /* undefined-coalescing operator is special because
+             * 1. it should only be evaluated at final evaluation.
+             * 2. it is legal for its left operand to fail evaluation. */
+            if (OperatorToken.Type == TokenType.UNDEFINED_COALESCE_OP)
+            {
+                // TODO: better exception types here?
+
+                switch (evaluationPhase)
+                {
+                    case EvaluationPhase.Immediate:
+                        handler(new Exception("Invalid use of '??'."));
+                        return null;
+                    case EvaluationPhase.Early:
+                        /* NOTE: you'd think one could optimize this by reducing this if left can be evaluated early
+                         * but that would allow simplifying expressions even in contexts where '??' makes no sense
+                         * (for example: 'ORG SomePossiblyUndefinedLabel ?? SomeOtherLabel')
+                         * I don't think that's desirable */
+                        handler(new Exception("The value of a '??' expression cannot be resolved early."));
+                        return null;
+                    case EvaluationPhase.Final:
+                        return TryCoalesceUndefined(handler);
+                }
+            }
+
+            int? leftValue = left.TryEvaluate(handler, evaluationPhase);
+            leftValue.IfJust(i => left = new NumberNode(left.MyLocation, i));
+
+            int? rightValue = right.TryEvaluate(handler, evaluationPhase);
+            rightValue.IfJust(i => right = new NumberNode(right.MyLocation, i));
+
+            if (leftValue is int lhs && rightValue is int rhs)
+            {
+                return OperatorToken.Type switch
+                {
+                    TokenType.MUL_OP => lhs * rhs,
+                    TokenType.DIV_OP => lhs / rhs,
+                    TokenType.MOD_OP => lhs % rhs,
+                    TokenType.ADD_OP => lhs + rhs,
+                    TokenType.SUB_OP => lhs - rhs,
+                    TokenType.LSHIFT_OP => lhs << rhs,
+                    TokenType.RSHIFT_OP => (int)(((uint)lhs) >> rhs),
+                    TokenType.SIGNED_RSHIFT_OP => lhs >> rhs,
+                    TokenType.AND_OP => lhs & rhs,
+                    TokenType.XOR_OP => lhs ^ rhs,
+                    TokenType.OR_OP => lhs | rhs,
+                    TokenType.LOGAND_OP => lhs != 0 ? rhs : 0,
+                    TokenType.LOGOR_OP => lhs != 0 ? lhs : rhs,
+                    TokenType.COMPARE_EQ => lhs == rhs ? 1 : 0,
+                    TokenType.COMPARE_NE => lhs != rhs ? 1 : 0,
+                    TokenType.COMPARE_LT => lhs < rhs ? 1 : 0,
+                    TokenType.COMPARE_LE => lhs <= rhs ? 1 : 0,
+                    TokenType.COMPARE_GE => lhs >= rhs ? 1 : 0,
+                    TokenType.COMPARE_GT => lhs > rhs ? 1 : 0,
+                    _ => null,
+                };
+            }
 
             return null;
         }

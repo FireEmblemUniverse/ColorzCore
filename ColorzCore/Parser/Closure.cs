@@ -20,7 +20,8 @@ namespace ColorzCore.Parser
             return Symbols.ContainsKey(label) || NonComputedSymbols.ContainsKey(label);
         }
 
-        public virtual int GetSymbol(string label)
+        // HACK: having evaluationPhase being passed here is a bit suspect.
+        public virtual int GetSymbol(string label, EvaluationPhase evaluationPhase)
         {
             if (Symbols.TryGetValue(label, out int value))
             {
@@ -36,11 +37,11 @@ namespace ColorzCore.Parser
             {
                 NonComputedSymbols.Add(label, node);
                 throw new SymbolComputeException(label, node, e);
-            })!.Value;
+            }, evaluationPhase)!.Value;
         }
 
         public void AddSymbol(string label, int value) => Symbols[label] = value;
-        public void AddSymbol(string label, IAtomNode node) => NonComputedSymbols[label] = node.Simplify(e => { });
+        public void AddSymbol(string label, IAtomNode node) => NonComputedSymbols[label] = node.Simplify(e => { }, EvaluationPhase.Early);
 
         public IEnumerable<KeyValuePair<string, int>> LocalSymbols()
         {

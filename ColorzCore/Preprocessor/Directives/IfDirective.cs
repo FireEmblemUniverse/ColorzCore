@@ -26,7 +26,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if (parameter is IAtomNode atomNode)
                 {
-                    if (atomNode.TryEvaluate(e => p.Error(self.Location, $"Error while evaluating expression: {e.Message}")) is int value)
+                    if (atomNode.TryEvaluate(e => p.Error(self.Location, $"Error while evaluating expression: {e.Message}"), EvaluationPhase.Immediate) is int value)
                     {
                         flag = value != 0;
                     }
