@@ -23,9 +23,9 @@ namespace ColorzCore.Parser.AST
         public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public abstract int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase);
+        public abstract int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase);
 
-        public IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             return this.Simplify(handler, evaluationPhase);
         }

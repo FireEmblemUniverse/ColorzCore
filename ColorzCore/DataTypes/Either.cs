@@ -14,9 +14,9 @@ namespace ColorzCore.DataTypes
         bool IsRight { get; }
         Left GetLeft { get; }
         Right GetRight { get; }
-        void Case(TAction<Left> LAction, TAction<Right> RAction);
+        void Case(Action<Left> LAction, Action<Right> RAction);
     }
-    public class Left<L, R> : Either <L, R>
+    public class Left<L, R> : Either<L, R>
     {
         public Left(L val)
         {
@@ -27,7 +27,7 @@ namespace ColorzCore.DataTypes
         public bool IsRight { get { return false; } }
         public L GetLeft { get; }
         public R GetRight { get { throw new WrongEitherException(); } }
-        public void Case(TAction<L> LAction, TAction<R> RAction) { LAction(GetLeft); }
+        public void Case(Action<L> LAction, Action<R> RAction) { LAction(GetLeft); }
     }
     public class Right<L, R> : Either<L, R>
     {
@@ -40,7 +40,7 @@ namespace ColorzCore.DataTypes
         public bool IsRight { get { return true; } }
         public L GetLeft { get { throw new WrongEitherException(); } }
         public R GetRight { get; }
-        public void Case(TAction<L> LAction, TAction<R> RAction) { RAction(GetRight); }
+        public void Case(Action<L> LAction, Action<R> RAction) { RAction(GetRight); }
     }
     class WrongEitherException : Exception { }
 }

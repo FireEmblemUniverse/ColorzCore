@@ -48,6 +48,6 @@ namespace ColorzCore.Parser.AST
         }
 
         public IAtomNode? AsAtom() => null;
-        public IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase) => this;
+        public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase) => this;
     }
 }

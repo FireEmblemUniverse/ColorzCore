@@ -43,7 +43,7 @@ namespace ColorzCore.Parser.AST
                 yield return t;
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             int? inner = interior.TryEvaluate(handler, evaluationPhase);
 

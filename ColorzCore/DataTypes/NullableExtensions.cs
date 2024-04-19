@@ -6,21 +6,15 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.DataTypes
 {
-    public delegate R UnaryFunction<T, R>(T val);
-    public delegate R RConst<R>();
-    public delegate void TAction<T>(T val);
-    public delegate void NullaryAction();
-    public delegate R? MaybeAction<T, R>(T val);
-
-    public static class MaybeExtensions
+    public static class NullableExtensions
     {
-        public static R? Fmap<T, R>(this T? self, UnaryFunction<T, R> f)
+        public static R? Fmap<T, R>(this T? self, Func<T, R> f)
             where T : class
         {
             return self != null ? f(self) : default;
         }
 
-        public static R IfJust<T, R>(this T? self, UnaryFunction<T, R> just, RConst<R> nothing)
+        public static R IfJust<T, R>(this T? self, Func<T, R> just, Func<R> nothing)
             where T : class
         {
             if (self != null)
@@ -33,7 +27,7 @@ namespace ColorzCore.DataTypes
             }
         }
 
-        public static R IfJust<T, R>(this T? self, UnaryFunction<T, R> just, RConst<R> nothing)
+        public static R IfJust<T, R>(this T? self, Func<T, R> just, Func<R> nothing)
             where T : struct
         {
             if (self.HasValue)
@@ -46,7 +40,7 @@ namespace ColorzCore.DataTypes
             }
         }
 
-        public static void IfJust<T>(this T? self, TAction<T> just, NullaryAction? nothing = null)
+        public static void IfJust<T>(this T? self, Action<T> just, Action? nothing = null)
             where T : class
         {
             if (self != null)
@@ -59,7 +53,7 @@ namespace ColorzCore.DataTypes
             }
         }
 
-        public static void IfJust<T>(this T? self, TAction<T> just, NullaryAction? nothing = null)
+        public static void IfJust<T>(this T? self, Action<T> just, Action? nothing = null)
             where T : struct
         {
             if (self.HasValue)

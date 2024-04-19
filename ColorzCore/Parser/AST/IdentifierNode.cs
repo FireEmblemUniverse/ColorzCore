@@ -33,7 +33,7 @@ namespace ColorzCore.Parser.AST
             throw new UndefinedIdentifierException(identifier);
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             try
             {

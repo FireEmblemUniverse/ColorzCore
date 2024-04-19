@@ -72,7 +72,7 @@ namespace ColorzCore.Parser.AST
             }
         }
 
-        private int? TryCoalesceUndefined(TAction<Exception> handler)
+        private int? TryCoalesceUndefined(Action<Exception> handler)
         {
             List<Exception>? leftExceptions = null;
 
@@ -93,7 +93,7 @@ namespace ColorzCore.Parser.AST
             }
             else
             {
-                // left did evaluate
+                // left failed to evaluate for some other reason
                 foreach (Exception e in leftExceptions.Where(e => e is not IdentifierNode.UndefinedIdentifierException))
                 {
                     handler(e);
@@ -103,7 +103,7 @@ namespace ColorzCore.Parser.AST
             }
         }
 
-        public override int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             /* undefined-coalescing operator is special because
              * 1. it should only be evaluated at final evaluation.

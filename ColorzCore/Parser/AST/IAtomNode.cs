@@ -14,7 +14,7 @@ namespace ColorzCore.Parser.AST
         int Precedence { get; }
         string? GetIdentifier();
         IEnumerable<Token> ToTokens();
-        int? TryEvaluate(TAction<Exception> handler, EvaluationPhase evaluationPhase); //Simplifies the AST as much as possible.
+        int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase); //Simplifies the AST as much as possible.
     }
 
     public static class AtomExtensions
@@ -24,7 +24,7 @@ namespace ColorzCore.Parser.AST
             return n.TryEvaluate(e => throw e, EvaluationPhase.Final)!.Value;
         }
 
-        public static IAtomNode Simplify(this IAtomNode self, TAction<Exception> handler, EvaluationPhase evaluationPhase)
+        public static IAtomNode Simplify(this IAtomNode self, Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             return self.TryEvaluate(handler, evaluationPhase).IfJust(intValue => FromInt(self.MyLocation, intValue), () => self);
         }

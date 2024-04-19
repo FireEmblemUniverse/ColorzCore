@@ -14,7 +14,7 @@ namespace ColorzCore.Parser.AST
         ParamType Type { get; }
         string PrettyPrint();
         Location MyLocation { get; }
-        IParamNode SimplifyExpressions(TAction<Exception> handler, EvaluationPhase evaluationPhase); //TODO: Abstract this into a general traverse method.
+        IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase); //TODO: Abstract this into a general traverse method.
         IAtomNode? AsAtom();
     }
 
