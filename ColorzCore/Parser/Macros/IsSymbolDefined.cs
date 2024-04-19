@@ -1,18 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.Macros
 {
-    class IsDefined : BuiltInMacro
+    public class IsSymbolDefined : BuiltInMacro
     {
-        public EAParser ParentParser { get; private set; }
-
-        public IsDefined(EAParser parent)
-        {
-            ParentParser = parent;
-        }
 
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
@@ -25,7 +19,7 @@ namespace ColorzCore.Parser.Macros
             {
                 Token token = parameters[0][0];
 
-                if ((token.Type == TokenType.IDENTIFIER) && IsReallyDefined(token.Content))
+                if ((token.Type == TokenType.IDENTIFIER) && IsReallyDefined(scopes, token.Content))
                 {
                     yield return MakeTrueToken(head.Location);
                 }
@@ -41,9 +35,17 @@ namespace ColorzCore.Parser.Macros
             return num == 1;
         }
 
-        protected bool IsReallyDefined(string name)
+        protected static bool IsReallyDefined(ImmutableStack<Closure> scopes, string name)
         {
-            return ParentParser.Definitions.ContainsKey(name) || ParentParser.Macros.ContainsName(name);
+            for (ImmutableStack<Closure> it = scopes; it != ImmutableStack<Closure>.Nil; it = it.Tail)
+            {
+                if (it.Head.HasLocalSymbol(name))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         protected static Token MakeTrueToken(Location location)

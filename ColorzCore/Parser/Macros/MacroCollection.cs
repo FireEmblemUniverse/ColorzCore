@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.Macros
 {
@@ -18,9 +16,12 @@ namespace ColorzCore.Parser.Macros
             Macros = new Dictionary<string, Dictionary<int, IMacro>>();
             Parent = parent;
 
-            BuiltInMacros = new Dictionary<string, BuiltInMacro> {
+            BuiltInMacros = new Dictionary<string, BuiltInMacro>
+            {
                 { "String", new String() },
                 { "IsDefined", new IsDefined(parent) },
+                { "IsSymbolDefined", new IsSymbolDefined() },
+                { "IsLabelDefined", new IsSymbolDefined() }, // alias
                 { "AddToPool", new AddToPool(parent) },
             };
         }
@@ -33,12 +34,14 @@ namespace ColorzCore.Parser.Macros
         {
             return BuiltInMacros.ContainsKey(name) && BuiltInMacros[name].ValidNumParams(paramNum) ? BuiltInMacros[name] : Macros[name][paramNum];
         }
+
         public void AddMacro(IMacro macro, string name, int paramNum)
         {
             if (!Macros.ContainsKey(name))
                 Macros[name] = new Dictionary<int, IMacro>();
             Macros[name][paramNum] = macro;
         }
+
         public void Clear()
         {
             Macros.Clear();
