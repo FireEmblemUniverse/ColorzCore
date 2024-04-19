@@ -522,21 +522,32 @@ namespace ColorzCore.Parser
         {
             IList<IList<Token>> parameters = new List<IList<Token>>();
             int parenNestings = 0;
+
+            // HACK: this allows macro([1, 2, 3]) from expanding into a single parameter
+            int bracketBalance = 0;
             do
             {
                 tokens.MoveNext();
                 List<Token> currentParam = new List<Token>();
                 while (
-                    !(parenNestings == 0 && (tokens.Current.Type == TokenType.CLOSE_PAREN || tokens.Current.Type == TokenType.COMMA))
+                    !(parenNestings == 0
+                      && (tokens.Current.Type == TokenType.CLOSE_PAREN || (bracketBalance == 0 && tokens.Current.Type == TokenType.COMMA)))
                     && tokens.Current.Type != TokenType.NEWLINE)
                 {
-                    if (tokens.Current.Type == TokenType.CLOSE_PAREN)
+                    switch (tokens.Current.Type)
                     {
-                        parenNestings--;
-                    }
-                    else if (tokens.Current.Type == TokenType.OPEN_PAREN)
-                    {
-                        parenNestings++;
+                        case TokenType.CLOSE_PAREN:
+                            parenNestings--;
+                            break;
+                        case TokenType.OPEN_PAREN:
+                            parenNestings++;
+                            break;
+                        case TokenType.OPEN_BRACKET:
+                            bracketBalance++;
+                            break;
+                        case TokenType.CLOSE_BRACKET:
+                            bracketBalance--;
+                            break;
                     }
 
                     currentParam.Add(tokens.Current);
