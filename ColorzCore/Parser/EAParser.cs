@@ -915,7 +915,23 @@ namespace ColorzCore.Parser
                     case TokenType.MAYBE_MACRO:
                         if (ExpandIdentifier(tokens, scopes))
                         {
-                            return ParseLine(tokens, scopes);
+                            // NOTE: we check here if we didn't end up with something that can't be a statement
+
+                            switch (tokens.Current.Type)
+                            {
+                                case TokenType.IDENTIFIER:
+                                case TokenType.MAYBE_MACRO:
+                                case TokenType.OPEN_BRACE:
+                                case TokenType.PREPROCESSOR_DIRECTIVE:
+                                    return ParseLine(tokens, scopes);
+
+                                default:
+                                    // it is common for users to do '#define Foo 0xABCD' and then later 'Foo:'
+                                    Error($"Expansion of macro `{head.Content}` did not result in a valid statement. Did you perhaps attempt to define a label or symbol with that name?");
+                                    IgnoreRestOfLine(tokens);
+
+                                    return null;
+                            }
                         }
                         else
                         {
@@ -957,7 +973,16 @@ namespace ColorzCore.Parser
                         break;
                     default:
                         tokens.MoveNext();
-                        Error($"Unexpected token: {head.Type}: {head.Content}");
+
+                        if (string.IsNullOrEmpty(head.Content))
+                        {
+                            Error($"Unexpected token: {head.Type}.");
+                        }
+                        else
+                        {
+                            Error($"Unexpected token: {head.Type}: {head.Content}.");
+                        }
+
                         IgnoreRestOfLine(tokens);
                         break;
                 }
@@ -1056,7 +1081,7 @@ namespace ColorzCore.Parser
                 }
                 else
                 {
-                    Error(System.String.Format("No overload of {0} with {1} parameters.", localHead.Content, parameters.Count));
+                    Error($"No overload of {localHead.Content} with {parameters.Count} parameters.");
                 }
                 return true;
             }
