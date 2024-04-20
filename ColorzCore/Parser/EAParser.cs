@@ -611,7 +611,7 @@ namespace ColorzCore.Parser
             switch (tokens.Current.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(localHead.Location, ParseList(tokens, scopes)).Simplify(EvaluationPhase.Early);
+                    return new ListNode(localHead.Location, ParseList(tokens, scopes));
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new StringNode(localHead);
@@ -635,11 +635,11 @@ namespace ColorzCore.Parser
                     }
                     else
                     {
-                        return ParseAtom(tokens, scopes, expandDefs)?.Simplify(EvaluationPhase.Early);
+                        return ParseAtom(tokens, scopes, expandDefs);
                     }
 
                 default:
-                    return ParseAtom(tokens, scopes, expandDefs)?.Simplify(EvaluationPhase.Early);
+                    return ParseAtom(tokens, scopes, expandDefs);
             }
         }
 
