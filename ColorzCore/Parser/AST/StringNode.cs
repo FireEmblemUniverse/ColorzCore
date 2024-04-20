@@ -14,8 +14,10 @@ namespace ColorzCore.Parser.AST
         public static readonly Regex idRegex = new Regex("^([a-zA-Z_][a-zA-Z0-9_]*)$");
         public Token MyToken { get; }
 
-        public Location MyLocation { get { return MyToken.Location; } }
-        public ParamType Type { get { return ParamType.STRING; } }
+        public Location MyLocation => MyToken.Location;
+        public ParamType Type => ParamType.STRING;
+
+        public string Value => MyToken.Content;
 
         public StringNode(Token value)
         {
@@ -29,17 +31,19 @@ namespace ColorzCore.Parser.AST
 
         public override string ToString()
         {
-            return MyToken.Content;
+            return Value;
         }
+
         public string PrettyPrint()
         {
-            return '"' + ToString() + '"';
+            return $"\"{Value}\"";
         }
+
         public IEnumerable<Token> ToTokens() { yield return MyToken; }
 
         public bool IsValidIdentifier()
         {
-            return idRegex.IsMatch(MyToken.Content);
+            return idRegex.IsMatch(Value);
         }
 
         public IdentifierNode ToIdentifier(ImmutableStack<Closure> scope)

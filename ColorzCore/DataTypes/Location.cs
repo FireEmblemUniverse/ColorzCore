@@ -18,6 +18,8 @@ namespace ColorzCore.DataTypes
             this.colNum = colNum;
         }
 
+        public readonly Location OffsetBy(int columns) => new Location(file, lineNum, colNum + columns);
+
         public override readonly string ToString() => $"{file}:{lineNum}:{colNum}";
     }
 }

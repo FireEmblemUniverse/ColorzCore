@@ -7,6 +7,7 @@ using ColorzCore.Preprocessor;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -1149,60 +1150,62 @@ namespace ColorzCore.Parser
             pastOffsets.Clear();
         }
 
-        private static readonly Regex formatItemRegex = new Regex(@"\{(?<expr>[^:]+)(?:\:(?<format>\w*))?\}");
-
         private string PrettyPrintParamsForMessage(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
-            StringBuilder sb = new StringBuilder();
-
-            foreach (IParamNode parameter in parameters)
+            return string.Join(" ", parameters.Select(parameter => parameter switch
             {
-                if (parameter is StringNode node)
+                StringNode node => ExpandUserFormatString(scopes, parameter.MyLocation.OffsetBy(1), node.Value),
+                _ => parameter.PrettyPrint(),
+            }));
+        }
+
+        private static readonly Regex formatItemRegex = new Regex(@"\{(?<expr>[^:}]+)(?:\:(?<format>[^:}]*))?\}");
+
+        private string ExpandUserFormatString(ImmutableStack<Closure> scopes, Location baseLocation, string stringValue)
+        {
+            string UserFormatStringError(string message, string details)
+            {
+                Error($"An error occurred while expanding format string ({message}).");
+                return $"<{message}: {details}>";
+            }
+
+            return formatItemRegex.Replace(stringValue, match =>
+            {
+                string expr = match.Groups["expr"].Value!;
+                string? format = match.Groups["format"].Value;
+
+                MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
+                    new Tokenizer().TokenizeLine(
+                        $"{expr} \n", baseLocation.file, baseLocation.lineNum, baseLocation.colNum + match.Index));
+
+                tokens.MoveNext();
+
+                IAtomNode? node = ParseAtom(tokens, scopes);
+
+                if (node == null || tokens.Current.Type != TokenType.NEWLINE)
                 {
-                    string theString = formatItemRegex.Replace(node.MyToken.Content, match =>
+                    return UserFormatStringError("bad expression", $"'{expr}'");
+                }
+
+                if (node.TryEvaluate(e => Error(node.MyLocation, e.Message),
+                    EvaluationPhase.Early) is int value)
+                {
+                    try
                     {
-                        string expr = match.Groups["expr"].Value!;
-                        string? format = match.Groups["format"].Value;
-
-                        MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
-                            new Tokenizer().TokenizeLine(
-                                $"{expr} \n", parameter.MyLocation.file, parameter.MyLocation.lineNum, parameter.MyLocation.colNum + match.Index + 1));
-                        tokens.MoveNext();
-
-                        IAtomNode? node = ParseAtom(tokens, scopes);
-
-                        if (node == null || tokens.Current.Type != TokenType.NEWLINE)
-                        {
-                            return $"<bad expression: '{expr}'>";
-                        }
-
-                        if (node.TryEvaluate(e => Error(node.MyLocation, e.Message),
-                            EvaluationPhase.Early) is int value)
-                        {
-                            try
-                            {
-                                return value.ToString(format);
-                            }
-                            catch (FormatException e)
-                            {
-                                // TODO: this seems to never happen
-                                return $"<bad format specifier: '{format}' ({e.Message})>";
-                            }
-                        }
-                        else
-                        {
-                            return $"<failed to evaluate: '{expr}'>";
-                        }
-                    });
-
-                    sb.Append(theString).Append(' ');
+                        // TODO: do we need to raise an error when result == format?
+                        // this happens (I think) when a custom format specifier with no substitution
+                        return value.ToString(format, CultureInfo.InvariantCulture);
+                    }
+                    catch (FormatException e)
+                    {
+                        return UserFormatStringError("bad format specifier", $"'{format}' ({e.Message})");
+                    }
                 }
                 else
                 {
-                    sb.Append(parameter.PrettyPrint()).Append(' ');
+                    return UserFormatStringError("failed to evaluate expression", $"'{expr}'");
                 }
-            }
-            return sb.ToString();
+            });
         }
 
         // Return value: Location where protection occurred. Nothing if location was not protected.
