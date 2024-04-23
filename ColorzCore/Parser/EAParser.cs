@@ -666,7 +666,7 @@ namespace ColorzCore.Parser
             { TokenType.UNDEFINED_COALESCE_OP, 13 },
         };
 
-        private IAtomNode? ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
+        public IAtomNode? ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             //Use Shift Reduce Parsing
             Token localHead = tokens.Current;

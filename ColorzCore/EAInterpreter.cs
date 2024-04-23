@@ -3,6 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Macros;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -63,8 +64,25 @@ namespace ColorzCore
 
             myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
 
-            myParser.Definitions['_' + game + '_'] = new Definition();
+            myParser.Definitions[$"_{game}_"] = new Definition();
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
+
+            if (EAOptions.Instance.readDataMacros && output is ROM rom)
+            {
+                myParser.Definitions["__has_read_data_macros"] = new Definition();
+
+                myParser.Macros.BuiltInMacros.Add("ReadByteAt", new ReadDataAt(myParser, rom, 1));
+                myParser.Macros.BuiltInMacros.Add("ReadShortAt", new ReadDataAt(myParser, rom, 2));
+                myParser.Macros.BuiltInMacros.Add("ReadWordAt", new ReadDataAt(myParser, rom, 4));
+            }
+            else
+            {
+                BuiltInMacro unsupportedMacro = new ErrorMacro(myParser, "Macro unsupported in this configuration.", i => i == 1);
+
+                myParser.Macros.BuiltInMacros.Add("ReadByteAt", unsupportedMacro);
+                myParser.Macros.BuiltInMacros.Add("ReadShortAt", unsupportedMacro);
+                myParser.Macros.BuiltInMacros.Add("ReadWordAt", unsupportedMacro);
+            }
         }
 
         public bool Interpret()

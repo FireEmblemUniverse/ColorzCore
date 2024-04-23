@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.IO
 {
-    class ROM : IOutput
+    public class ROM : IOutput
     {
-        private BufferedStream myStream;
-        private byte[] myData;
+        private readonly BufferedStream myStream;
+        private readonly byte[] myData;
         private int size;
+
+        public byte this[int offset] => myData[offset];
 
         public ROM(Stream myROM, int maximumSize)
         {

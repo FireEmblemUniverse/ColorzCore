@@ -15,6 +15,7 @@ namespace ColorzCore
         public bool noColoredLog;
 
         public bool nocashSym;
+        public bool readDataMacros;
 
         public List<string> includePaths = new List<string>();
         public List<string> toolsPaths = new List<string>();
@@ -31,6 +32,7 @@ namespace ColorzCore
             nomess = false;
             noColoredLog = false;
             nocashSym = false;
+            readDataMacros = true;
             buildTimes = false;
             romBaseAddress = 0x8000000;
             maximumRomSize = 0x2000000;
