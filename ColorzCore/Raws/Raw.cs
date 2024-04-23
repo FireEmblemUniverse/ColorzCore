@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Raws
 {
-    class Raw
+    public class Raw
     {
         public string Name { get; }
         public int Alignment { get; }

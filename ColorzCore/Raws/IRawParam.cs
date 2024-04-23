@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Raws
 {
-    interface IRawParam
+    public interface IRawParam
     {
         string Name { get; }
         int Position { get; } //Length and position in bits

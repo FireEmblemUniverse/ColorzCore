@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
@@ -12,15 +11,15 @@ using System.IO;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class IncludeToolEventDirective : IDirective
+    class IncludeToolEventDirective : SimpleDirective
     {
-        public int MinParams { get { return 1; } }
-        public int? MaxParams { get { return null; } }
-        public bool RequireInclusion { get { return true; } }
+        public override int MinParams => 1;
+        public override int? MaxParams => null;
+        public override bool RequireInclusion => true;
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public ILineNode? Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override ILineNode? Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 

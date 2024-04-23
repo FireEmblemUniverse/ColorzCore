@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace ColorzCore.Parser.Macros
 {
-    class MacroCollection
+    public class MacroCollection
     {
         public Dictionary<string, BuiltInMacro> BuiltInMacros { get; }
         public EAParser Parent { get; }

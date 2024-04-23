@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Preprocessor
 {
-    class DirectiveHandler
+    public class DirectiveHandler
     {
         private Dictionary<string, IDirective> directives;
 
@@ -36,7 +36,7 @@ namespace ColorzCore.Preprocessor
             };
         }
 
-        public ILineNode? HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public ILineNode? HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             string directiveName = directive.Content.Substring(1);
 
@@ -44,14 +44,7 @@ namespace ColorzCore.Preprocessor
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {
-                    if (toExec.MinParams <= parameters.Count && (!toExec.MaxParams.HasValue || parameters.Count <= toExec.MaxParams))
-                    {
-                        return toExec.Execute(p, directive, parameters, tokens);
-                    }
-                    else
-                    {
-                        p.Error(directive.Location, $"Invalid number of parameters ({parameters.Count}) to directive {directiveName}.");
-                    }
+                    return toExec.Execute(p, directive, tokens, scopes);
                 }
             }
             else

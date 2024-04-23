@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
@@ -10,15 +8,15 @@ using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class UndefineDirective : IDirective
+    class UndefineDirective : SimpleDirective
     {
-        public int MinParams => 1;
+        public override int MinParams => 1;
 
-        public int? MaxParams => null;
+        public override int? MaxParams => null;
 
-        public bool RequireInclusion => true;
+        public override bool RequireInclusion => true;
 
-        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             foreach (IParamNode parm in parameters)
             {

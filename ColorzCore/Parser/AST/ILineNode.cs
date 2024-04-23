@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace ColorzCore.Parser.AST
 {
-    interface ILineNode
+    public interface ILineNode
     {
         int Size { get; }
         string PrettyPrint(int indentation);

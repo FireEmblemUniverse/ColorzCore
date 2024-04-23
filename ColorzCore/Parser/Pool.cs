@@ -5,7 +5,7 @@ using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser
 {
-    class Pool
+    public class Pool
     {
         public struct PooledLine
         {

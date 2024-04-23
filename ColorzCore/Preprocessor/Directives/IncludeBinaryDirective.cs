@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
@@ -12,17 +10,17 @@ using ColorzCore.IO;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class IncludeBinaryDirective : IDirective
+    class IncludeBinaryDirective : SimpleDirective
     {
-        public int MinParams { get { return 1; } }
+        public override int MinParams => 1;
 
-        public int? MaxParams { get { return 1; } }
+        public override int? MaxParams => 1;
 
-        public bool RequireInclusion { get { return true; } }
+        public override bool RequireInclusion => true;
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
 
@@ -42,6 +40,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
             }
+
             return null;
         }
     }

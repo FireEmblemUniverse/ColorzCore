@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 namespace ColorzCore.Parser
 {
-    class EAParser
+    public class EAParser
     {
         public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
@@ -590,7 +590,7 @@ namespace ColorzCore.Parser
             return paramList;
         }
 
-        private IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool allowsFirstExpanded)
+        public IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool allowsFirstExpanded)
         {
             IList<IParamNode> temp = ParseParamList(tokens, scopes, allowsFirstExpanded);
 
@@ -1049,10 +1049,7 @@ namespace ColorzCore.Parser
             head = tokens.Current;
             tokens.MoveNext();
 
-            // Note: Not a ParseParamList because no commas.
-            // HACK: #if wants its parameters to be expanded, but other directives (define, ifdef, undef, etc) do not
-            IList<IParamNode> paramList = ParsePreprocParamList(tokens, scopes, head.Content == "#if");
-            ILineNode? result = directiveHandler.HandleDirective(this, head, paramList, tokens);
+            ILineNode? result = directiveHandler.HandleDirective(this, head, tokens, scopes);
 
             if (result != null)
             {
