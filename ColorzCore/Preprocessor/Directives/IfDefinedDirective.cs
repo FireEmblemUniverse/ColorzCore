@@ -16,6 +16,13 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override bool RequireInclusion => false;
 
+        public bool Inverted { get; }
+
+        public IfDefinedDirective(bool invert)
+        {
+            Inverted = invert;
+        }
+
         public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             bool flag = true;
@@ -24,7 +31,9 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if (parameter.Type == ParamType.ATOM && (identifier = ((IAtomNode)parameter).GetIdentifier()) != null)
                 {
-                    flag &= p.Macros.ContainsName(identifier) || p.Definitions.ContainsKey(identifier); //TODO: Built in definitions?
+                    // TODO: Built in definitions?
+                    bool isDefined = p.Macros.ContainsName(identifier) || p.Definitions.ContainsKey(identifier);
+                    flag &= Inverted ? !isDefined : isDefined;
                 }
                 else
                 {
