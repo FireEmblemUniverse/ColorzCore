@@ -803,40 +803,37 @@ namespace ColorzCore.Parser
 
                 if (shift)
                 {
-                    if (lookAhead.Type == TokenType.IDENTIFIER)
+                    switch (lookAhead.Type)
                     {
-                        if (expandDefs && ExpandIdentifier(tokens, scopes))
-                        {
-                            continue;
-                        }
+                        case TokenType.IDENTIFIER:
+                            if (expandDefs && ExpandIdentifier(tokens, scopes))
+                            {
+                                continue;
+                            }
 
-                        if (lookAhead.Content.ToUpper() == "CURRENTOFFSET")
-                        {
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead, CurrentOffset)));
-                        }
-                        else
-                        {
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(new IdentifierNode(lookAhead, scopes)));
-                        }
-                    }
-                    else if (lookAhead.Type == TokenType.MAYBE_MACRO)
-                    {
-                        ExpandIdentifier(tokens, scopes);
-                        continue;
-                    }
-                    else if (lookAhead.Type == TokenType.NUMBER)
-                    {
-                        grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
-                    }
-                    else if (lookAhead.Type == TokenType.ERROR)
-                    {
-                        Error(lookAhead.Location, $"Unexpected token: {lookAhead.Content}");
-                        tokens.MoveNext();
-                        return null;
-                    }
-                    else
-                    {
-                        grammarSymbols.Push(new Right<IAtomNode, Token>(lookAhead));
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(lookAhead.Content.ToUpperInvariant() switch
+                            {
+                                "CURRENTOFFSET" => new NumberNode(lookAhead, CurrentOffset),
+                                // TODO: __LINE__ within macro expansion should expand to line of caller
+                                "__LINE__" => new NumberNode(lookAhead, lookAhead.Location.lineNum),
+                                _ => new IdentifierNode(lookAhead, scopes),
+                            }));
+
+                            break;
+
+                        case TokenType.MAYBE_MACRO:
+                            ExpandIdentifier(tokens, scopes);
+                            continue;
+                        case TokenType.NUMBER:
+                            grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
+                            break;
+                        case TokenType.ERROR:
+                            Error(lookAhead.Location, $"Unexpected token: {lookAhead.Content}");
+                            tokens.MoveNext();
+                            return null;
+                        default:
+                            grammarSymbols.Push(new Right<IAtomNode, Token>(lookAhead));
+                            break;
                     }
                     tokens.MoveNext();
                     continue;
@@ -1182,7 +1179,7 @@ namespace ColorzCore.Parser
         {
             return string.Join(" ", parameters.Select(parameter => parameter switch
             {
-                StringNode node => ExpandUserFormatString(scopes, parameter.MyLocation.OffsetBy(1), node.Value),
+                StringNode node => ExpandUserFormatString(scopes, parameter.MyLocation, node.Value),
                 _ => parameter.PrettyPrint(),
             }));
         }
