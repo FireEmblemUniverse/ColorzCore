@@ -35,7 +35,7 @@ namespace ColorzCore.Parser
                 {
                     if (validOffset) //Error only the first time.
                     {
-                        Error(head == null ? new Location?() : head.Location, "Invalid offset: " + value.ToString("X"));
+                        Error($"Invalid offset: {value:X}");
                         validOffset = false;
                     }
                 }
@@ -617,7 +617,7 @@ namespace ColorzCore.Parser
         private IParamNode? ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             Token localHead = tokens.Current;
-            switch (tokens.Current.Type)
+            switch (localHead.Type)
             {
                 case TokenType.OPEN_BRACKET:
                     return new ListNode(localHead.Location, ParseList(tokens, scopes));
@@ -644,7 +644,15 @@ namespace ColorzCore.Parser
                     }
                     else
                     {
-                        return ParseAtom(tokens, scopes, expandDefs);
+                        switch (localHead.Content.ToUpperInvariant())
+                        {
+                            case "__FILE__":
+                                tokens.MoveNext();
+                                return new StringNode(new Token(TokenType.STRING, localHead.Location, localHead.GetSourceLocation().file));
+
+                            default:
+                                return ParseAtom(tokens, scopes, expandDefs);
+                        }
                     }
 
                 default:
@@ -795,7 +803,7 @@ namespace ColorzCore.Parser
                         case TokenType.COMPARE_GT:
                         case TokenType.UNDEFINED_COALESCE_OP:
                         default:
-                            Error(lookAhead.Location, "Expected identifier or literal, got " + lookAhead.Type + ": " + lookAhead.Content + '.');
+                            Error(lookAhead.Location, $"Expected identifier or literal, got {lookAhead.Type}: {lookAhead.Content}.");
                             IgnoreRestOfStatement(tokens);
                             return null;
                     }
@@ -814,8 +822,7 @@ namespace ColorzCore.Parser
                             grammarSymbols.Push(new Left<IAtomNode, Token>(lookAhead.Content.ToUpperInvariant() switch
                             {
                                 "CURRENTOFFSET" => new NumberNode(lookAhead, CurrentOffset),
-                                // TODO: __LINE__ within macro expansion should expand to line of caller
-                                "__LINE__" => new NumberNode(lookAhead, lookAhead.Location.lineNum),
+                                "__LINE__" => new NumberNode(lookAhead, lookAhead.GetSourceLocation().line),
                                 _ => new IdentifierNode(lookAhead, scopes),
                             }));
 
@@ -1108,26 +1115,28 @@ namespace ColorzCore.Parser
             return ret;
         }
 
-        public void Message(Location? loc, string message)
+        private void MessageTrace(Log.MessageKind kind, Location? location, string message)
         {
-            log.Message(Log.MessageKind.MESSAGE, loc, message);
-        }
+            log.Message(kind, location, message);
 
-        public void Warning(Location? loc, string message)
-        {
-            log.Message(Log.MessageKind.WARNING, loc, message);
-        }
-
-        public void Error(Location? loc, string message)
-        {
-            log.Message(Log.MessageKind.ERROR, loc, message);
+            if (location is Location myLocation)
+            {
+                for (MacroLocation? it = myLocation.macroLocation; it != null; it = it.Location.macroLocation)
+                {
+                    log.Message(Log.MessageKind.NOTE, it.Location, $"from macro `{it.MacroName}` expanded here.");
+                }
+            }
         }
 
         // shorthand helpers
 
-        public void Message(string message) => Message(head?.Location, message);
-        public void Warning(string message) => Warning(head?.Location, message);
-        public void Error(string message) => Error(head?.Location, message);
+        public void Message(Location? location, string message) => MessageTrace(Log.MessageKind.MESSAGE, location, message);
+        public void Warning(Location? location, string message) => MessageTrace(Log.MessageKind.WARNING, location, message);
+        public void Error(Location? location, string message) => MessageTrace(Log.MessageKind.ERROR, location, message);
+
+        public void Message(string message) => MessageTrace(Log.MessageKind.MESSAGE, head?.Location, message);
+        public void Warning(string message) => MessageTrace(Log.MessageKind.WARNING, head?.Location, message);
+        public void Error(string message) => MessageTrace(Log.MessageKind.ERROR, head?.Location, message);
 
         private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
@@ -1199,9 +1208,10 @@ namespace ColorzCore.Parser
                 string expr = match.Groups["expr"].Value!;
                 string? format = match.Groups["format"].Value;
 
+                Location itemLocation = baseLocation.OffsetBy(match.Index);
+
                 MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
-                    new Tokenizer().TokenizeLine(
-                        $"{expr} \n", baseLocation.file, baseLocation.lineNum, baseLocation.colNum + match.Index));
+                    new Tokenizer().TokenizeLine($"{expr} \n", itemLocation));
 
                 tokens.MoveNext();
 

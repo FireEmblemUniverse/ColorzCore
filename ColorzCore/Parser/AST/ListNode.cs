@@ -58,7 +58,7 @@ namespace ColorzCore.Parser.AST
             }
             Location myStart = MyLocation;
             Location myEnd = temp.Count > 0 ? temp.Last().Last().Location : MyLocation;
-            yield return new Token(TokenType.OPEN_BRACKET, new Location(myStart.file, myStart.lineNum, myStart.colNum - 1), "[");
+            yield return new Token(TokenType.OPEN_BRACKET, new Location(myStart.file, myStart.line, myStart.column - 1), "[");
             for (int i = 0; i < temp.Count; i++)
             {
                 foreach (Token t in temp[i])
@@ -68,10 +68,10 @@ namespace ColorzCore.Parser.AST
                 if (i < temp.Count - 1)
                 {
                     Location tempEnd = temp[i].Last().Location;
-                    yield return new Token(TokenType.COMMA, new Location(tempEnd.file, tempEnd.lineNum, tempEnd.colNum + temp[i].Last().Content.Length), ",");
+                    yield return new Token(TokenType.COMMA, new Location(tempEnd.file, tempEnd.line, tempEnd.column + temp[i].Last().Content.Length), ",");
                 }
             }
-            yield return new Token(TokenType.CLOSE_BRACKET, new Location(myEnd.file, myEnd.lineNum, myEnd.colNum + (temp.Count > 0 ? temp.Last().Last().Content.Length : 1)), "]");
+            yield return new Token(TokenType.CLOSE_BRACKET, new Location(myEnd.file, myEnd.line, myEnd.column + (temp.Count > 0 ? temp.Last().Last().Content.Length : 1)), "]");
         }
 
         public Either<int, string> TryEvaluate()

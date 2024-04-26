@@ -31,11 +31,11 @@ namespace ColorzCore.Preprocessor
             // assumes !NonProductive
 
             IList<Token> replacement = this.replacement!;
+            MacroLocation macroLocation = new MacroLocation(token.Content, token.Location);
 
             for (int i = 0; i < replacement.Count; i++)
             {
-                Location newLoc = new Location(token.FileName, token.LineNumber, token.ColumnNumber);
-                yield return new Token(replacement[i].Type, newLoc, replacement[i].Content);
+                yield return replacement[i].MacroClone(macroLocation);
             }
         }
     }

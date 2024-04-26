@@ -37,8 +37,8 @@ namespace ColorzCore
                 Location loc = new Location
                 {
                     file = e.FileName,
-                    lineNum = e.LineNumber,
-                    colNum = 1
+                    line = e.LineNumber,
+                    column = 1
                 };
 
                 log.Message(Log.MessageKind.ERROR, loc, "An error occured while parsing raws");

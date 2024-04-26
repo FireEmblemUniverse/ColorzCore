@@ -29,18 +29,20 @@ namespace ColorzCore.Preprocessor.Macros
          */
         public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
-            foreach (Token t in body)
+            MacroLocation macroLocation = new MacroLocation(head.Content, head.Location);
+
+            foreach (Token bodyToken in body)
             {
-                if (t.Type == TokenType.IDENTIFIER && idToParamNum.TryGetValue(t.Content, out int paramNum))
+                if (bodyToken.Type == TokenType.IDENTIFIER && idToParamNum.TryGetValue(bodyToken.Content, out int paramNum))
                 {
-                    foreach (Token t2 in parameters[paramNum])
+                    foreach (Token paramToken in parameters[paramNum])
                     {
-                        yield return t2;
+                        yield return paramToken;
                     }
                 }
                 else
                 {
-                    yield return new Token(t.Type, head.Location, t.Content);
+                    yield return bodyToken.MacroClone(macroLocation);
                 }
             }
         }

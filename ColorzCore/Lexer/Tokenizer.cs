@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using ColorzCore.DataTypes;
 using ColorzCore.IO;
 
 namespace ColorzCore.Lexer
@@ -363,9 +364,15 @@ namespace ColorzCore.Lexer
                 afterWhitespace = false;
             }
         }
+
         public IEnumerable<Token> TokenizeLine(string line, string fileName, int lineNum, int offset = 0)
         {
             return TokenizePhrase(line, fileName, lineNum, 0, line.Length, offset);
+        }
+
+        public IEnumerable<Token> TokenizeLine(string line, Location location)
+        {
+            return TokenizeLine(line, location.file, location.line, location.column);
         }
 
         /***
