@@ -54,7 +54,7 @@ namespace ColorzCore.Preprocessor.Directives
                     toRepl = ExpandParam(p, parameters[1], myParams.Select((Token t) => t.Content));
                 if (toRepl != null)
                 {
-                    p.Macros.AddMacro(new Macro(myParams, toRepl), name, myParams.Count);
+                    p.Macros.AddMacro(new UserMacro(myParams, toRepl), name, myParams.Count);
                 }
             }
             else
