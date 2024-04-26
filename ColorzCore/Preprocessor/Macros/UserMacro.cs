@@ -12,14 +12,16 @@ namespace ColorzCore.Preprocessor.Macros
         readonly Dictionary<string, int> idToParamNum;
         readonly IList<Token> body;
 
-        public UserMacro(IList<Token> parameters, IList<Token> body)
+        public UserMacro(IList<string> parameters, IList<Token> macroBody)
         {
             idToParamNum = new Dictionary<string, int>();
+
             for (int i = 0; i < parameters.Count; i++)
             {
-                idToParamNum[parameters[i].Content] = i;
+                idToParamNum[parameters[i]] = i;
             }
-            this.body = body;
+
+            body = macroBody;
         }
 
         /***
@@ -29,9 +31,9 @@ namespace ColorzCore.Preprocessor.Macros
         {
             foreach (Token t in body)
             {
-                if (t.Type == TokenType.IDENTIFIER && idToParamNum.ContainsKey(t.Content))
+                if (t.Type == TokenType.IDENTIFIER && idToParamNum.TryGetValue(t.Content, out int paramNum))
                 {
-                    foreach (Token t2 in parameters[idToParamNum[t.Content]])
+                    foreach (Token t2 in parameters[paramNum])
                     {
                         yield return t2;
                     }

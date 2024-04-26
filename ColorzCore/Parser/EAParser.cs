@@ -31,7 +31,7 @@ namespace ColorzCore.Parser
             get { return currentOffset; }
             private set
             {
-                if (value > EAOptions.Instance.maximumRomSize)
+                if (value < 0 || value > EAOptions.Instance.maximumRomSize)
                 {
                     if (validOffset) //Error only the first time.
                     {
@@ -446,7 +446,17 @@ namespace ColorzCore.Parser
 
             parameters[0].AsAtom().IfJust(
                 atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                temp => CurrentOffset = CurrentOffset % temp != 0 ? CurrentOffset + temp - CurrentOffset % temp : CurrentOffset),
+                temp =>
+                {
+                    if (temp <= 0)
+                    {
+                        Error($"Cannot align address to {temp}");
+                    }
+                    else if (CurrentOffset % temp != 0)
+                    {
+                        CurrentOffset += temp - CurrentOffset % temp;
+                    }
+                }),
                 () => Error(parameters[0].MyLocation, "Expected atomic param to ALIGN"));
 
             return null;
@@ -1090,11 +1100,11 @@ namespace ColorzCore.Parser
                 tokens.PutBack(new Token(TokenType.IDENTIFIER, localHead.Location, localHead.Content));
                 return true;
             }
-            else if (Definitions.ContainsKey(tokens.Current.Content))
+            else if (Definitions.TryGetValue(tokens.Current.Content, out Definition? definition) && !definition.NonProductive)
             {
                 Token localHead = tokens.Current;
                 tokens.MoveNext();
-                tokens.PrependEnumerator(Definitions[localHead.Content].ApplyDefinition(localHead).GetEnumerator());
+                tokens.PrependEnumerator(definition.ApplyDefinition(localHead).GetEnumerator());
                 return true;
             }
 
@@ -1131,9 +1141,31 @@ namespace ColorzCore.Parser
             }
         }
 
-        private void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
+        public void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext()) { }
+        }
+
+        /// <summary>
+        /// Consumes incoming tokens util end of line.
+        /// </summary>
+        /// <param name="tokens">token stream</param>
+        /// <param name="scopesForMacros">If non-null, will expand any macros as they are encountered using this scope</param>
+        /// <returns>The resulting list of tokens</returns>
+        public IList<Token> GetRestOfLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure>? scopesForMacros)
+        {
+            IList<Token> result = new List<Token>();
+
+            while (tokens.Current.Type != TokenType.NEWLINE)
+            {
+                if (scopesForMacros == null || !ExpandIdentifier(tokens, scopesForMacros))
+                {
+                    result.Add(tokens.Current);
+                    tokens.MoveNext();
+                }
+            }
+
+            return result;
         }
 
         public void Clear()
