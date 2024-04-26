@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
     class IsDefined : BuiltInMacro
     {

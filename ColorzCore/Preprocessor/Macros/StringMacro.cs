@@ -1,14 +1,14 @@
 ﻿using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
-    class String : BuiltInMacro
+    class StringMacro : BuiltInMacro
     {
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {

@@ -1,12 +1,11 @@
 using ColorzCore.DataTypes;
-using ColorzCore.IO;
 using ColorzCore.Lexer;
-using ColorzCore.Parser.AST;
+using ColorzCore.Parser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
     class ErrorMacro : BuiltInMacro
     {

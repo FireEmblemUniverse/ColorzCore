@@ -1,23 +1,21 @@
 ﻿using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
-using ColorzCore.Parser.AST;
+using ColorzCore.Parser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
-    class Macro : IMacro
+    class UserMacro : IMacro
     {
-        Dictionary<string, int> idToParamNum; 
-        IList<Token> body;
+        readonly Dictionary<string, int> idToParamNum;
+        readonly IList<Token> body;
 
-        public Macro(IList<Token> parameters, IList<Token> body)
+        public UserMacro(IList<Token> parameters, IList<Token> body)
         {
             idToParamNum = new Dictionary<string, int>();
-            for(int i=0; i<parameters.Count; i++)
+            for (int i = 0; i < parameters.Count; i++)
             {
                 idToParamNum[parameters[i].Content] = i;
             }
@@ -29,11 +27,11 @@ namespace ColorzCore.Parser.Macros
          */
         public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
-            foreach(Token t in body)
+            foreach (Token t in body)
             {
-                if(t.Type == TokenType.IDENTIFIER && idToParamNum.ContainsKey(t.Content))
+                if (t.Type == TokenType.IDENTIFIER && idToParamNum.ContainsKey(t.Content))
                 {
-                    foreach(Token t2 in parameters[idToParamNum[t.Content]])
+                    foreach (Token t2 in parameters[idToParamNum[t.Content]])
                     {
                         yield return t2;
                     }

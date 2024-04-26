@@ -2,7 +2,6 @@
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Macros;
 using ColorzCore.Preprocessor;
 using ColorzCore.Raws;
 using System;

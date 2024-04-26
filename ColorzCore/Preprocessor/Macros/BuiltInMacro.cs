@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
     public abstract class BuiltInMacro : IMacro
     {

@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor.Macros
 {
     public class IsSymbolDefined : BuiltInMacro
     {
-
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
             if (parameters[0].Count != 1)

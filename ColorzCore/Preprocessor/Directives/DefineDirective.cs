@@ -5,7 +5,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Macros;
+using ColorzCore.Preprocessor.Macros;
 
 namespace ColorzCore.Preprocessor.Directives
 {

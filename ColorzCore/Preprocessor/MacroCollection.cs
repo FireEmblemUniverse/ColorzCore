@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ColorzCore.Parser;
+using ColorzCore.Preprocessor.Macros;
 
-namespace ColorzCore.Parser.Macros
+namespace ColorzCore.Preprocessor
 {
     public class MacroCollection
     {
@@ -18,7 +20,7 @@ namespace ColorzCore.Parser.Macros
 
             BuiltInMacros = new Dictionary<string, BuiltInMacro>
             {
-                { "String", new String() },
+                { "String", new StringMacro() },
                 { "IsDefined", new IsDefined(parent) },
                 { "IsSymbolDefined", new IsSymbolDefined() },
                 { "IsLabelDefined", new IsSymbolDefined() }, // alias

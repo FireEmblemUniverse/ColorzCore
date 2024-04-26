@@ -3,7 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Macros;
+using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
