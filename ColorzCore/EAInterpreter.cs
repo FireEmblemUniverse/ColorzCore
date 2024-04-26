@@ -3,6 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Preprocessor;
 using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
 using System;
@@ -91,9 +92,9 @@ namespace ColorzCore
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            foreach (Tuple<string, string> defpair in EAOptions.Instance.defs)
+            foreach ((string name, string body) in EAOptions.Instance.defs)
             {
-                myParser.ParseAll(t.TokenizeLine("#define " + defpair.Item1 + " " + defpair.Item2, "cmd", 0));
+                myParser.ParseAll(t.TokenizeLine($"#define {name} {body}", "cmd", 0));
             }
 
             IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
