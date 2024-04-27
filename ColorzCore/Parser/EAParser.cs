@@ -955,7 +955,7 @@ namespace ColorzCore.Parser
                             {
                                 case TokenType.COLON:
                                     tokens.MoveNext();
-                                    TryDefineSymbol(scopes, head.Content, CurrentOffset);
+                                    TryDefineSymbol(scopes, head.Content, ConvertToAddress(CurrentOffset));
                                     return null;
                                 case TokenType.ASSIGN:
                                     tokens.MoveNext();
