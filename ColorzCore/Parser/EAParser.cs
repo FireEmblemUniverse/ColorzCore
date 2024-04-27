@@ -3,6 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 using ColorzCore.Preprocessor;
+using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,8 @@ namespace ColorzCore.Parser
         public ImmutableStack<Closure> GlobalScope { get; }
         public int CurrentOffset
         {
-            get { return currentOffset; }
+            get => currentOffset;
+
             private set
             {
                 if (value < 0 || value > EAOptions.MaximumBinarySize)
@@ -99,7 +101,7 @@ namespace ColorzCore.Parser
 
         public bool IsReservedName(string name)
         {
-            return Raws.ContainsKey(name.ToUpper()) || SpecialCodes.Contains(name.ToUpper());
+            return Raws.ContainsKey(name.ToUpperInvariant()) || SpecialCodes.Contains(name.ToUpperInvariant());
         }
         public bool IsValidDefinitionName(string name)
         {
@@ -107,7 +109,7 @@ namespace ColorzCore.Parser
         }
         public bool IsValidMacroName(string name, int paramNum)
         {
-            return !(Macros.HasMacro(name, paramNum)) && !IsReservedName(name);
+            return !Macros.HasMacro(name, paramNum) && !IsReservedName(name);
         }
         public bool IsValidLabelName(string name)
         {
@@ -418,6 +420,7 @@ namespace ColorzCore.Parser
                 if (!errorOccurred)
                 {
                     int length = end - start;
+
                     if (length > 0)
                     {
                         protectedRegions.Add(new Tuple<int, int, Location>(start, length, head!.Location));
@@ -626,7 +629,7 @@ namespace ColorzCore.Parser
                     return new StringNode(localHead);
                 case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
-                    if (expandDefs && ExpandIdentifier(tokens, scopes))
+                    if (expandDefs && ExpandIdentifier(tokens, scopes, true))
                     {
                         return ParseParam(tokens, scopes);
                     }
@@ -638,7 +641,7 @@ namespace ColorzCore.Parser
                         return new MacroInvocationNode(this, localHead, param, scopes);
                     }
                 case TokenType.IDENTIFIER:
-                    if (expandDefs && Definitions.ContainsKey(localHead.Content) && ExpandIdentifier(tokens, scopes))
+                    if (expandDefs && ExpandIdentifier(tokens, scopes, true))
                     {
                         return ParseParam(tokens, scopes, expandDefs);
                     }
@@ -814,7 +817,7 @@ namespace ColorzCore.Parser
                     switch (lookAhead.Type)
                     {
                         case TokenType.IDENTIFIER:
-                            if (expandDefs && ExpandIdentifier(tokens, scopes))
+                            if (expandDefs && ExpandIdentifier(tokens, scopes, true))
                             {
                                 continue;
                             }
@@ -829,7 +832,7 @@ namespace ColorzCore.Parser
                             break;
 
                         case TokenType.MAYBE_MACRO:
-                            ExpandIdentifier(tokens, scopes);
+                            ExpandIdentifier(tokens, scopes, true);
                             continue;
                         case TokenType.NUMBER:
                             grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
@@ -1078,41 +1081,105 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool insideExpression = false)
         {
-            bool ret = false;
-            //Macros and Definitions.
-            if (tokens.Current.Type == TokenType.MAYBE_MACRO && Macros.ContainsName(tokens.Current.Content))
+            // function-like macros
+            if (tokens.Current.Type == TokenType.MAYBE_MACRO)
             {
-                Token localHead = tokens.Current;
-                tokens.MoveNext();
-                IList<IList<Token>> parameters = ParseMacroParamList(tokens);
-                if (Macros.HasMacro(localHead.Content, parameters.Count))
+                if (Macros.ContainsName(tokens.Current.Content))
                 {
-                    tokens.PrependEnumerator(Macros.GetMacro(localHead.Content, parameters.Count).ApplyMacro(localHead, parameters, scopes).GetEnumerator());
+                    Token localHead = tokens.Current;
+                    tokens.MoveNext();
+
+                    IList<IList<Token>> parameters = ParseMacroParamList(tokens);
+
+                    if (Macros.TryGetMacro(localHead.Content, parameters.Count, out IMacro? macro))
+                    {
+                        /* macro is 100% not null here, but because we can't use NotNullWhen on TryGetMacro,
+                         * since the attribute is unavailable in .NET Framework (which we still target),
+                         * the compiler will still diagnose a nullable dereference if we don't use '!' also */
+
+                        ApplyMacroExpansion(tokens, macro!.ApplyMacro(localHead, parameters, scopes), insideExpression);
+                    }
+                    else
+                    {
+                        Error($"No overload of {localHead.Content} with {parameters.Count} parameters.");
+                    }
+                    return true;
                 }
                 else
                 {
-                    Error($"No overload of {localHead.Content} with {parameters.Count} parameters.");
+                    Token localHead = tokens.Current;
+                    tokens.MoveNext();
+
+                    tokens.PutBack(new Token(TokenType.IDENTIFIER, localHead.Location, localHead.Content));
+                    return true;
                 }
-                return true;
             }
-            else if (tokens.Current.Type == TokenType.MAYBE_MACRO)
+
+            // object-like macros (aka "Definitions")
+            if (Definitions.TryGetValue(tokens.Current.Content, out Definition? definition) && !definition.NonProductive)
             {
                 Token localHead = tokens.Current;
                 tokens.MoveNext();
-                tokens.PutBack(new Token(TokenType.IDENTIFIER, localHead.Location, localHead.Content));
-                return true;
-            }
-            else if (Definitions.TryGetValue(tokens.Current.Content, out Definition? definition) && !definition.NonProductive)
-            {
-                Token localHead = tokens.Current;
-                tokens.MoveNext();
-                tokens.PrependEnumerator(definition.ApplyDefinition(localHead).GetEnumerator());
+
+                ApplyMacroExpansion(tokens, definition.ApplyDefinition(localHead), insideExpression);
                 return true;
             }
 
-            return ret;
+            return false;
+        }
+
+        private void ApplyMacroExpansion(MergeableGenerator<Token> tokens, IEnumerable<Token> expandedTokens, bool insideExpression = false)
+        {
+            if (insideExpression && EAOptions.IsWarningEnabled(EAOptions.Warnings.UnguardedExpressionMacros))
+            {
+                // here we check for any operator that isn't enclosed in parenthesises
+
+                IList<Token> expandedList = expandedTokens.ToList();
+
+                if (expandedList.Count > 1)
+                {
+                    int paren = 0;
+                    int bracket = 0;
+
+                    foreach (Token token in expandedList)
+                    {
+                        switch (token.Type)
+                        {
+                            case TokenType.OPEN_PAREN:
+                                paren++;
+                                break;
+
+                            case TokenType.CLOSE_PAREN:
+                                paren--;
+                                break;
+
+                            case TokenType.OPEN_BRACKET:
+                                bracket++;
+                                break;
+
+                            case TokenType.CLOSE_BRACKET:
+                                bracket--;
+                                break;
+
+                            default:
+                                if (paren == 0 && bracket == 0 && precedences.ContainsKey(token.Type))
+                                {
+                                    Warning(token.Location, $"Unguarded expansion of mathematical operator. Consider adding guarding parenthesises around definition.");
+                                }
+
+                                break;
+                        }
+                    }
+                }
+
+                tokens.PrependEnumerator(expandedList.GetEnumerator());
+            }
+            else
+            {
+                tokens.PrependEnumerator(expandedTokens.GetEnumerator());
+            }
         }
 
         private void MessageTrace(Log.MessageKind kind, Location? location, string message)
@@ -1211,7 +1278,7 @@ namespace ColorzCore.Parser
                 Location itemLocation = baseLocation.OffsetBy(match.Index);
 
                 MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
-                    new Tokenizer().TokenizeLine($"{expr} \n", itemLocation));
+                    Tokenizer.TokenizeLine($"{expr} \n", itemLocation));
 
                 tokens.MoveNext();
 
@@ -1261,15 +1328,15 @@ namespace ColorzCore.Parser
 
         private void CheckDataWrite(int length)
         {
-            // TODO: maybe make this warning optional?
             if (!offsetInitialized)
             {
-                Warning("Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
+                if (EAOptions.IsWarningEnabled(EAOptions.Warnings.UninitializedOffset))
+                {
+                    Warning("Writing before initializing offset. You may be breaking the ROM! (use `ORG offset` to set write offset).");
+                }
+
                 offsetInitialized = false; // only warn once
             }
-
-            // TODO (maybe?): save Location of PROTECT statement, for better diagnosis
-            // We would then print something like "Trying to write data to area protected at <location>"
 
             if (IsProtected(CurrentOffset, length) is Location prot)
             {

@@ -7,17 +7,34 @@ namespace ColorzCore
     public static class EAOptions
     {
         [Flags]
-        public enum Warnings
+        public enum Warnings : long
         {
             None = 0,
+
+            // warn on non-portable include paths on Windows
             NonPortablePath = 1,
+
+            // warn on #define on an existing definition
+            ReDefine = 2,
+
+            // warn on write before ORG
+            UninitializedOffset = 4,
+
+            // warn on expansion of unguarded expression within macro
+            UnguardedExpressionMacros = 8,
+
+            All = long.MaxValue,
         }
 
         [Flags]
-        public enum Extensions
+        public enum Extensions : long
         {
             None = 0,
+
+            // enable ReadByteAt and friends
             ReadDataMacros = 1,
+
+            All = long.MaxValue,
         }
 
         public static bool WarningsAreErrors { get; set; }
@@ -33,12 +50,12 @@ namespace ColorzCore
 
         public static List<string> IncludePaths { get; } = new List<string>();
         public static List<string> ToolsPaths { get; } = new List<string>();
-        public static List<Tuple<string, string>> PreDefintions { get; } = new List<Tuple<string, string>>();
+        public static List<(string, string)> PreDefintions { get; } = new List<(string, string)>();
 
-        public static Warnings EnabledWarnings { get; set; } = Warnings.NonPortablePath;
+        public static Warnings EnabledWarnings { get; set; } = Warnings.All;
         public static Extensions EnabledExtensions { get; set; } = Extensions.ReadDataMacros;
 
-        public static bool IsWarningEnabled(Warnings warning) => (EnabledWarnings & warning) != 0;
-        public static bool IsExtensionEnabled(Extensions extension) => (EnabledExtensions & extension) != 0;
+        public static bool IsWarningEnabled(Warnings warning) => EnabledWarnings.HasFlag(warning);
+        public static bool IsExtensionEnabled(Extensions extension) => EnabledExtensions.HasFlag(extension);
     }
 }

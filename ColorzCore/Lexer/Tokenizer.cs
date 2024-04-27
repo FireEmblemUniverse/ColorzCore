@@ -379,9 +379,9 @@ namespace ColorzCore.Lexer
             return TokenizePhrase(line, fileName, lineNum, 0, line.Length, offset);
         }
 
-        public IEnumerable<Token> TokenizeLine(string line, Location location)
+        public static IEnumerable<Token> TokenizeLine(string line, Location location)
         {
-            return TokenizeLine(line, location.file, location.line, location.column);
+            return new Tokenizer().TokenizeLine(line, location.file, location.line, location.column);
         }
 
         /***

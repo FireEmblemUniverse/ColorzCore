@@ -32,6 +32,25 @@ namespace ColorzCore.Preprocessor
         {
             return BuiltInMacros.ContainsKey(name) && BuiltInMacros[name].ValidNumParams(paramNum) || Macros.ContainsKey(name) && Macros[name].ContainsKey(paramNum);
         }
+
+        // NOTE: NotNullWhen(true) is not available on .NET Framework 4.x, one of our targets
+        public bool TryGetMacro(string name, int paramNum, out IMacro? macro)
+        {
+            if (BuiltInMacros.TryGetValue(name, out BuiltInMacro? builtinMacro) && builtinMacro.ValidNumParams(paramNum))
+            {
+                macro = builtinMacro;
+                return true;
+            }
+
+            if (Macros.TryGetValue(name, out Dictionary<int, IMacro>? macros))
+            {
+                return macros.TryGetValue(paramNum, out macro);
+            }
+
+            macro = null;
+            return false;
+        }
+
         public IMacro GetMacro(string name, int paramNum)
         {
             return BuiltInMacros.ContainsKey(name) && BuiltInMacros[name].ValidNumParams(paramNum) ? BuiltInMacros[name] : Macros[name][paramNum];

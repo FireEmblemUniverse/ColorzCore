@@ -60,9 +60,8 @@ namespace ColorzCore.Preprocessor.Directives
         {
             string name = nameToken.Content;
 
-            if (p.Definitions.ContainsKey(name))
+            if (p.Definitions.ContainsKey(name) && EAOptions.IsWarningEnabled(EAOptions.Warnings.ReDefine))
             {
-                // TODO: stricter error (opt-in?)
                 p.Warning(nameToken.Location, $"Redefining {name}.");
             }
 
@@ -83,9 +82,8 @@ namespace ColorzCore.Preprocessor.Directives
         {
             string name = nameToken.Content;
 
-            if (p.Macros.HasMacro(name, parameters.Count))
+            if (p.Macros.HasMacro(name, parameters.Count) && EAOptions.IsWarningEnabled(EAOptions.Warnings.ReDefine))
             {
-                // TODO: stricter error (opt-in?)
                 p.Warning(nameToken.Location, $"Redefining {name}(...) with {parameters.Count} parameters.");
             }
 
@@ -117,10 +115,7 @@ namespace ColorzCore.Preprocessor.Directives
             if (body.Count == 1 && body[0].Type == TokenType.STRING)
             {
                 Token token = body[0];
-
-                // TODO: does this need to be column number + 1?
-                return new List<Token>(new Tokenizer().TokenizeLine(
-                    token.Content, token.FileName, token.LineNumber, token.ColumnNumber));
+                return new List<Token>(Tokenizer.TokenizeLine(token.Content, token.Location));
             }
 
             return body;
