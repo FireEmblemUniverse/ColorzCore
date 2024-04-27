@@ -26,7 +26,7 @@ namespace ColorzCore.Preprocessor.Directives
         {
             string pathExpression = parameters[0].ToString()!;
 
-            if (EAOptions.Instance.translateBackslashesInPath)
+            if (EAOptions.TranslateBackslashesInPaths)
             {
                 pathExpression = pathExpression.Replace('\\', '/');
             }
@@ -35,7 +35,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             if (existantFile != null)
             {
-                if (EAOptions.Instance.warnPortablePath)
+                if (EAOptions.IsWarningEnabled(EAOptions.Warnings.NonPortablePath))
                 {
                     string portablePathExpression = IOUtility.GetPortablePathExpression(existantFile, pathExpression);
 

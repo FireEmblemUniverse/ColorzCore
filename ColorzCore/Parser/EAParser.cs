@@ -31,7 +31,7 @@ namespace ColorzCore.Parser
             get { return currentOffset; }
             private set
             {
-                if (value < 0 || value > EAOptions.Instance.maximumRomSize)
+                if (value < 0 || value > EAOptions.MaximumBinarySize)
                 {
                     if (validOffset) //Error only the first time.
                     {
@@ -81,7 +81,7 @@ namespace ColorzCore.Parser
 
         public EAParser(Dictionary<string, IList<Raw>> raws, Log log, DirectiveHandler directiveHandler)
         {
-            GlobalScope = new ImmutableStack<Closure>(new BaseClosure(this), ImmutableStack<Closure>.Nil);
+            GlobalScope = new ImmutableStack<Closure>(new BaseClosure(), ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<Tuple<int, bool>>();
             protectedRegions = new List<Tuple<int, int, Location>>();
             this.log = log;
@@ -170,9 +170,9 @@ namespace ColorzCore.Parser
                 If ROM offset 0 is already address 0 then this is a moot point.
             */
 
-            if (value > 0 && value < EAOptions.Instance.maximumRomSize)
+            if (value > 0 && value < EAOptions.MaximumBinarySize)
             {
-                value += EAOptions.Instance.romBaseAddress;
+                value += EAOptions.BaseAddress;
             }
 
             return value;
@@ -180,9 +180,9 @@ namespace ColorzCore.Parser
 
         public static int ConvertToOffset(int value)
         {
-            if (value >= EAOptions.Instance.romBaseAddress && value <= EAOptions.Instance.romBaseAddress + EAOptions.Instance.maximumRomSize)
+            if (value >= EAOptions.BaseAddress && value <= EAOptions.BaseAddress + EAOptions.MaximumBinarySize)
             {
-                value -= EAOptions.Instance.romBaseAddress;
+                value -= EAOptions.BaseAddress;
             }
 
             return value;

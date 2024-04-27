@@ -145,7 +145,7 @@ namespace ColorzCore
 
                             case "error":
                                 errorStream = new StreamWriter(File.OpenWrite(flag[1]));
-                                EAOptions.Instance.noColoredLog = true;
+                                EAOptions.MonochromeLog = true;
                                 break;
 
                             case "debug":
@@ -153,48 +153,48 @@ namespace ColorzCore
                                 break;
 
                             case "werr":
-                                EAOptions.Instance.werr = true;
+                                EAOptions.WarningsAreErrors = true;
                                 break;
 
                             case "-no-mess":
-                                EAOptions.Instance.nomess = true;
+                                EAOptions.QuietMessages = true;
                                 break;
 
                             case "-no-warn":
-                                EAOptions.Instance.nowarn = true;
+                                EAOptions.QuietWarnings = true;
                                 break;
 
                             case "-no-colored-log":
-                                EAOptions.Instance.noColoredLog = true;
+                                EAOptions.MonochromeLog = true;
                                 break;
 
                             case "quiet":
-                                EAOptions.Instance.nomess = true;
-                                EAOptions.Instance.nowarn = true;
+                                EAOptions.QuietMessages = true;
+                                EAOptions.QuietWarnings = true;
                                 break;
 
                             case "-nocash-sym":
-                                EAOptions.Instance.nocashSym = true;
+                                EAOptions.ProduceNocashSym = true;
                                 break;
 
                             case "-build-times":
-                                EAOptions.Instance.buildTimes = true;
+                                EAOptions.BenchmarkBuildTimes = true;
                                 break;
 
                             case "I":
                             case "-include":
-                                EAOptions.Instance.includePaths.Add(flag[1]);
+                                EAOptions.IncludePaths.Add(flag[1]);
                                 break;
 
                             case "T":
                             case "-tools":
-                                EAOptions.Instance.toolsPaths.Add(flag[1]);
+                                EAOptions.ToolsPaths.Add(flag[1]);
                                 break;
 
                             case "IT":
                             case "TI":
-                                EAOptions.Instance.includePaths.Add(flag[1]);
-                                EAOptions.Instance.toolsPaths.Add(flag[1]);
+                                EAOptions.IncludePaths.Add(flag[1]);
+                                EAOptions.ToolsPaths.Add(flag[1]);
                                 break;
 
                             case "h":
@@ -208,7 +208,7 @@ namespace ColorzCore
                                 try
                                 {
                                     string[] def_args = flag[1].Split(new char[] { '=' }, 2);
-                                    EAOptions.Instance.defs.Add(Tuple.Create(def_args[0], def_args[1]));
+                                    EAOptions.PreDefintions.Add(Tuple.Create(def_args[0], def_args[1]));
                                 }
                                 catch (IndexOutOfRangeException)
                                 {
@@ -220,7 +220,7 @@ namespace ColorzCore
                             case "-base-address":
                                 try
                                 {
-                                    EAOptions.Instance.romBaseAddress = Convert.ToInt32(flag[1], 16);
+                                    EAOptions.BaseAddress = Convert.ToInt32(flag[1], 16);
                                 }
                                 catch
                                 {
@@ -231,7 +231,7 @@ namespace ColorzCore
                             case "-maximum-size":
                                 try
                                 {
-                                    EAOptions.Instance.maximumRomSize = Convert.ToInt32(flag[1], 16);
+                                    EAOptions.MaximumBinarySize = Convert.ToInt32(flag[1], 16);
                                 }
                                 catch
                                 {
@@ -284,7 +284,7 @@ namespace ColorzCore
                     return EXIT_FAILURE;
                 }
 
-                output = new ROM(outStream, EAOptions.Instance.maximumRomSize);
+                output = new ROM(outStream, EAOptions.MaximumBinarySize);
             }
 
             string game = args[1];
@@ -294,14 +294,14 @@ namespace ColorzCore
             Log log = new Log
             {
                 Output = errorStream,
-                WarningsAreErrors = EAOptions.Instance.werr,
-                NoColoredTags = EAOptions.Instance.noColoredLog
+                WarningsAreErrors = EAOptions.WarningsAreErrors,
+                NoColoredTags = EAOptions.MonochromeLog
             };
 
-            if (EAOptions.Instance.nowarn)
+            if (EAOptions.QuietWarnings)
                 log.IgnoredKinds.Add(Log.MessageKind.WARNING);
 
-            if (EAOptions.Instance.nomess)
+            if (EAOptions.QuietMessages)
                 log.IgnoredKinds.Add(Log.MessageKind.MESSAGE);
 
             EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
@@ -310,7 +310,7 @@ namespace ColorzCore
 
             bool success = myInterpreter.Interpret();
 
-            if (success && EAOptions.Instance.nocashSym)
+            if (success && EAOptions.ProduceNocashSym)
             {
                 using StreamWriter symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym"));
 
@@ -320,7 +320,7 @@ namespace ColorzCore
                 }
             }
 
-            if (EAOptions.Instance.buildTimes)
+            if (EAOptions.BenchmarkBuildTimes)
             {
                 // Print times
 

@@ -292,6 +292,15 @@ namespace ColorzCore.Lexer
                     case '\n':
                         yield return new Token(TokenType.NEWLINE, fileName, lineNum, curCol + offset);
                         break;
+                    case '\\':
+                        if (curCol + 1 < endOffs && line[curCol + 1] == '\n')
+                        {
+                            curCol++;
+                            continue;
+                        }
+                        yield return new Token(TokenType.ERROR, fileName, lineNum, curCol, "\\");
+                        break;
+
                     default:
                         if (afterInclude)
                         {

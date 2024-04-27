@@ -40,7 +40,7 @@ namespace ColorzCore.Preprocessor.Macros
             {
                 offset = EAParser.ConvertToOffset(offset);
 
-                if (offset >= 0 && offset <= EAOptions.Instance.maximumRomSize - readLength)
+                if (offset >= 0 && offset <= EAOptions.MaximumBinarySize - readLength)
                 {
                     int data = 0;
 

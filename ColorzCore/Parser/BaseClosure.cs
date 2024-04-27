@@ -2,14 +2,13 @@
 {
     class BaseClosure : Closure
     {
-        private EAParser enclosing;
-        public BaseClosure(EAParser enclosing)
-        {
-            this.enclosing = enclosing;
-        }
         public override bool HasLocalSymbol(string label)
         {
-            return label.ToUpper() == "CURRENTOFFSET" || base.HasLocalSymbol(label);
+            return label.ToUpperInvariant() switch
+            {
+                "CURRENTOFFSET" or "__LINE__" or "__FILE__" => true,
+                _ => base.HasLocalSymbol(label),
+            };
         }
     }
 }

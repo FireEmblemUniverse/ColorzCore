@@ -54,13 +54,13 @@ namespace ColorzCore
             IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
             includeSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
 
-            foreach (string path in EAOptions.Instance.includePaths)
+            foreach (string path in EAOptions.IncludePaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
             IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
             toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
 
-            foreach (string path in EAOptions.Instance.toolsPaths)
+            foreach (string path in EAOptions.ToolsPaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
             myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
@@ -68,7 +68,7 @@ namespace ColorzCore
             myParser.Definitions[$"_{game}_"] = new Definition();
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
 
-            if (EAOptions.Instance.readDataMacros && output is ROM rom)
+            if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.ReadDataMacros) && output is ROM rom)
             {
                 myParser.Definitions["__has_read_data_macros"] = new Definition();
 
@@ -92,7 +92,7 @@ namespace ColorzCore
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            foreach ((string name, string body) in EAOptions.Instance.defs)
+            foreach ((string name, string body) in EAOptions.PreDefintions)
             {
                 myParser.ParseAll(t.TokenizeLine($"#define {name} {body}", "cmd", 0));
             }
