@@ -10,7 +10,20 @@ namespace ColorzCore
     {
         public static bool Debug = false;
 
-        private static string[] helpstringarr = {
+        private static readonly IDictionary<string, EAOptions.Warnings> warningNames = new Dictionary<string, EAOptions.Warnings>()
+        {
+            { "nonportable-pathnames", EAOptions.Warnings.NonPortablePath },
+            { "unguarded-expression-macros", EAOptions.Warnings.UnguardedExpressionMacros },
+            { "redefine", EAOptions.Warnings.ReDefine },
+            { "all", EAOptions.Warnings.All },
+        };
+
+        private static readonly IDictionary<string, EAOptions.Extensions> extensionNames = new Dictionary<string, EAOptions.Extensions>()
+        {
+            { "read-data-macros", EAOptions.Extensions.ReadDataMacros }
+        };
+
+        private static readonly string[] helpstringarr = {
             "EA Colorz Core. Usage:",
             "./ColorzCore <A|D|AA> <game> [-opts]",
             "",
@@ -38,6 +51,11 @@ namespace ColorzCore
             "   Add given path to list of paths to search for tools in.",
             "-IT:<path>|-TI:<path>",
             "   Combines --include:<path> and --tools:<path>.",
+            "-W:[no-]<name>:...|--warnings:[no-]<name>:...",
+            "   Enable or disable warnings. By default, all warnings are enabled.",
+            "   Multiple warnings can be enabled/disabled at once.",
+            "   Example: '--warnings:no-nonportable-pathnames:no-redefine'.",
+            "   Possible values: " + string.Join(", ", warningNames.Keys),
             "-werr",
             "   Treat all warnings as errors and prevent assembly.",
             "--no-mess",
@@ -62,6 +80,9 @@ namespace ColorzCore
             "   Sets the maximum size of the binary. Defaults to 0x02000000.",
             "-romoffset:<number>",
             "   Compatibility alias for --base-address:<number>",
+            "--extensions:[no-]<name>:...",
+            "   Enable or disable extensions. By default, no extension is enabled.",
+            "   Possible values: " + string.Join(", ", extensionNames.Keys),
             "-h|--help",
             "   Display this message and exit.",
             ""
@@ -110,145 +131,222 @@ namespace ColorzCore
                 if (args[i][0] != '-')
                 {
                     Console.Error.WriteLine("Unrecognized paramter: " + args[i]);
+                    continue;
                 }
-                else
+
+                string[] flag = args[i].Split(':');
+
+                try
                 {
-                    string[] flag = args[i].Substring(1).Split(new char[] { ':' }, 2);
-
-                    try
+                    switch (flag[0])
                     {
-                        switch (flag[0])
-                        {
-                            case "raws":
-                                rawsFolder = rawSearcher.FindDirectory(flag[1]);
+                        case "-raws":
+                            rawsFolder = rawSearcher.FindDirectory(flag[1]);
 
-                                if (rawsFolder == null)
-                                {
-                                    Console.Error.WriteLine($"No such folder: {flag[1]}");
-                                    return EXIT_FAILURE;
-                                }
-
-                                break;
-
-                            case "rawsExt":
-                                rawsExtension = flag[1];
-                                break;
-
-                            case "output":
-                                outFileName = flag[1];
-                                break;
-
-                            case "input":
-                                inFileName = flag[1];
-                                inStream = File.OpenRead(flag[1]);
-                                break;
-
-                            case "error":
-                                errorStream = new StreamWriter(File.OpenWrite(flag[1]));
-                                EAOptions.MonochromeLog = true;
-                                break;
-
-                            case "debug":
-                                Debug = true;
-                                break;
-
-                            case "werr":
-                                EAOptions.WarningsAreErrors = true;
-                                break;
-
-                            case "-no-mess":
-                                EAOptions.QuietMessages = true;
-                                break;
-
-                            case "-no-warn":
-                                EAOptions.QuietWarnings = true;
-                                break;
-
-                            case "-no-colored-log":
-                                EAOptions.MonochromeLog = true;
-                                break;
-
-                            case "quiet":
-                                EAOptions.QuietMessages = true;
-                                EAOptions.QuietWarnings = true;
-                                break;
-
-                            case "-nocash-sym":
-                                EAOptions.ProduceNocashSym = true;
-                                break;
-
-                            case "-build-times":
-                                EAOptions.BenchmarkBuildTimes = true;
-                                break;
-
-                            case "I":
-                            case "-include":
-                                EAOptions.IncludePaths.Add(flag[1]);
-                                break;
-
-                            case "T":
-                            case "-tools":
-                                EAOptions.ToolsPaths.Add(flag[1]);
-                                break;
-
-                            case "IT":
-                            case "TI":
-                                EAOptions.IncludePaths.Add(flag[1]);
-                                EAOptions.ToolsPaths.Add(flag[1]);
-                                break;
-
-                            case "h":
-                            case "-help":
-                                Console.Out.WriteLine(helpstring);
-                                return EXIT_SUCCESS;
-
-                            case "D":
-                            case "def":
-                            case "define":
-                                try
-                                {
-                                    string[] def_args = flag[1].Split(new char[] { '=' }, 2);
-                                    EAOptions.PreDefintions.Add((def_args[0], def_args[1]));
-                                }
-                                catch (IndexOutOfRangeException)
-                                {
-                                    Console.Error.WriteLine("Improperly formed -define directive.");
-                                }
-                                break;
-
-                            case "romoffset":
-                            case "-base-address":
-                                try
-                                {
-                                    EAOptions.BaseAddress = Convert.ToInt32(flag[1], 16);
-                                }
-                                catch
-                                {
-                                    Console.Error.WriteLine("Invalid hex base address given for binary.");
-                                }
-                                break;
-
-                            case "-maximum-size":
-                                try
-                                {
-                                    EAOptions.MaximumBinarySize = Convert.ToInt32(flag[1], 16);
-                                }
-                                catch
-                                {
-                                    Console.Error.WriteLine("Invalid hex size given for binary.");
-                                }
-                                break;
-
-                            default:
-                                Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
+                            if (rawsFolder == null)
+                            {
+                                Console.Error.WriteLine($"No such folder: {flag[1]}");
                                 return EXIT_FAILURE;
-                        }
+                            }
+
+                            break;
+
+                        case "-rawsExt":
+                            rawsExtension = flag[1];
+                            break;
+
+                        case "-output":
+                            outFileName = flag[1];
+                            break;
+
+                        case "-input":
+                            inFileName = flag[1];
+                            inStream = File.OpenRead(flag[1]);
+                            break;
+
+                        case "-error":
+                            errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                            EAOptions.MonochromeLog = true;
+                            break;
+
+                        case "-debug":
+                            Debug = true;
+                            break;
+
+                        case "-werr":
+                            EAOptions.WarningsAreErrors = true;
+                            break;
+
+                        case "--no-mess":
+                            EAOptions.QuietMessages = true;
+                            break;
+
+                        case "--no-warn":
+                            EAOptions.QuietWarnings = true;
+                            break;
+
+                        case "--no-colored-log":
+                            EAOptions.MonochromeLog = true;
+                            break;
+
+                        case "-quiet":
+                        case "--quiet":
+                            EAOptions.QuietMessages = true;
+                            EAOptions.QuietWarnings = true;
+                            break;
+
+                        case "--nocash-sym":
+                            EAOptions.ProduceNocashSym = true;
+                            break;
+
+                        case "--build-times":
+                            EAOptions.BenchmarkBuildTimes = true;
+                            break;
+
+                        case "-I":
+                        case "--include":
+                            EAOptions.IncludePaths.Add(flag[1]);
+                            break;
+
+                        case "-T":
+                        case "--tools":
+                            EAOptions.ToolsPaths.Add(flag[1]);
+                            break;
+
+                        case "-IT":
+                        case "-TI":
+                            EAOptions.IncludePaths.Add(flag[1]);
+                            EAOptions.ToolsPaths.Add(flag[1]);
+                            break;
+
+                        case "-h":
+                        case "--help":
+                            Console.Out.WriteLine(helpstring);
+                            return EXIT_SUCCESS;
+
+                        case "-D":
+                        case "-def":
+                        case "-define":
+                            try
+                            {
+                                string[] def_args = flag[1].Split(new char[] { '=' }, 2);
+                                EAOptions.PreDefintions.Add((def_args[0], def_args[1]));
+                            }
+                            catch (IndexOutOfRangeException)
+                            {
+                                Console.Error.WriteLine("Improperly formed -define directive.");
+                            }
+                            break;
+
+                        case "-romoffset":
+                        case "--base-address":
+                            try
+                            {
+                                EAOptions.BaseAddress = Convert.ToInt32(flag[1], 16);
+                            }
+                            catch
+                            {
+                                Console.Error.WriteLine("Invalid hex base address given for binary.");
+                            }
+                            break;
+
+                        case "--maximum-size":
+                            try
+                            {
+                                EAOptions.MaximumBinarySize = Convert.ToInt32(flag[1], 16);
+                            }
+                            catch
+                            {
+                                Console.Error.WriteLine("Invalid hex size given for binary.");
+                            }
+                            break;
+
+                        case "-W":
+                        case "--warnings":
+                            if (flag.Length == 1)
+                            {
+                                EAOptions.EnabledWarnings |= EAOptions.Warnings.All;
+                            }
+                            else
+                            {
+                                for (int j = 1; j < flag.Length; j++)
+                                {
+                                    string name = flag[j];
+                                    bool invert = false;
+
+                                    if (name.StartsWith("no-"))
+                                    {
+                                        name = name.Substring(3);
+                                        invert = true;
+                                    }
+
+                                    if (warningNames.TryGetValue(name, out EAOptions.Warnings warn))
+                                    {
+                                        if (invert)
+                                        {
+                                            EAOptions.EnabledWarnings &= ~warn;
+                                        }
+                                        else
+                                        {
+                                            EAOptions.EnabledWarnings |= warn;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.Error.WriteLine($"Unrecognized warning: {name}");
+                                    }
+                                }
+                            }
+
+                            break;
+
+                        case "--extensions":
+                            if (flag.Length == 1)
+                            {
+                                EAOptions.EnabledWarnings |= EAOptions.Warnings.All;
+                            }
+                            else
+                            {
+                                for (int j = 1; j < flag.Length; j++)
+                                {
+                                    string name = flag[j];
+                                    bool invert = false;
+
+                                    if (name.StartsWith("no-"))
+                                    {
+                                        name = name.Substring(3);
+                                        invert = true;
+                                    }
+
+                                    if (extensionNames.TryGetValue(name, out EAOptions.Extensions ext))
+                                    {
+                                        if (invert)
+                                        {
+                                            EAOptions.EnabledExtensions &= ~ext;
+                                        }
+                                        else
+                                        {
+                                            EAOptions.EnabledExtensions |= ext;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.Error.WriteLine($"Unrecognized extension: {name}");
+                                    }
+                                }
+                            }
+
+                            break;
+
+                        default:
+                            Console.Error.WriteLine($"Unrecognized flag: {flag[0]}");
+                            return EXIT_FAILURE;
                     }
-                    catch (IOException e)
-                    {
-                        Console.Error.WriteLine("Exception: " + e.Message);
-                        return EXIT_FAILURE;
-                    }
+                }
+                catch (IOException e)
+                {
+                    Console.Error.WriteLine("Exception: " + e.Message);
+                    return EXIT_FAILURE;
                 }
             }
 

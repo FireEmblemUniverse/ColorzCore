@@ -63,7 +63,7 @@ namespace ColorzCore
             foreach (string path in EAOptions.ToolsPaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
-            myParser = new EAParser(allRaws, log, new Preprocessor.DirectiveHandler(includeSearcher, toolSearcher));
+            myParser = new EAParser(allRaws, log, new DirectiveHandler(includeSearcher, toolSearcher));
 
             myParser.Definitions[$"_{game}_"] = new Definition();
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();

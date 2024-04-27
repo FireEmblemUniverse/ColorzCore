@@ -53,7 +53,7 @@ namespace ColorzCore
         public static List<(string, string)> PreDefintions { get; } = new List<(string, string)>();
 
         public static Warnings EnabledWarnings { get; set; } = Warnings.All;
-        public static Extensions EnabledExtensions { get; set; } = Extensions.ReadDataMacros;
+        public static Extensions EnabledExtensions { get; set; } = Extensions.None;
 
         public static bool IsWarningEnabled(Warnings warning) => EnabledWarnings.HasFlag(warning);
         public static bool IsExtensionEnabled(Extensions extension) => EnabledExtensions.HasFlag(extension);
