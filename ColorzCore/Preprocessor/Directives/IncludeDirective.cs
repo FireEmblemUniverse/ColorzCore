@@ -12,6 +12,8 @@ namespace ColorzCore.Preprocessor.Directives
 {
     class IncludeDirective : SimpleDirective
     {
+        // TODO: merge include and incbin into a shared base class
+
         public override int MinParams => 1;
 
         public override int? MaxParams => 1;
@@ -22,27 +24,42 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
+            string pathExpression = parameters[0].ToString()!;
+
+            if (EAOptions.Instance.translateBackslashesInPath)
+            {
+                pathExpression = pathExpression.Replace('\\', '/');
+            }
+
+            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), pathExpression);
 
             if (existantFile != null)
             {
+                if (EAOptions.Instance.warnPortablePath)
+                {
+                    string portablePathExpression = IOUtility.GetPortablePathExpression(existantFile, pathExpression);
+
+                    if (pathExpression != portablePathExpression)
+                    {
+                        p.Warning(self.Location, $"Path is not portable (should be \"{portablePathExpression}\").");
+                    }
+                }
+
                 try
                 {
-                    string pathname = existantFile;
-
-                    FileStream inputFile = new FileStream(pathname, FileMode.Open);
-                    Tokenizer newFileTokenizer = new Tokenizer();
-                    tokens.PrependEnumerator(newFileTokenizer.Tokenize(inputFile).GetEnumerator());
+                    FileStream inputFile = new FileStream(existantFile, FileMode.Open);
+                    tokens.PrependEnumerator(new Tokenizer().Tokenize(inputFile).GetEnumerator());
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    p.Error(self.Location, "Error reading file \"" + parameters[0].ToString() + "\".");
+                    p.Error(self.Location, $"Error reading file \"{parameters[0].ToString()}\": {e.Message}.");
                 }
             }
             else
             {
-                p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
+                p.Error(parameters[0].MyLocation, $"Could not find file \"{parameters[0].ToString()}\".");
             }
+
             return null;
         }
     }

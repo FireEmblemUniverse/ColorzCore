@@ -22,14 +22,30 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString()!);
+            string pathExpression = parameters[0].ToString()!;
+
+            if (EAOptions.Instance.translateBackslashesInPath)
+            {
+                pathExpression = pathExpression.Replace('\\', '/');
+            }
+
+            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), pathExpression);
 
             if (existantFile != null)
             {
+                if (EAOptions.Instance.warnPortablePath)
+                {
+                    string portablePathExpression = IOUtility.GetPortablePathExpression(existantFile, pathExpression);
+
+                    if (pathExpression != portablePathExpression)
+                    {
+                        p.Warning(self.Location, $"Path is not portable (should be \"{portablePathExpression}\").");
+                    }
+                }
+
                 try
                 {
-                    string pathname = existantFile;
-                    return new DataNode(p.CurrentOffset, File.ReadAllBytes(pathname));
+                    return new DataNode(p.CurrentOffset, File.ReadAllBytes(existantFile));
                 }
                 catch (Exception)
                 {

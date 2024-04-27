@@ -1,21 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore
 {
     class EAOptions
     {
+        // TODO: clean up
+
         public bool werr;
         public bool nowarn, nomess;
         public bool buildTimes;
+
+        // TODO: better warning flags
+
+        public bool warnPortablePath;
 
         public bool noColoredLog;
 
         public bool nocashSym;
         public bool readDataMacros;
+        public bool translateBackslashesInPath;
 
         public List<string> includePaths = new List<string>();
         public List<string> toolsPaths = new List<string>();
@@ -30,6 +35,13 @@ namespace ColorzCore
             werr = false;
             nowarn = false;
             nomess = false;
+
+            warnPortablePath = true;
+
+            // this allows some non-portable paths to be made portable automatically
+            // also prevents the portable path warning from being emitted for some genereated files
+            translateBackslashesInPath = true;
+
             noColoredLog = false;
             nocashSym = false;
             readDataMacros = true;
