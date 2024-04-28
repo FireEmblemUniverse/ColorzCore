@@ -1,4 +1,4 @@
-﻿using ColorzCore.DataTypes;
+using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
@@ -258,12 +258,16 @@ namespace ColorzCore.Parser
                 }
                 else
                 {
-                    Error($"Couldn't find suitable variant of raw `{head.Content}`.");
+                    StringBuilder sb = new StringBuilder();
+
+                    sb.Append($"Couldn't find suitable variant of raw `{head.Content}`.");
 
                     for (int i = 0; i < raws.Count; i++)
                     {
-                        Error($"Variant {i + 1}: `{raws[i].ToPrettyString()}`");
+                        sb.Append($"\nVariant {i + 1}: `{raws[i].ToPrettyString()}`");
                     }
+
+                    Error(sb.ToString());
                 }
 
                 IgnoreRestOfStatement(tokens);
@@ -887,23 +891,26 @@ namespace ColorzCore.Parser
 
                     OperatorNode operatorNode = new OperatorNode(l, op, r, l.Precedence);
 
-                    if (DiagnosticHelpers.DoesOperationSpanMultipleMacrosUnintuitively(operatorNode))
+                    if (EAOptions.IsWarningEnabled(EAOptions.Warnings.UnintuitiveExpressionMacros))
                     {
-                        MacroLocation? mloc = operatorNode.MyLocation.macroLocation;
-                        string message = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
-
-                        if (mloc != null)
+                        if (DiagnosticHelpers.DoesOperationSpanMultipleMacrosUnintuitively(operatorNode))
                         {
-                            message += $"\nUnintuitive expression resulting from expansion of macro `{mloc.MacroName}`.";
-                        }
-                        else
-                        {
-                            message += "\nUnintuitive expression resulting from expansion of macro.";
-                        }
+                            MacroLocation? mloc = operatorNode.MyLocation.macroLocation;
+                            string message = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
 
-                        message += "\nConsider guarding your expressions using parenthesis.";
+                            if (mloc != null)
+                            {
+                                message += $"\nUnintuitive expression resulting from expansion of macro `{mloc.MacroName}`.";
+                            }
+                            else
+                            {
+                                message += "\nUnintuitive expression resulting from expansion of macro.";
+                            }
 
-                        Warning(operatorNode.MyLocation, message);
+                            message += "\nConsider guarding your expressions using parenthesis.";
+
+                            Warning(operatorNode.MyLocation, message);
+                        }
                     }
 
                     grammarSymbols.Push(new Left<IAtomNode, Token>(operatorNode));

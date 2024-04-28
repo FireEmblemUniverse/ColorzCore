@@ -137,7 +137,7 @@ namespace ColorzCore
                     continue;
                 }
 
-                string[] flag = args[i].Split(':');
+                string[] flag = args[i].Split(new char[] { ':' }, 2);
 
                 try
                 {
@@ -163,7 +163,7 @@ namespace ColorzCore
                             break;
 
                         case "-input":
-                            inFileName = flag[1];
+                            inFileName = flag[1].Replace('\\', '/');
                             inStream = File.OpenRead(flag[1]);
                             break;
 
@@ -272,9 +272,9 @@ namespace ColorzCore
                             }
                             else
                             {
-                                for (int j = 1; j < flag.Length; j++)
+                                foreach (string warning in flag[1].Split(':'))
                                 {
-                                    string name = flag[j];
+                                    string name = warning;
                                     bool invert = false;
 
                                     if (name.StartsWith("no-"))
@@ -283,15 +283,15 @@ namespace ColorzCore
                                         invert = true;
                                     }
 
-                                    if (warningNames.TryGetValue(name, out EAOptions.Warnings warn))
+                                    if (warningNames.TryGetValue(name, out EAOptions.Warnings warnFlag))
                                     {
                                         if (invert)
                                         {
-                                            EAOptions.EnabledWarnings &= ~warn;
+                                            EAOptions.EnabledWarnings &= ~warnFlag;
                                         }
                                         else
                                         {
-                                            EAOptions.EnabledWarnings |= warn;
+                                            EAOptions.EnabledWarnings |= warnFlag;
                                         }
                                     }
                                     else
@@ -306,13 +306,13 @@ namespace ColorzCore
                         case "--extensions":
                             if (flag.Length == 1)
                             {
-                                EAOptions.EnabledWarnings |= EAOptions.Warnings.All;
+                                EAOptions.EnabledExtensions |= EAOptions.Extensions.All;
                             }
                             else
                             {
-                                for (int j = 1; j < flag.Length; j++)
+                                foreach (string extension in flag[1].Split(':'))
                                 {
-                                    string name = flag[j];
+                                    string name = extension;
                                     bool invert = false;
 
                                     if (name.StartsWith("no-"))
@@ -321,15 +321,15 @@ namespace ColorzCore
                                         invert = true;
                                     }
 
-                                    if (extensionNames.TryGetValue(name, out EAOptions.Extensions ext))
+                                    if (extensionNames.TryGetValue(name, out EAOptions.Extensions extFlag))
                                     {
                                         if (invert)
                                         {
-                                            EAOptions.EnabledExtensions &= ~ext;
+                                            EAOptions.EnabledExtensions &= ~extFlag;
                                         }
                                         else
                                         {
-                                            EAOptions.EnabledExtensions |= ext;
+                                            EAOptions.EnabledExtensions |= extFlag;
                                         }
                                     }
                                     else
@@ -396,7 +396,8 @@ namespace ColorzCore
             {
                 Output = errorStream,
                 WarningsAreErrors = EAOptions.WarningsAreErrors,
-                NoColoredTags = EAOptions.MonochromeLog
+                NoColoredTags = EAOptions.MonochromeLog,
+                LocationBasePath = IOUtility.GetPortableBasePathForPrefix(inFileName),
             };
 
             if (EAOptions.QuietWarnings)
@@ -449,4 +450,3 @@ namespace ColorzCore
         }
     }
 }
-

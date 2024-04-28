@@ -28,6 +28,21 @@ namespace ColorzCore.IO
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? $"{name}.exe" : name;
         }
 
+        // HACK: this is to make Log not print the entire path every time
+        public static string GetPortableBasePathForPrefix(string name)
+        {
+            string? result = Path.GetDirectoryName(name);
+
+            if (string.IsNullOrEmpty(result))
+            {
+                return "";
+            }
+            else
+            {
+                return (result + '/').Replace('\\', '/');
+            }
+        }
+
         private static readonly char[] pathSeparators = new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
         private static readonly char[] invalidFileCharacters = Path.GetInvalidFileNameChars();
 

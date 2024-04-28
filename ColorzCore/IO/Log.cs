@@ -22,6 +22,8 @@ namespace ColorzCore.IO
 
         public bool NoColoredTags { get; set; } = false;
 
+        public string LocationBasePath { get; set; } = string.Empty;
+
         public List<MessageKind> IgnoredKinds { get; } = new List<MessageKind>();
 
         public TextWriter Output { get; set; } = Console.Error;
@@ -89,6 +91,12 @@ namespace ColorzCore.IO
                     if (source.HasValue)
                     {
                         string locString = source.Value.ToString();
+
+                        if (locString.StartsWith(LocationBasePath))
+                        {
+                            locString = locString.Substring(LocationBasePath.Length);
+                        }
+
                         Output.Write($"{locString}: ");
                         continueLength += locString.Length + 2;
                     }
