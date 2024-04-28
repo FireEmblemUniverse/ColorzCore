@@ -14,6 +14,7 @@ namespace ColorzCore.IO
             NOTE,
             MESSAGE,
             DEBUG,
+            CONTINUE,
         }
 
         public bool HasErrored { get; private set; } = false;
@@ -24,6 +25,9 @@ namespace ColorzCore.IO
         public List<MessageKind> IgnoredKinds { get; } = new List<MessageKind>();
 
         public TextWriter Output { get; set; } = Console.Error;
+
+        private MessageKind continueKind = MessageKind.CONTINUE;
+        private int continueLength = 0;
 
         protected struct LogDisplayConfig
         {
@@ -57,26 +61,41 @@ namespace ColorzCore.IO
                 kind = MessageKind.ERROR;
             }
 
-            HasErrored |= (kind == MessageKind.ERROR);
+            HasErrored |= kind == MessageKind.ERROR;
 
-            if (!IgnoredKinds.Contains(kind))
+            if (kind == MessageKind.CONTINUE)
+            {
+                if (continueKind != MessageKind.CONTINUE && !IgnoredKinds.Contains(continueKind))
+                {
+                    Console.Write("".PadLeft(continueLength));
+                    Console.WriteLine(message);
+                }
+            }
+            else if (!IgnoredKinds.Contains(kind))
             {
                 if (KIND_DISPLAY_DICT.TryGetValue(kind, out LogDisplayConfig config))
                 {
                     if (!NoColoredTags && config.tagColor.HasValue)
+                    {
                         Console.ForegroundColor = config.tagColor.Value;
+                    }
 
                     Output.Write($"{config.tag}: ");
+                    continueLength = config.tag.Length + 2;
 
                     if (!NoColoredTags)
                         Console.ResetColor();
 
                     if (source.HasValue)
                     {
-                        Output.Write($"{source.Value}: ");
+                        string locString = source.Value.ToString();
+                        Output.Write($"{locString}: ");
+                        continueLength += locString.Length + 2;
                     }
 
                     Output.WriteLine(message);
+
+                    continueKind = kind;
                 }
             }
         }

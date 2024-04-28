@@ -20,10 +20,14 @@ namespace ColorzCore
             // warn on write before ORG
             UninitializedOffset = 4,
 
-            // warn on expansion of unguarded expression within macro
-            UnguardedExpressionMacros = 8,
+            // warn on unintuitive macro expansions (#define A 1 + 2 ... BYTE A * 2 )
+            UnintuitiveExpressionMacros = 8,
 
-            All = long.MaxValue,
+            // warn on expansion of unguarded expression within macro ()
+            UnguardedExpressionMacros = 16,
+
+            Extra = UnguardedExpressionMacros,
+            All = long.MaxValue & ~Extra,
         }
 
         [Flags]

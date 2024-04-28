@@ -10,7 +10,7 @@ namespace ColorzCore.Parser.AST
 {
     public class NumberNode : AtomNodeKernel
     {
-        private int value;
+        public int Value { get; }
 
         public override Location MyLocation { get; }
         public override int Precedence { get { return 11; } }
@@ -18,29 +18,29 @@ namespace ColorzCore.Parser.AST
         public NumberNode(Token num)
         {
             MyLocation = num.Location;
-            value = num.Content.ToInt();
+            Value = num.Content.ToInt();
         }
         public NumberNode(Token text, int value)
         {
             MyLocation = text.Location;
-            this.value = value;
+            Value = value;
         }
         public NumberNode(Location loc, int value)
         {
             MyLocation = loc;
-            this.value = value;
+            Value = value;
         }
 
-        public override IEnumerable<Token> ToTokens() { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
+        public override IEnumerable<Token> ToTokens()
+        {
+            yield return new Token(TokenType.NUMBER, MyLocation, Value.ToString());
+        }
 
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            return value;
+            return Value;
         }
 
-        public override string PrettyPrint()
-        {
-            return "0x" + value.ToString("X");
-        }
+        public override string PrettyPrint() => Value >= 16 ? $"0x{Value:X}" : $"{Value}";
     }
 }

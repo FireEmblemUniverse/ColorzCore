@@ -4,15 +4,13 @@ using ColorzCore.Parser;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class OperatorNode : AtomNodeKernel
+    public class OperatorNode : AtomNodeKernel
     {
-        private IAtomNode left, right;
-
+        public IAtomNode Left { get; private set; }
+        public IAtomNode Right { get; private set; }
         public Token OperatorToken { get; }
 
         public override int Precedence { get; }
@@ -20,53 +18,50 @@ namespace ColorzCore.Parser.AST
 
         public OperatorNode(IAtomNode l, Token op, IAtomNode r, int prec)
         {
-            left = l;
-            right = r;
+            Left = l;
+            Right = r;
             OperatorToken = op;
             Precedence = prec;
         }
 
+        public string OperatorString => OperatorToken.Type switch
+        {
+            TokenType.MUL_OP => "*",
+            TokenType.DIV_OP => "/",
+            TokenType.MOD_OP => "%",
+            TokenType.ADD_OP => "+",
+            TokenType.SUB_OP => "-",
+            TokenType.LSHIFT_OP => "<<",
+            TokenType.RSHIFT_OP => ">>",
+            TokenType.SIGNED_RSHIFT_OP => ">>>",
+            TokenType.UNDEFINED_COALESCE_OP => "??",
+            TokenType.AND_OP => "&",
+            TokenType.XOR_OP => "^",
+            TokenType.OR_OP => "|",
+            TokenType.LOGAND_OP => "&&",
+            TokenType.LOGOR_OP => "||",
+            TokenType.COMPARE_EQ => "==",
+            TokenType.COMPARE_NE => "!=",
+            TokenType.COMPARE_LT => "<",
+            TokenType.COMPARE_LE => "<=",
+            TokenType.COMPARE_GT => ">",
+            TokenType.COMPARE_GE => ">=",
+            _ => "<bad operator>"
+        };
+
         public override string PrettyPrint()
         {
-            static string GetOperatorString(TokenType tokenType)
-            {
-                return tokenType switch
-                {
-                    TokenType.MUL_OP => "*",
-                    TokenType.DIV_OP => "/",
-                    TokenType.MOD_OP => "%",
-                    TokenType.ADD_OP => "+",
-                    TokenType.SUB_OP => "-",
-                    TokenType.LSHIFT_OP => "<<",
-                    TokenType.RSHIFT_OP => ">>",
-                    TokenType.SIGNED_RSHIFT_OP => ">>>",
-                    TokenType.UNDEFINED_COALESCE_OP => "??",
-                    TokenType.AND_OP => "&",
-                    TokenType.XOR_OP => "^",
-                    TokenType.OR_OP => "|",
-                    TokenType.LOGAND_OP => "&&",
-                    TokenType.LOGOR_OP => "||",
-                    TokenType.COMPARE_EQ => "==",
-                    TokenType.COMPARE_NE => "!=",
-                    TokenType.COMPARE_LT => "<",
-                    TokenType.COMPARE_LE => "<=",
-                    TokenType.COMPARE_GT => ">",
-                    TokenType.COMPARE_GE => ">=",
-                    _ => "<bad operator>"
-                };
-            }
-
-            return $"({left.PrettyPrint()} {GetOperatorString(OperatorToken.Type)} {right.PrettyPrint()})";
+            return $"({Left.PrettyPrint()} {OperatorString} {Right.PrettyPrint()})";
         }
 
         public override IEnumerable<Token> ToTokens()
         {
-            foreach (Token t in left.ToTokens())
+            foreach (Token t in Left.ToTokens())
             {
                 yield return t;
             }
             yield return OperatorToken;
-            foreach (Token t in right.ToTokens())
+            foreach (Token t in Right.ToTokens())
             {
                 yield return t;
             }
@@ -79,7 +74,7 @@ namespace ColorzCore.Parser.AST
             // the left side of an undefined coalescing operation is allowed to raise exactly UndefinedIdentifierException
             // we need to catch that, so don't forward all exceptions raised by left just yet
 
-            int? leftValue = left.TryEvaluate(e => (leftExceptions ??= new List<Exception>()).Add(e), EvaluationPhase.Final);
+            int? leftValue = Left.TryEvaluate(e => (leftExceptions ??= new List<Exception>()).Add(e), EvaluationPhase.Final);
 
             if (leftExceptions == null)
             {
@@ -89,7 +84,7 @@ namespace ColorzCore.Parser.AST
             else if (leftExceptions.All(e => e is IdentifierNode.UndefinedIdentifierException))
             {
                 // left did not evalute due to undefined identifier => result is right
-                return right.TryEvaluate(handler, EvaluationPhase.Final);
+                return Right.TryEvaluate(handler, EvaluationPhase.Final);
             }
             else
             {
@@ -129,11 +124,11 @@ namespace ColorzCore.Parser.AST
                 }
             }
 
-            int? leftValue = left.TryEvaluate(handler, evaluationPhase);
-            leftValue.IfJust(i => left = new NumberNode(left.MyLocation, i));
+            int? leftValue = Left.TryEvaluate(handler, evaluationPhase);
+            leftValue.IfJust(i => Left = new NumberNode(Left.MyLocation, i));
 
-            int? rightValue = right.TryEvaluate(handler, evaluationPhase);
-            rightValue.IfJust(i => right = new NumberNode(right.MyLocation, i));
+            int? rightValue = Right.TryEvaluate(handler, evaluationPhase);
+            rightValue.IfJust(i => Right = new NumberNode(Right.MyLocation, i));
 
             if (leftValue is int lhs && rightValue is int rhs)
             {

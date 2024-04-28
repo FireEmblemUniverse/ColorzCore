@@ -686,6 +686,8 @@ namespace ColorzCore.Parser
             { TokenType.UNDEFINED_COALESCE_OP, 13 },
         };
 
+        public static bool IsInfixOperator(Token token) => precedences.ContainsKey(token.Type);
+
         public IAtomNode? ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
         {
             //Use Shift Reduce Parsing
@@ -866,11 +868,11 @@ namespace ColorzCore.Parser
          *   Postcondition: Either grammarSymbols.Count == 1, or everything in grammarSymbols will have precedence <= targetPrecedence.
          *
          */
-        private static void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
+        private void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
         {
             while (grammarSymbols.Count > 1)// && grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
             {
-                //These shouldn't error...
+                // These shouldn't error...
                 IAtomNode r = grammarSymbols.Pop().GetLeft;
 
                 if (precedences[grammarSymbols.Peek().GetRight.Type] > targetPrecedence)
@@ -883,7 +885,16 @@ namespace ColorzCore.Parser
                     Token op = grammarSymbols.Pop().GetRight;
                     IAtomNode l = grammarSymbols.Pop().GetLeft;
 
-                    grammarSymbols.Push(new Left<IAtomNode, Token>(new OperatorNode(l, op, r, l.Precedence)));
+                    OperatorNode operatorNode = new OperatorNode(l, op, r, l.Precedence);
+
+                    if (DiagnosticHelpers.DoesOperationSpanMultipleMacrosUnintuitively(operatorNode))
+                    {
+                        MacroLocation? mloc = operatorNode.MyLocation.macroLocation;
+                        string expr = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
+                        Warning(operatorNode.MyLocation, $"{expr}\nUnintuitive macro expansion within expression.\nThis may be a mistake. Consider guarding your expressions using parenthesis.");
+                    }
+
+                    grammarSymbols.Push(new Left<IAtomNode, Token>(operatorNode));
                 }
             }
         }
@@ -1138,41 +1149,8 @@ namespace ColorzCore.Parser
 
                 IList<Token> expandedList = expandedTokens.ToList();
 
-                if (expandedList.Count > 1)
-                {
-                    int paren = 0;
-                    int bracket = 0;
-
-                    foreach (Token token in expandedList)
-                    {
-                        switch (token.Type)
-                        {
-                            case TokenType.OPEN_PAREN:
-                                paren++;
-                                break;
-
-                            case TokenType.CLOSE_PAREN:
-                                paren--;
-                                break;
-
-                            case TokenType.OPEN_BRACKET:
-                                bracket++;
-                                break;
-
-                            case TokenType.CLOSE_BRACKET:
-                                bracket--;
-                                break;
-
-                            default:
-                                if (paren == 0 && bracket == 0 && precedences.ContainsKey(token.Type))
-                                {
-                                    Warning(token.Location, $"Unguarded expansion of mathematical operator. Consider adding guarding parenthesises around definition.");
-                                }
-
-                                break;
-                        }
-                    }
-                }
+                DiagnosticHelpers.VisitUnguardedOperators(expandedList,
+                    token => Warning(token.Location, $"Unguarded expansion of mathematical operator. Consider adding guarding parenthesises around definition."));
 
                 tokens.PrependEnumerator(expandedList.GetEnumerator());
             }
@@ -1184,13 +1162,20 @@ namespace ColorzCore.Parser
 
         private void MessageTrace(Log.MessageKind kind, Location? location, string message)
         {
-            log.Message(kind, location, message);
-
-            if (location is Location myLocation)
+            if (location is Location myLocation && myLocation.macroLocation != null)
             {
-                for (MacroLocation? it = myLocation.macroLocation; it != null; it = it.Location.macroLocation)
+                MacroLocation macroLocation = myLocation.macroLocation;
+                MessageTrace(kind, macroLocation.Location, message);
+                log.Message(Log.MessageKind.NOTE, location, $"From inside of macro `{macroLocation.MacroName}`.");
+            }
+            else
+            {
+                string[] messages = message.Split('\n');
+                log.Message(kind, location, messages[0]);
+
+                for (int i = 1; i < messages.Length; i++)
                 {
-                    log.Message(Log.MessageKind.NOTE, it.Location, $"from macro `{it.MacroName}` expanded here.");
+                    log.Message(Log.MessageKind.CONTINUE, messages[i]);
                 }
             }
         }

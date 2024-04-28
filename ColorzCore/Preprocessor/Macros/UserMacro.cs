@@ -37,7 +37,7 @@ namespace ColorzCore.Preprocessor.Macros
                 {
                     foreach (Token paramToken in parameters[paramNum])
                     {
-                        yield return paramToken;
+                        yield return paramToken.MacroClone(macroLocation);
                     }
                 }
                 else

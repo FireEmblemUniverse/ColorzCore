@@ -13,9 +13,11 @@ namespace ColorzCore
         private static readonly IDictionary<string, EAOptions.Warnings> warningNames = new Dictionary<string, EAOptions.Warnings>()
         {
             { "nonportable-pathnames", EAOptions.Warnings.NonPortablePath },
+            { "unintuitive-expression-macros" , EAOptions.Warnings.UnintuitiveExpressionMacros },
             { "unguarded-expression-macros", EAOptions.Warnings.UnguardedExpressionMacros },
             { "redefine", EAOptions.Warnings.ReDefine },
             { "all", EAOptions.Warnings.All },
+            { "extra", EAOptions.Warnings.Extra },
         };
 
         private static readonly IDictionary<string, EAOptions.Extensions> extensionNames = new Dictionary<string, EAOptions.Extensions>()
@@ -52,7 +54,8 @@ namespace ColorzCore
             "-IT:<path>|-TI:<path>",
             "   Combines --include:<path> and --tools:<path>.",
             "-W:[no-]<name>:...|--warnings:[no-]<name>:...",
-            "   Enable or disable warnings. By default, all warnings are enabled.",
+            "   Enable or disable warnings.",
+            "   By default, all warnings but 'unguarded-expression-macros' are enabled.",
             "   Multiple warnings can be enabled/disabled at once.",
             "   Example: '--warnings:no-nonportable-pathnames:no-redefine'.",
             "   Possible values: " + string.Join(", ", warningNames.Keys),

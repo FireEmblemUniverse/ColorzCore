@@ -8,44 +8,44 @@ using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.AST
 {
-    class UnaryOperatorNode : AtomNodeKernel
+    public class UnaryOperatorNode : AtomNodeKernel
     {
-        private readonly IAtomNode interior;
+        public IAtomNode Inner { get; private set; }
 
         public Token OperatorToken { get; }
 
         public UnaryOperatorNode(Token token, IAtomNode inside)
         {
             OperatorToken = token;
-            interior = inside;
+            Inner = inside;
         }
 
         public override int Precedence => 11;
         public override Location MyLocation => OperatorToken.Location;
 
+        public string OperatorString => OperatorToken.Type switch
+        {
+            TokenType.SUB_OP => "-",
+            TokenType.NOT_OP => "~",
+            TokenType.LOGNOT_OP => "!",
+            _ => "<bad operator>",
+        };
+
         public override string PrettyPrint()
         {
-            string operatorString = OperatorToken.Type switch
-            {
-                TokenType.SUB_OP => "-",
-                TokenType.NOT_OP => "~",
-                TokenType.LOGNOT_OP => "!",
-                _ => "<bad operator>",
-            };
-
-            return operatorString + interior.PrettyPrint();
+            return OperatorString + Inner.PrettyPrint();
         }
 
         public override IEnumerable<Token> ToTokens()
         {
             yield return OperatorToken;
-            foreach (Token t in interior.ToTokens())
+            foreach (Token t in Inner.ToTokens())
                 yield return t;
         }
 
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            int? inner = interior.TryEvaluate(handler, evaluationPhase);
+            int? inner = Inner.TryEvaluate(handler, evaluationPhase);
 
             if (inner != null)
             {
