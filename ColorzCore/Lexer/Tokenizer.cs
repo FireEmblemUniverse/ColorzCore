@@ -15,7 +15,7 @@ namespace ColorzCore.Lexer
         public const int MAX_ID_LENGTH = 64;
         public static readonly Regex numRegex = new Regex("\\G([01]+b|0x[\\da-fA-F]+|\\$[\\da-fA-F]+|\\d+)");
         public static readonly Regex idRegex = new Regex("\\G([a-zA-Z_][a-zA-Z0-9_]*)");
-        public static readonly Regex stringRegex = new Regex("\\G(([^\\\"]|\\\\\\\")*)"); //"\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
+        public static readonly Regex stringRegex = new Regex(@"\G(([^\""]|\\\"")*)"); //"\\G(([^\\\\\\\"]|\\\\[rnt\\\\\\\"])*)");
         public static readonly Regex winPathnameRegex = new Regex(string.Format("\\G([^ \\{0}]|\\ |\\\\)+", Process(Path.GetInvalidPathChars())));
         public static readonly Regex preprocDirectiveRegex = new Regex("\\G(#[a-zA-Z_][a-zA-Z0-9_]*)");
         public static readonly Regex wordRegex = new Regex("\\G([^\\s]+)");
@@ -198,7 +198,7 @@ namespace ColorzCore.Lexer
                             curCol++;
                             Match quoteInterior = stringRegex.Match(line, curCol, endOffs - curCol);
                             string match = quoteInterior.Value;
-                            yield return new Token(TokenType.STRING, fileName, lineNum, curCol, /*IOUtility.UnescapeString(*/match/*)*/);
+                            yield return new Token(TokenType.STRING, fileName, lineNum, curCol + offset, /*IOUtility.UnescapeString(*/match/*)*/);
                             curCol += match.Length;
                             if (curCol == endOffs || line[curCol] != '\"')
                             {
@@ -322,7 +322,7 @@ namespace ColorzCore.Lexer
                             if (idMatch.Success)
                             {
                                 string match = idMatch.Value;
-                                int idCol = curCol;
+                                int idCol = curCol + offset;
                                 curCol += match.Length;
                                 if (curCol < endOffs && line[curCol] == '(')
                                     yield return new Token(TokenType.MAYBE_MACRO, fileName, lineNum, idCol, match);
@@ -344,7 +344,7 @@ namespace ColorzCore.Lexer
                                 //Verify that next token isn't start of an identifier
                                 if (curCol + match.Length >= endOffs || (!char.IsLetter(line[curCol + match.Length]) && line[curCol + match.Length] != '_'))
                                 {
-                                    yield return new Token(TokenType.NUMBER, fileName, lineNum, curCol, match.TrimEnd());
+                                    yield return new Token(TokenType.NUMBER, fileName, lineNum, curCol + offset, match.TrimEnd());
                                     curCol += match.Length;
                                     continue;
                                 }
@@ -353,7 +353,7 @@ namespace ColorzCore.Lexer
                             if (directiveMatch.Success)
                             {
                                 string match = directiveMatch.Value;
-                                yield return new Token(TokenType.PREPROCESSOR_DIRECTIVE, fileName, lineNum, curCol, match);
+                                yield return new Token(TokenType.PREPROCESSOR_DIRECTIVE, fileName, lineNum, curCol + offset, match);
                                 curCol += match.Length;
                                 if (match.Substring(1).Equals("include") || match.Substring(1).Equals("incbin"))
                                 {
@@ -412,11 +412,16 @@ namespace ColorzCore.Lexer
             }
         }
 
-        public IEnumerable<Token> Tokenize(FileStream fs)
+        public IEnumerable<Token> TokenizeFile(FileStream fs, string filename)
         {
-            foreach (Token t in Tokenize(fs, fs.Name))
+            foreach (Token t in Tokenize(fs, filename))
                 yield return t;
             fs.Close();
+        }
+
+        public IEnumerable<Token> Tokenize(FileStream fs)
+        {
+            return TokenizeFile(fs, fs.Name);
         }
     }
 }

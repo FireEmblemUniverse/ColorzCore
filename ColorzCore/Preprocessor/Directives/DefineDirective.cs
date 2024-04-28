@@ -114,6 +114,8 @@ namespace ColorzCore.Preprocessor.Directives
         {
             if (body.Count == 1 && body[0].Type == TokenType.STRING)
             {
+                // FIXME: for some reason, locations of tokens in this are offset by 1
+
                 Token token = body[0];
                 return new List<Token>(Tokenizer.TokenizeLine(token.Content, token.Location));
             }

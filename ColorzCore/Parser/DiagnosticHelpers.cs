@@ -169,29 +169,29 @@ namespace ColorzCore.Parser
         {
             /* The condition for this diagnostic are as follows:
              * 1. The operator node is from the same macro expansion as the closest node on either side
-             * 2. The operator node is not from the same macro expansion as the furthest node on that same side */
+             * 2. The operator node is not from the same macro expansion as the operator token on that same side */
 
             MacroLocation? macroLocation = operatorNode.MyLocation.macroLocation;
 
-            // do not check for non-macros expressions
-            if (macroLocation != null)
+            IAtomNode left = operatorNode.Left;
+            IAtomNode right = operatorNode.Right;
+
+            if (left is OperatorNode leftNode)
             {
-                IAtomNode left = operatorNode.Left;
-                IAtomNode right = operatorNode.Right;
-
-                // TODO: verify operator token rather than furthest node?
-
                 if (macroLocation == GetRightmostInnerNode(left).MyLocation.macroLocation)
                 {
-                    if (macroLocation != GetLeftmostInnerNode(left).MyLocation.macroLocation)
+                    if (macroLocation != leftNode.OperatorToken.Location.macroLocation)
                     {
                         return true;
                     }
                 }
+            }
 
+            if (right is OperatorNode rightNode)
+            {
                 if (macroLocation == GetLeftmostInnerNode(right).MyLocation.macroLocation)
                 {
-                    if (macroLocation != GetRightmostInnerNode(right).MyLocation.macroLocation)
+                    if (macroLocation != rightNode.OperatorToken.Location.macroLocation)
                     {
                         return true;
                     }

@@ -3,10 +3,8 @@
     <TargetFramework>net48</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>annotations</Nullable>
-	  <TargetName>ColorzCore</TargetName>
-  </PropertyGroup>
-
-  <PropertyGroup>
+    <TargetName>ColorzCore</TargetName>
     <LangVersion>9</LangVersion>
+    <BaseOutputPath>bin/Framework</BaseOutputPath>
   </PropertyGroup>
 </Project>

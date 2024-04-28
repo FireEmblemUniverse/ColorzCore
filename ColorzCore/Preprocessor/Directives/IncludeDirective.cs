@@ -48,7 +48,7 @@ namespace ColorzCore.Preprocessor.Directives
                 try
                 {
                     FileStream inputFile = new FileStream(existantFile, FileMode.Open);
-                    tokens.PrependEnumerator(new Tokenizer().Tokenize(inputFile).GetEnumerator());
+                    tokens.PrependEnumerator(new Tokenizer().TokenizeFile(inputFile, existantFile.Replace('\\', '/')).GetEnumerator());
                 }
                 catch (Exception e)
                 {

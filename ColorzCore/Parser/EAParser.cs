@@ -890,8 +890,20 @@ namespace ColorzCore.Parser
                     if (DiagnosticHelpers.DoesOperationSpanMultipleMacrosUnintuitively(operatorNode))
                     {
                         MacroLocation? mloc = operatorNode.MyLocation.macroLocation;
-                        string expr = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
-                        Warning(operatorNode.MyLocation, $"{expr}\nUnintuitive macro expansion within expression.\nThis may be a mistake. Consider guarding your expressions using parenthesis.");
+                        string message = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
+
+                        if (mloc != null)
+                        {
+                            message += $"\nUnintuitive expression resulting from expansion of macro `{mloc.MacroName}`.";
+                        }
+                        else
+                        {
+                            message += "\nUnintuitive expression resulting from expansion of macro.";
+                        }
+
+                        message += "\nConsider guarding your expressions using parenthesis.";
+
+                        Warning(operatorNode.MyLocation, message);
                     }
 
                     grammarSymbols.Push(new Left<IAtomNode, Token>(operatorNode));
