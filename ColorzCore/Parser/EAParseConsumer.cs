@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
@@ -6,11 +7,14 @@ using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Parser
 {
-    public class EAParseConsumer
+    public class EAParseConsumer : IParseConsumer
     {
         public int CurrentOffset => currentOffset;
 
+        public IList<Closure> AllScopes { get; }
+
         public ImmutableStack<Closure> GlobalScope { get; }
+        public ImmutableStack<Closure> CurrentScope { get; set; }
 
         private readonly Stack<(int, bool)> pastOffsets; // currentOffset, offsetInitialized
         private readonly IList<(int, int, Location)> protectedRegions;
@@ -23,7 +27,8 @@ namespace ColorzCore.Parser
 
         public EAParseConsumer(Logger logger)
         {
-            GlobalScope = new ImmutableStack<Closure>(new BaseClosure(), ImmutableStack<Closure>.Nil);
+            AllScopes = new List<Closure>() { new BaseClosure() };
+            CurrentScope = GlobalScope = new ImmutableStack<Closure>(AllScopes.First()!, ImmutableStack<Closure>.Nil);
             pastOffsets = new Stack<(int, bool)>();
             protectedRegions = new List<(int, int, Location)>();
             currentOffset = 0;
@@ -66,24 +71,53 @@ namespace ColorzCore.Parser
             return node.TryEvaluate(e => Logger.Error(node.MyLocation, e.Message), EvaluationPhase.Immediate);
         }
 
-        public ILineNode? HandleRawStatement(RawNode node)
+        private IList<ILineNode> LineNodes { get; } = new List<ILineNode>();
+
+        public IList<ILineNode> HandleEndOfInput()
+        {
+            if (CurrentScope != GlobalScope)
+            {
+                Logger.Error(null, "Reached end of input with an open local scope.");
+            }
+
+            return LineNodes;
+        }
+
+        #region AST Handlers
+
+        public void OnOpenScope(Location _)
+        {
+            CurrentScope = new ImmutableStack<Closure>(new Closure(), CurrentScope);
+        }
+
+        public void OnCloseScope(Location location)
+        {
+            if (CurrentScope != GlobalScope)
+            {
+                CurrentScope = CurrentScope.Tail;
+            }
+            else
+            {
+                Logger.Error(location, "Attempted to close local scope without being within one.");
+            }
+        }
+
+        public void OnRawStatement(Location location, RawNode node)
         {
             if ((CurrentOffset % node.Raw.Alignment) != 0)
             {
-                Logger.Error(node.Location,
+                Logger.Error(location,
                     $"Bad alignment for raw {node.Raw.Name}: offset ({CurrentOffset:X8}) needs to be {node.Raw.Alignment}-aligned.");
-
-                return null;
             }
             else
             {
                 // TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
-                CheckWriteBytes(node.Location, node.Size);
-                return node;
+                CheckWriteBytes(location, node.Size);
+                LineNodes.Add(node);
             }
         }
 
-        public ILineNode? HandleOrgStatement(Location location, IAtomNode offsetNode)
+        public void OnOrgStatement(Location location, IAtomNode offsetNode)
         {
             if (EvaluteAtom(offsetNode) is int offset)
             {
@@ -103,17 +137,14 @@ namespace ColorzCore.Parser
             {
                 // EvaluateAtom already printed an error message
             }
-
-            return null;
         }
 
-        public ILineNode? HandlePushStatement(Location _)
+        public void OnPushStatement(Location _)
         {
             pastOffsets.Push((CurrentOffset, offsetInitialized));
-            return null;
         }
 
-        public ILineNode? HandlePopStatement(Location location)
+        public void OnPopStatement(Location location)
         {
             if (pastOffsets.Count == 0)
             {
@@ -123,11 +154,9 @@ namespace ColorzCore.Parser
             {
                 (currentOffset, offsetInitialized) = pastOffsets.Pop();
             }
-
-            return null;
         }
 
-        public ILineNode? HandleAssertStatement(Location location, IAtomNode node)
+        public void OnAssertStatement(Location location, IAtomNode node)
         {
             // helper for distinguishing boolean expressions and other expressions
             // TODO: move elsewhere perhaps
@@ -175,11 +204,9 @@ namespace ColorzCore.Parser
             {
                 Logger.Error(node.MyLocation, "Failed to evaluate ASSERT expression.");
             }
-
-            return null;
         }
 
-        public ILineNode? HandleProtectStatement(Location location, IAtomNode beginAtom, IAtomNode? endAtom)
+        public void OnProtectStatement(Location location, IAtomNode beginAtom, IAtomNode? endAtom)
         {
             if (EvaluteAtom(beginAtom) is int beginValue)
             {
@@ -199,33 +226,29 @@ namespace ColorzCore.Parser
                         {
                             case < 0:
                                 Logger.Error(location, $"Invalid PROTECT region: end address ({endValue:X8}) is before start address ({beginValue:X8}).");
-                                return null;
+                                return;
 
                             case 0:
                                 // NOTE: does this need to be an error?
                                 Logger.Error(location, $"Empty PROTECT region: end address is equal to start address ({beginValue:X8}).");
-                                return null;
+                                return;
                         }
                     }
                     else
                     {
                         // EvaluateAtom already printed an error message
-                        return null;
                     }
                 }
 
                 protectedRegions.Add((beginValue, length, location));
-
-                return null;
             }
             else
             {
                 // EvaluateAtom already printed an error message
-                return null;
             }
         }
 
-        public ILineNode? HandleAlignStatement(Location location, IAtomNode alignNode, IAtomNode? offsetNode)
+        public void OnAlignStatement(Location location, IAtomNode alignNode, IAtomNode? offsetNode)
         {
             if (EvaluteAtom(alignNode) is int alignValue)
             {
@@ -244,13 +267,13 @@ namespace ColorzCore.Parser
                             else
                             {
                                 Logger.Error(location, $"ALIGN offset cannot be negative (got {rawOffset})");
-                                return null;
+                                return;
                             }
                         }
                         else
                         {
                             // EvaluateAtom already printed an error message
-                            return null;
+                            return;
                         }
                     }
 
@@ -264,23 +287,19 @@ namespace ColorzCore.Parser
                             diagnosedOverflow = true;
                         }
                     }
-
-                    return null;
                 }
                 else
                 {
                     Logger.Error(location, $"Invalid ALIGN value (got {alignValue}).");
-                    return null;
                 }
             }
             else
             {
                 // EvaluateAtom already printed an error message
-                return null;
             }
         }
 
-        public ILineNode? HandleFillStatement(Location location, IAtomNode amountNode, IAtomNode? valueNode)
+        public void OnFillStatement(Location location, IAtomNode amountNode, IAtomNode? valueNode)
         {
             if (EvaluteAtom(amountNode) is int amount)
             {
@@ -297,7 +316,7 @@ namespace ColorzCore.Parser
                         else
                         {
                             // EvaluateAtom already printed an error message
-                            return null;
+                            return;
                         }
                     }
 
@@ -311,46 +330,43 @@ namespace ColorzCore.Parser
                     var node = new DataNode(CurrentOffset, data);
 
                     CheckWriteBytes(location, amount);
-                    return node;
+                    LineNodes.Add(node);
                 }
                 else
                 {
                     Logger.Error(location, $"Invalid FILL amount (got {amount}).");
-                    return null;
                 }
             }
             else
             {
                 // EvaluateAtom already printed an error message
-                return null;
             }
         }
 
-        public ILineNode? HandleSymbolAssignment(Location location, string name, IAtomNode atom, ImmutableStack<Closure> scopes)
+        public void OnSymbolAssignment(Location location, string name, IAtomNode atom)
         {
             if (atom.TryEvaluate(_ => { }, EvaluationPhase.Early) is int value)
             {
-                TryDefineSymbol(location, scopes, name, value);
+                TryDefineSymbol(location, name, value);
             }
             else
             {
-                TryDefineSymbol(location, scopes, name, atom);
+                TryDefineSymbol(location, name, atom);
             }
-
-            return null;
         }
 
-        public ILineNode? HandleLabel(Location location, string name, ImmutableStack<Closure> scopes)
+        public void OnLabel(Location location, string name)
         {
-            TryDefineSymbol(location, scopes, name, ConvertToAddress(CurrentOffset));
-            return null;
+            TryDefineSymbol(location, name, ConvertToAddress(CurrentOffset));
         }
 
-        public ILineNode? HandlePreprocessorLineNode(Location location, ILineNode node)
+        public void OnPreprocessorData(Location location, ILineNode node)
         {
             CheckWriteBytes(location, node.Size);
-            return node;
+            LineNodes.Add(node);
         }
+
+        #endregion
 
         public bool IsValidLabelName(string name)
         {
@@ -358,9 +374,9 @@ namespace ColorzCore.Parser
             return true; // !IsReservedName(name);
         }
 
-        public void TryDefineSymbol(Location location, ImmutableStack<Closure> scopes, string name, int value)
+        public void TryDefineSymbol(Location location, string name, int value)
         {
-            if (scopes.Head.HasLocalSymbol(name))
+            if (CurrentScope.Head.HasLocalSymbol(name))
             {
                 Logger.Warning(location, $"Symbol already in scope, ignoring: {name}");
             }
@@ -371,13 +387,13 @@ namespace ColorzCore.Parser
             }
             else
             {
-                scopes.Head.AddSymbol(name, value);
+                CurrentScope.Head.AddSymbol(name, value);
             }
         }
 
-        public void TryDefineSymbol(Location location, ImmutableStack<Closure> scopes, string name, IAtomNode expression)
+        public void TryDefineSymbol(Location location, string name, IAtomNode expression)
         {
-            if (scopes.Head.HasLocalSymbol(name))
+            if (CurrentScope.Head.HasLocalSymbol(name))
             {
                 Logger.Warning(location, $"Symbol already in scope, ignoring: {name}");
             }
@@ -388,7 +404,7 @@ namespace ColorzCore.Parser
             }
             else
             {
-                scopes.Head.AddSymbol(name, expression);
+                CurrentScope.Head.AddSymbol(name, expression);
             }
         }
 

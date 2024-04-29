@@ -15,8 +15,6 @@ namespace ColorzCore.Parser.AST
         private Token myToken;
         private int Offset { get; }
 
-        public Location Location => myToken.Location;
-
         public RawNode(Raw raw, Token t, int offset, IList<IParamNode> paramList) : base(paramList)
         {
             myToken = t;

@@ -76,10 +76,6 @@ namespace ColorzCore.Parser
 
         public IList<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
-            //TODO: Make BlockNode or EAProgramNode?
-            //Note must be strict to get all information on the closure before evaluating terms.
-            IList<ILineNode> myLines = new List<ILineNode>();
-
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
             tokens.MoveNext();
 
@@ -87,46 +83,16 @@ namespace ColorzCore.Parser
             {
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                 {
-                    ILineNode? retVal = ParseLine(tokens, ParseConsumer.GlobalScope);
-                    retVal.IfJust(n => myLines.Add(n));
+                    ParseLine(tokens, ParseConsumer.GlobalScope);
                 }
             }
 
-            return myLines;
-        }
-
-        private BlockNode ParseBlock(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
-        {
-            Location start = tokens.Current.Location;
-            tokens.MoveNext();
-
-            BlockNode temp = new BlockNode();
-
-            while (!tokens.EOS && tokens.Current.Type != TokenType.CLOSE_BRACE)
-            {
-                ILineNode? x = ParseLine(tokens, scopes);
-
-                if (x != null)
-                {
-                    temp.Children.Add(x);
-                }
-            }
-
-            if (!tokens.EOS)
-            {
-                tokens.MoveNext();
-            }
-            else
-            {
-                Logger.Error(start, "Didn't find matching brace.");
-            }
-
-            return temp;
+            return ParseConsumer.HandleEndOfInput();
         }
 
         public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
 
-        private ILineNode? ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private void ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             // NOTE: here previously lied en ExpandIdentifier loop
             // though because this is only called from ParseLine after the corresponding check, this is not needed
@@ -138,11 +104,13 @@ namespace ColorzCore.Parser
             {
                 case TokenType.COLON:
                     tokens.MoveNext();
-                    return ParseConsumer.HandleLabel(head.Location, head.Content, scopes);
+                    ParseConsumer.OnLabel(head.Location, head.Content);
+                    return;
 
                 case TokenType.ASSIGN:
                     tokens.MoveNext();
-                    return ParseAssignment(head.Content, tokens, scopes);
+                    ParseAssignment(head.Content, tokens);
+                    return;
             }
 
             // NOTE: those remarks are old ones from Colorz, idrk what they mean -Stan
@@ -160,42 +128,70 @@ namespace ColorzCore.Parser
 
             if (SpecialCodes.Contains(upperCodeIdentifier))
             {
-                return upperCodeIdentifier switch
+                switch (upperCodeIdentifier)
                 {
-                    "ORG" => ParseOrgStatement(parameters, scopes),
-                    "PUSH" => ParsePushStatement(parameters, scopes),
-                    "POP" => ParsePopStatement(parameters, scopes),
-                    "ASSERT" => ParseAssertStatement(parameters, scopes),
-                    "PROTECT" => ParseProtectStatement(parameters, scopes),
-                    "ALIGN" => ParseAlignStatement(parameters, scopes),
-                    "FILL" => ParseFillStatement(parameters, scopes),
-                    "MESSAGE" => ParseMessageStatement(parameters, scopes),
-                    "WARNING" => ParseWarningStatement(parameters, scopes),
-                    "ERROR" => ParseErrorStatement(parameters, scopes),
-                    _ => null, // TODO: this is an error
-                };
-            }
+                    case "ORG":
+                        ParseOrgStatement(parameters);
+                        return;
 
-            return ParseRawStatement(upperCodeIdentifier, tokens, parameters);
+                    case "PUSH":
+                        ParsePushStatement(parameters);
+                        return;
+
+                    case "POP":
+                        ParsePopStatement(parameters);
+                        return;
+
+                    case "ASSERT":
+                        ParseAssertStatement(parameters);
+                        return;
+
+                    case "PROTECT":
+                        ParseProtectStatement(parameters);
+                        return;
+
+                    case "ALIGN":
+                        ParseAlignStatement(parameters);
+                        return;
+
+                    case "FILL":
+                        ParseFillStatement(parameters);
+                        return;
+
+                    case "MESSAGE":
+                        ParseMessageStatement(parameters);
+                        return;
+
+                    case "WARNING":
+                        ParseWarningStatement(parameters);
+                        return;
+
+                    case "ERROR":
+                        ParseErrorStatement(parameters);
+                        return;
+                }
+            }
+            else
+            {
+                ParseRawStatement(upperCodeIdentifier, tokens, parameters);
+            }
         }
 
-        private ILineNode? ParseAssignment(string name, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private void ParseAssignment(string name, MergeableGenerator<Token> tokens)
         {
-            IAtomNode? atom = this.ParseAtom(tokens, scopes, true);
+            IAtomNode? atom = this.ParseAtom(tokens, ParseConsumer.CurrentScope, true);
 
             if (atom != null)
             {
-                return ParseConsumer.HandleSymbolAssignment(head!.Location, name, atom, scopes);
+                ParseConsumer.OnSymbolAssignment(head!.Location, name, atom);
             }
             else
             {
                 Logger.Error(head!.Location, $"Couldn't define symbol `{name}`: exprected expression.");
             }
-
-            return null;
         }
 
-        private ILineNode? ParseRawStatement(string upperCodeIdentifier, MergeableGenerator<Token> tokens, IList<IParamNode> parameters)
+        private void ParseRawStatement(string upperCodeIdentifier, MergeableGenerator<Token> tokens, IList<IParamNode> parameters)
         {
             if (Raws.TryGetValue(upperCodeIdentifier, out IList<Raw>? raws))
             {
@@ -204,7 +200,9 @@ namespace ColorzCore.Parser
                 {
                     if (raw.Fits(parameters))
                     {
-                        return ParseConsumer.HandleRawStatement(new RawNode(raw, head!, ParseConsumer.CurrentOffset, parameters));
+                        RawNode rawNode = new RawNode(raw, head!, ParseConsumer.CurrentOffset, parameters);
+                        ParseConsumer.OnRawStatement(head!.Location, rawNode);
+                        return;
                     }
                 }
 
@@ -227,60 +225,56 @@ namespace ColorzCore.Parser
                 }
 
                 IgnoreRestOfStatement(tokens);
-                return null;
             }
             else
             {
                 Logger.Error(head!.Location, $"Unrecognized statement code: {head!.Content}");
-                return null;
             }
         }
 
-        private ILineNode? ParseOrgStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParseOrgStatement(IList<IParamNode> parameters)
         {
-            return ParseStatementOneParam("ORG", parameters, ParseConsumer.HandleOrgStatement);
+            ParseStatementOneParam("ORG", parameters, ParseConsumer.OnOrgStatement);
         }
 
-        private ILineNode? ParsePushStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
-        {
-            if (parameters.Count == 0)
-            {
-                return ParseConsumer.HandlePushStatement(head!.Location);
-            }
-            else
-            {
-                return StatementExpectsParamCount("PUSH", parameters, 0, 0);
-            }
-        }
-
-        private ILineNode? ParsePopStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParsePushStatement(IList<IParamNode> parameters)
         {
             if (parameters.Count == 0)
             {
-                return ParseConsumer.HandlePopStatement(head!.Location);
+                ParseConsumer.OnPushStatement(head!.Location);
             }
             else
             {
-                return StatementExpectsParamCount("POP", parameters, 0, 0);
+                StatementExpectsParamCount("PUSH", parameters, 0, 0);
             }
         }
 
-        private ILineNode? ParseAssertStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParsePopStatement(IList<IParamNode> parameters)
         {
-            return ParseStatementOneParam("ASSERT", parameters, ParseConsumer.HandleAssertStatement);
+            if (parameters.Count == 0)
+            {
+                ParseConsumer.OnPopStatement(head!.Location);
+            }
+            else
+            {
+                StatementExpectsParamCount("POP", parameters, 0, 0);
+            }
+        }
+
+        private void ParseAssertStatement(IList<IParamNode> parameters)
+        {
+            ParseStatementOneParam("ASSERT", parameters, ParseConsumer.OnAssertStatement);
         }
 
         // Helper method for printing errors
-        private ILineNode? StatementExpectsAtom(string statementName, IParamNode param)
+        private void StatementExpectsAtom(string statementName, IParamNode param)
         {
             Logger.Error(param.MyLocation,
                 $"{statementName} expects an Atom (got {DiagnosticsHelpers.PrettyParamType(param.Type)}).");
-
-            return null;
         }
 
         // Helper method for printing errors
-        private ILineNode? StatementExpectsParamCount(string statementName, IList<IParamNode> parameters, int min, int max)
+        private void StatementExpectsParamCount(string statementName, IList<IParamNode> parameters, int min, int max)
         {
             if (min == max)
             {
@@ -290,43 +284,41 @@ namespace ColorzCore.Parser
             {
                 Logger.Error(head!.Location, $"A {statementName} statement expects {min} to {max} parameters, got {parameters.Count}.");
             }
-
-            return null;
         }
 
-        private delegate ILineNode? HandleStatementOne(Location location, IAtomNode node);
-        private delegate ILineNode? HandleStatementTwo(Location location, IAtomNode firstNode, IAtomNode? optionalSecondNode);
+        private delegate void HandleStatementOne(Location location, IAtomNode node);
+        private delegate void HandleStatementTwo(Location location, IAtomNode firstNode, IAtomNode? optionalSecondNode);
 
-        private ILineNode? ParseStatementOneParam(string name, IList<IParamNode> parameters, HandleStatementOne handler)
+        private void ParseStatementOneParam(string name, IList<IParamNode> parameters, HandleStatementOne handler)
         {
             if (parameters.Count == 1)
             {
                 if (parameters[0] is IAtomNode expr)
                 {
-                    return handler(head!.Location, expr);
+                    handler(head!.Location, expr);
                 }
                 else
                 {
-                    return StatementExpectsAtom(name, parameters[0]);
+                    StatementExpectsAtom(name, parameters[0]);
                 }
             }
             else
             {
-                return StatementExpectsParamCount(name, parameters, 1, 1);
+                StatementExpectsParamCount(name, parameters, 1, 1);
             }
         }
 
-        private ILineNode? ParseStatementTwoParam(string name, IList<IParamNode> parameters, HandleStatementTwo handler)
+        private void ParseStatementTwoParam(string name, IList<IParamNode> parameters, HandleStatementTwo handler)
         {
             if (parameters.Count == 1)
             {
                 if (parameters[0] is IAtomNode firstNode)
                 {
-                    return handler(head!.Location, firstNode, null);
+                    handler(head!.Location, firstNode, null);
                 }
                 else
                 {
-                    return StatementExpectsAtom(name, parameters[0]);
+                    StatementExpectsAtom(name, parameters[0]);
                 }
             }
             else if (parameters.Count == 2)
@@ -335,55 +327,55 @@ namespace ColorzCore.Parser
                 {
                     if (parameters[1] is IAtomNode secondNode)
                     {
-                        return handler(head!.Location, firstNode, secondNode);
+                        handler(head!.Location, firstNode, secondNode);
                     }
                     else
                     {
-                        return StatementExpectsAtom(name, parameters[1]);
+                        StatementExpectsAtom(name, parameters[1]);
                     }
                 }
                 else
                 {
-                    return StatementExpectsAtom(name, parameters[0]);
+                    StatementExpectsAtom(name, parameters[0]);
                 }
             }
             else
             {
-                return StatementExpectsParamCount(name, parameters, 1, 2);
+                StatementExpectsParamCount(name, parameters, 1, 2);
             }
         }
 
-        private ILineNode? ParseProtectStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParseProtectStatement(IList<IParamNode> parameters)
         {
-            return ParseStatementTwoParam("PROTECT", parameters, ParseConsumer.HandleProtectStatement);
+            ParseStatementTwoParam("PROTECT", parameters, ParseConsumer.OnProtectStatement);
         }
 
-        private ILineNode? ParseAlignStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParseAlignStatement(IList<IParamNode> parameters)
         {
-            return ParseStatementTwoParam("ALIGN", parameters, ParseConsumer.HandleAlignStatement);
+            ParseStatementTwoParam("ALIGN", parameters, ParseConsumer.OnAlignStatement);
         }
 
-        private ILineNode? ParseFillStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        private void ParseFillStatement(IList<IParamNode> parameters)
         {
-            return ParseStatementTwoParam("FILL", parameters, ParseConsumer.HandleFillStatement);
+            ParseStatementTwoParam("FILL", parameters, ParseConsumer.OnFillStatement);
         }
 
-        private ILineNode? ParseMessageStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
+        private void ParseMessageStatement(IList<IParamNode> parameters)
         {
+            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
             Logger.Message(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
-            return null;
         }
 
-        private ILineNode? ParseWarningStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
+        private void ParseWarningStatement(IList<IParamNode> parameters)
         {
+            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
             Logger.Warning(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
-            return null;
         }
 
-        private ILineNode? ParseErrorStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
+        private void ParseErrorStatement(IList<IParamNode> parameters)
         {
+            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
             Logger.Error(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
-            return null;
         }
 
         public IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
@@ -551,14 +543,14 @@ namespace ColorzCore.Parser
             return atoms;
         }
 
-        public ILineNode? ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             if (IsIncluding)
             {
                 if (tokens.Current.Type == TokenType.NEWLINE || tokens.Current.Type == TokenType.SEMICOLON)
                 {
                     tokens.MoveNext();
-                    return null;
+                    return;
                 }
 
                 head = tokens.Current;
@@ -576,24 +568,39 @@ namespace ColorzCore.Parser
                                 case TokenType.MAYBE_MACRO:
                                 case TokenType.OPEN_BRACE:
                                 case TokenType.PREPROCESSOR_DIRECTIVE:
-                                    return ParseLine(tokens, scopes);
+                                    // recursion!
+                                    ParseLine(tokens, scopes);
+                                    return;
 
                                 default:
                                     // it is somewhat common for users to do '#define Foo 0xABCD' and then later 'Foo:'
                                     Logger.Error(head.Location, $"Expansion of macro `{head.Content}` did not result in a valid statement. Did you perhaps attempt to define a label or symbol with that name?");
                                     IgnoreRestOfLine(tokens);
-
-                                    return null;
+                                    break;
                             }
+
+                            return;
+                        }
+                        else
+                        {
+                            ParseStatement(tokens, scopes);
                         }
 
-                        return ParseStatement(tokens, scopes);
+                        break;
 
                     case TokenType.OPEN_BRACE:
-                        return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(), scopes));
+                        tokens.MoveNext();
+                        ParseConsumer.OnOpenScope(head.Location);
+                        break;
+
+                    case TokenType.CLOSE_BRACE:
+                        tokens.MoveNext();
+                        ParseConsumer.OnCloseScope(head.Location);
+                        break;
 
                     case TokenType.PREPROCESSOR_DIRECTIVE:
-                        return ParsePreprocessor(tokens, scopes);
+                        ParsePreprocessor(tokens, scopes);
+                        break;
 
                     case TokenType.OPEN_BRACKET:
                         Logger.Error(head.Location, "Unexpected list literal.");
@@ -621,7 +628,6 @@ namespace ColorzCore.Parser
                         IgnoreRestOfLine(tokens);
                         break;
                 }
-                return null;
             }
             else
             {
@@ -633,17 +639,16 @@ namespace ColorzCore.Parser
 
                 if (hasNext)
                 {
-                    return ParsePreprocessor(tokens, scopes);
+                    ParsePreprocessor(tokens, scopes);
                 }
                 else
                 {
                     Logger.Error(null, $"Missing {Inclusion.Count} endif(s).");
-                    return null;
                 }
             }
         }
 
-        private ILineNode? ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private void ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             head = tokens.Current;
             tokens.MoveNext();
@@ -652,10 +657,8 @@ namespace ColorzCore.Parser
 
             if (result != null)
             {
-                ParseConsumer.HandlePreprocessorLineNode(head.Location, result);
+                ParseConsumer.OnPreprocessorData(head.Location, result);
             }
-
-            return null;
         }
 
         /***

@@ -22,8 +22,6 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
-            BlockNode result = new BlockNode();
-
             // Iterating indices (and not values via foreach)
             // to avoid crashes occuring with AddToPool within AddToPool
 
@@ -36,14 +34,12 @@ namespace ColorzCore.Preprocessor.Directives
 
                 while (!tempGenerator.EOS)
                 {
-                    p.ParseLine(tempGenerator, line.Scope).IfJust(
-                        (lineNode) => result.Children.Add(lineNode));
+                    p.ParseLine(tempGenerator, line.Scope);
                 }
             }
 
             pool.Lines.Clear();
-
-            return result;
+            return null;
         }
     }
 }
