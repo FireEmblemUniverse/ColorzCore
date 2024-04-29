@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    abstract class StatementNode : ILineNode
+    public abstract class StatementNode : ILineNode
     {
         public IList<IParamNode> Parameters { get; }
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -31,11 +32,11 @@ namespace ColorzCore.Preprocessor.Directives
                     break;
 
                 case TokenType.NEWLINE:
-                    p.Error(self.Location, "Invalid use of directive '#define': missing macro name.");
+                    p.Logger.Error(self.Location, "Invalid use of directive '#define': missing macro name.");
                     return null;
 
                 default:
-                    p.Error(self.Location, $"Invalid use of directive '#define': expected macro name, got {nextToken}");
+                    p.Logger.Error(self.Location, $"Invalid use of directive '#define': expected macro name, got {nextToken}");
                     p.IgnoreRestOfLine(tokens);
                     return null;
             }
@@ -62,7 +63,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             if (p.Definitions.ContainsKey(name) && EAOptions.IsWarningEnabled(EAOptions.Warnings.ReDefine))
             {
-                p.Warning(nameToken.Location, $"Redefining {name}.");
+                p.Logger.Warning(nameToken.Location, $"Redefining {name}.");
             }
 
             if (macroBody.Count == 1 && macroBody[0].Type == TokenType.IDENTIFIER && macroBody[0].Content == name)
@@ -84,7 +85,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             if (p.Macros.HasMacro(name, parameters.Count) && EAOptions.IsWarningEnabled(EAOptions.Warnings.ReDefine))
             {
-                p.Warning(nameToken.Location, $"Redefining {name}(...) with {parameters.Count} parameters.");
+                p.Logger.Warning(nameToken.Location, $"Redefining {name}(...) with {parameters.Count} parameters.");
             }
 
             p.Macros.AddMacro(new UserMacro(parameters, macroBody), name, parameters.Count);
@@ -98,7 +99,7 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if (parameter.Count != 1 || parameter[0].Type != TokenType.IDENTIFIER)
                 {
-                    p.Error(parameter[0].Location, $"Macro parameters must be single identifiers (got {parameter[0].Content}).");
+                    p.Logger.Error(parameter[0].Location, $"Macro parameters must be single identifiers (got {parameter[0].Content}).");
                     result.Add($"${result.Count}");
                 }
                 else

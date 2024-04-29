@@ -49,7 +49,7 @@ namespace ColorzCore.Preprocessor
             }
             else
             {
-                p.Error(directive.Location, $"Directive not recognized: {directiveName}");
+                p.Logger.Error(directive.Location, $"Directive not recognized: {directiveName}");
             }
 
             return null;

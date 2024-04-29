@@ -41,7 +41,7 @@ namespace ColorzCore.Preprocessor.Directives
 
                     if (pathExpression != portablePathExpression)
                     {
-                        p.Warning(self.Location, $"Path is not portable (should be \"{portablePathExpression}\").");
+                        p.Logger.Warning(self.Location, $"Path is not portable (should be \"{portablePathExpression}\").");
                     }
                 }
 
@@ -52,12 +52,12 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 catch (Exception e)
                 {
-                    p.Error(self.Location, $"Error reading file \"{parameters[0].ToString()}\": {e.Message}.");
+                    p.Logger.Error(self.Location, $"Error reading file \"{parameters[0].ToString()}\": {e.Message}.");
                 }
             }
             else
             {
-                p.Error(parameters[0].MyLocation, $"Could not find file \"{parameters[0].ToString()}\".");
+                p.Logger.Error(parameters[0].MyLocation, $"Could not find file \"{parameters[0].ToString()}\".");
             }
 
             return null;

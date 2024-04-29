@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -24,14 +25,14 @@ namespace ColorzCore.Preprocessor.Directives
             {
                 if (parameter is IAtomNode atomNode)
                 {
-                    if (atomNode.TryEvaluate(e => p.Error(self.Location, $"Error while evaluating expression: {e.Message}"), EvaluationPhase.Immediate) is int value)
+                    if (atomNode.TryEvaluate(e => p.Logger.Error(self.Location, $"Error while evaluating expression: {e.Message}"), EvaluationPhase.Immediate) is int value)
                     {
                         flag = value != 0;
                     }
                 }
                 else
                 {
-                    p.Error(self.Location, "Expected an expression.");
+                    p.Logger.Error(self.Location, "Expected an expression.");
                 }
             }
 

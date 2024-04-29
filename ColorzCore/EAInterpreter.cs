@@ -19,6 +19,7 @@ namespace ColorzCore
     {
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
+        private EAParseConsumer myParseConsumer;
         private string game, iFile;
         private Stream sin;
         private Logger log;
@@ -64,7 +65,8 @@ namespace ColorzCore
             foreach (string path in EAOptions.ToolsPaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
-            myParser = new EAParser(allRaws, log, new DirectiveHandler(includeSearcher, toolSearcher));
+            myParseConsumer = new EAParseConsumer(log);
+            myParser = new EAParser(log, allRaws, new DirectiveHandler(includeSearcher, toolSearcher), myParseConsumer);
 
             myParser.Definitions[$"_{game}_"] = new Definition();
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
@@ -126,7 +128,7 @@ namespace ColorzCore
                 }
                 catch (MacroInvocationNode.MacroException e)
                 {
-                    myParser.Error(e.CausedError.MyLocation, "Unexpanded macro.");
+                    log.Error(e.CausedError.MyLocation, "Unexpanded macro.");
                 }
             }
 
@@ -135,11 +137,11 @@ namespace ColorzCore
                 if (e is IdentifierNode.UndefinedIdentifierException uie
                     && uie.CausedError.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
                 {
-                    myParser.Error(location, "Unpooled data (forgot #pool?)");
+                    log.Error(location, "Unpooled data (forgot #pool?)");
                 }
                 else
                 {
-                    myParser.Error(location, e.Message);
+                    log.Error(location, e.Message);
                 }
             }
 
@@ -173,9 +175,9 @@ namespace ColorzCore
 
         public bool WriteNocashSymbols(TextWriter output)
         {
-            foreach (var label in myParser.GlobalScope.Head.LocalSymbols())
+            foreach (var label in myParseConsumer.GlobalScope.Head.LocalSymbols())
             {
-                output.WriteLine("{0:X8} {1}", EAParser.ConvertToAddress(label.Value), label.Key);
+                output.WriteLine("{0:X8} {1}", EAParseConsumer.ConvertToAddress(label.Value), label.Key);
             }
 
             return true;

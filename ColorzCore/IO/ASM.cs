@@ -20,7 +20,7 @@ namespace ColorzCore.IO
 
         private void WriteToASM(int position, byte[] data)
         {
-            string sectionName = $".ea_{EAParser.ConvertToAddress(position):x}";
+            string sectionName = $".ea_{EAParseConsumer.ConvertToAddress(position):x}";
             asmStream.WriteLine($".section {sectionName},\"ax\",%progbits");
             asmStream.WriteLine($".global {sectionName}");
             asmStream.WriteLine($"{sectionName}:");
@@ -32,8 +32,8 @@ namespace ColorzCore.IO
 
         private void WriteToLDS(int position)
         {
-            string sectionName = $".ea_{EAParser.ConvertToAddress(position):x}";
-            ldsStream.WriteLine($". = 0x{EAParser.ConvertToAddress(position):x};");
+            string sectionName = $".ea_{EAParseConsumer.ConvertToAddress(position):x}";
+            ldsStream.WriteLine($". = 0x{EAParseConsumer.ConvertToAddress(position):x};");
             ldsStream.WriteLine($"{sectionName} : {{*.o({sectionName})}}");
         }
 

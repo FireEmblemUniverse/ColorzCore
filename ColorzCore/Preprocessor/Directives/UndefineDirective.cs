@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -24,7 +25,7 @@ namespace ColorzCore.Preprocessor.Directives
                 if (p.Definitions.ContainsKey(s))
                     p.Definitions.Remove(s);
                 else
-                    p.Warning(parm.MyLocation, "Undefining non-existant definition: " + s);
+                    p.Logger.Warning(parm.MyLocation, "Undefining non-existant definition: " + s);
             }
             return null;
         }

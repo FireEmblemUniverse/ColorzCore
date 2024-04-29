@@ -1,4 +1,5 @@
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using System;
@@ -24,7 +25,7 @@ namespace ColorzCore.Preprocessor.Macros
 
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
         {
-            parser.Error(head.Location, message);
+            parser.Logger.Error(head.Location, message);
             yield return new Token(TokenType.NUMBER, head.Location, "0");
         }
 

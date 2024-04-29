@@ -1,19 +1,21 @@
-﻿using ColorzCore.IO;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class RawNode : StatementNode
+    public class RawNode : StatementNode
     {
         public Raw Raw { get; }
         private Token myToken;
         private int Offset { get; }
+
+        public Location Location => myToken.Location;
 
         public RawNode(Raw raw, Token t, int offset, IList<IParamNode> paramList) : base(paramList)
         {

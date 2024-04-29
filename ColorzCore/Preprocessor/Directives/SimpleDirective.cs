@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -37,7 +38,7 @@ namespace ColorzCore.Preprocessor.Directives
             }
             else
             {
-                p.Error(self.Location, $"Invalid number of parameters ({parameters.Count}) to directive {self}.");
+                p.Logger.Error(self.Location, $"Invalid number of parameters ({parameters.Count}) to directive {self}.");
                 return null;
             }
         }

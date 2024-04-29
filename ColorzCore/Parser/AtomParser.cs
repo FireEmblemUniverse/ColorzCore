@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 
@@ -98,12 +99,12 @@ namespace ColorzCore.Parser
                                 IAtomNode? interior = self.ParseAtom(tokens, scopes);
                                 if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                                 {
-                                    self.Error(tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
+                                    self.Logger.Error(tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
                                     return null;
                                 }
                                 else if (interior == null)
                                 {
-                                    self.Error(lookAhead.Location, "Expected expression inside paretheses. ");
+                                    self.Logger.Error(lookAhead.Location, "Expected expression inside paretheses. ");
                                     return null;
                                 }
                                 else
@@ -122,14 +123,14 @@ namespace ColorzCore.Parser
                                 IAtomNode? interior = self.ParseAtom(tokens, scopes);
                                 if (interior == null)
                                 {
-                                    self.Error(lookAhead.Location, "Expected expression after unary operator.");
+                                    self.Logger.Error(lookAhead.Location, "Expected expression after unary operator.");
                                     return null;
                                 }
                                 grammarSymbols.Push(new Left<IAtomNode, Token>(new UnaryOperatorNode(lookAhead, interior)));
                                 break;
                             }
                         case TokenType.COMMA:
-                            self.Error(lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
+                            self.Logger.Error(lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
                             self.IgnoreRestOfStatement(tokens);
                             return null;
                         case TokenType.MUL_OP:
@@ -152,7 +153,7 @@ namespace ColorzCore.Parser
                         case TokenType.COMPARE_GT:
                         case TokenType.UNDEFINED_COALESCE_OP:
                         default:
-                            self.Error(lookAhead.Location, $"Expected identifier or literal, got {lookAhead.Type}: {lookAhead.Content}.");
+                            self.Logger.Error(lookAhead.Location, $"Expected identifier or literal, got {lookAhead.Type}: {lookAhead.Content}.");
                             self.IgnoreRestOfStatement(tokens);
                             return null;
                     }
@@ -170,7 +171,7 @@ namespace ColorzCore.Parser
 
                             grammarSymbols.Push(new Left<IAtomNode, Token>(lookAhead.Content.ToUpperInvariant() switch
                             {
-                                "CURRENTOFFSET" => new NumberNode(lookAhead, self.CurrentOffset),
+                                "CURRENTOFFSET" => new NumberNode(lookAhead, self.ParseConsumer.CurrentOffset),
                                 "__LINE__" => new NumberNode(lookAhead, lookAhead.GetSourceLocation().line),
                                 _ => new IdentifierNode(lookAhead, scopes),
                             }));
@@ -184,7 +185,7 @@ namespace ColorzCore.Parser
                             grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
                             break;
                         case TokenType.ERROR:
-                            self.Error(lookAhead.Location, $"Unexpected token: {lookAhead.Content}");
+                            self.Logger.Error(lookAhead.Location, $"Unexpected token: {lookAhead.Content}");
                             tokens.MoveNext();
                             return null;
                         default:
@@ -201,7 +202,7 @@ namespace ColorzCore.Parser
             }
             if (grammarSymbols.Peek().IsRight)
             {
-                self.Error(grammarSymbols.Peek().GetRight.Location, $"Unexpected token: {grammarSymbols.Peek().GetRight.Type}");
+                self.Logger.Error(grammarSymbols.Peek().GetRight.Location, $"Unexpected token: {grammarSymbols.Peek().GetRight.Type}");
             }
             return grammarSymbols.Peek().GetLeft;
         }
@@ -249,7 +250,7 @@ namespace ColorzCore.Parser
 
                             message += "\nConsider guarding your expressions using parenthesis.";
 
-                            self.Warning(operatorNode.MyLocation, message);
+                            self.Logger.Warning(operatorNode.MyLocation, message);
                         }
                     }
 

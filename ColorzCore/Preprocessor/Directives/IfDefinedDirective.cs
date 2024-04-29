@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
@@ -37,7 +38,7 @@ namespace ColorzCore.Preprocessor.Directives
                 }
                 else
                 {
-                    p.Error(parameter.MyLocation, "Definition name must be an identifier.");
+                    p.Logger.Error(parameter.MyLocation, "Definition name must be an identifier.");
                 }
             }
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);

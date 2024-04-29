@@ -27,7 +27,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             if (validFile == null)
             {
-                parse.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
+                parse.Logger.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
                 return null;
             }
             //TODO: abstract out all this running stuff into a method so I don't have code duplication with inctext
@@ -68,16 +68,16 @@ namespace ColorzCore.Preprocessor.Directives
             byte[] output = outputBytes.GetBuffer().Take((int)outputBytes.Length).ToArray();
             if (errorStream.Length > 0)
             {
-                parse.Error(self.Location, Encoding.ASCII.GetString(errorStream.GetBuffer().Take((int)errorStream.Length).ToArray()));
+                parse.Logger.Error(self.Location, Encoding.ASCII.GetString(errorStream.GetBuffer().Take((int)errorStream.Length).ToArray()));
             }
             else if (output.Length >= 7 && Encoding.ASCII.GetString(output.Take(7).ToArray()) == "ERROR: ")
             {
-                parse.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
+                parse.Logger.Error(self.Location, Encoding.ASCII.GetString(output.Skip(7).ToArray()));
             }
 
             ExecTimer.Timer.AddTimingPoint(parameters[0].ToString()!.ToLower());
 
-            return new DataNode(parse.CurrentOffset, output);
+            return new DataNode(parse.ParseConsumer.CurrentOffset, output);
         }
     }
 }

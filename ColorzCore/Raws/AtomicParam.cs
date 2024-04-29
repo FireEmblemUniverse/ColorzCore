@@ -33,7 +33,7 @@ namespace ColorzCore.Raws
         {
             if (pointer)
             {
-                value = EAParser.ConvertToAddress(value);
+                value = EAParseConsumer.ConvertToAddress(value);
             }
 
             data.SetBits(Position, Length, value);

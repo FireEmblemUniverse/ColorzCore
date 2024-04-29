@@ -33,12 +33,12 @@ namespace ColorzCore.Preprocessor.Macros
 
             if (tokens.Current.Type != TokenType.NEWLINE)
             {
-                parser.Error(head.Location, "Garbage at the end of macro parameter.");
+                parser.Logger.Error(head.Location, "Garbage at the end of macro parameter.");
                 yield return new Token(TokenType.NUMBER, head.Location, "0");
             }
-            else if (atom?.TryEvaluate(e => parser.Error(atom.MyLocation, e.Message), EvaluationPhase.Immediate) is int offset)
+            else if (atom?.TryEvaluate(e => parser.Logger.Error(atom.MyLocation, e.Message), EvaluationPhase.Immediate) is int offset)
             {
-                offset = EAParser.ConvertToOffset(offset);
+                offset = EAParseConsumer.ConvertToOffset(offset);
 
                 if (offset >= 0 && offset <= EAOptions.MaximumBinarySize - readLength)
                 {
@@ -54,13 +54,13 @@ namespace ColorzCore.Preprocessor.Macros
                 }
                 else
                 {
-                    parser.Error(head.Location, $"Read offset out of bounds: {offset:08X}");
+                    parser.Logger.Error(head.Location, $"Read offset out of bounds: {offset:08X}");
                     yield return new Token(TokenType.NUMBER, head.Location, "0");
                 }
             }
             else
             {
-                parser.Error(head.Location, "Could not read data from base binary.");
+                parser.Logger.Error(head.Location, "Could not read data from base binary.");
                 yield return new Token(TokenType.NUMBER, head.Location, "0");
             }
         }
