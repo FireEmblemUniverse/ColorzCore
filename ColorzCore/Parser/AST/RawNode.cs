@@ -11,18 +11,18 @@ namespace ColorzCore.Parser.AST
 {
     class RawNode : StatementNode
     {
-        private Raw myRaw;
+        public Raw Raw { get; }
         private Token myToken;
-        private int offset;
+        private int Offset { get; }
 
         public RawNode(Raw raw, Token t, int offset, IList<IParamNode> paramList) : base(paramList)
         {
             myToken = t;
-            myRaw = raw;
-            this.offset = offset;
+            Raw = raw;
+            Offset = offset;
         }
 
-        public override int Size => myRaw.LengthBytes(Parameters.Count);
+        public override int Size => Raw.LengthBytes(Parameters.Count);
 
         public override string PrettyPrint(int indentation)
         {
@@ -36,9 +36,10 @@ namespace ColorzCore.Parser.AST
             }
             return sb.ToString();
         }
+
         public override void WriteData(IOutput output)
         {
-            output.WriteTo(offset, myRaw.GetBytes(Parameters));
+            output.WriteTo(Offset, Raw.GetBytes(Parameters));
         }
     }
 }

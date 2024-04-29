@@ -5,7 +5,7 @@ using ColorzCore.DataTypes;
 
 namespace ColorzCore.IO
 {
-    public class Log
+    public class Logger
     {
         public enum MessageKind
         {

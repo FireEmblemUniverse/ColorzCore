@@ -7,7 +7,7 @@ using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Parser
 {
-    public static class DiagnosticHelpers
+    public static class DiagnosticsHelpers
     {
         // Helper class for printing expressions (IAtomNode) with some bits emphasized
         private class EmphasisExpressionPrinter : AtomVisitor
@@ -126,7 +126,7 @@ namespace ColorzCore.Parser
                             break;
 
                         default:
-                            if (paren == 0 && bracket == 0 && EAParser.IsInfixOperator(token))
+                            if (paren == 0 && bracket == 0 && AtomParser.IsInfixOperator(token))
                             {
                                 action.Invoke(token);
                             }
@@ -200,5 +200,14 @@ namespace ColorzCore.Parser
 
             return false;
         }
+
+        public static string PrettyParamType(ParamType paramType) => paramType switch
+        {
+            ParamType.ATOM => "Atom",
+            ParamType.LIST => "List",
+            ParamType.STRING => "String",
+            ParamType.MACRO => "Macro",
+            _ => "<internal error: bad ParamType>",
+        };
     }
 }

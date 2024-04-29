@@ -7,18 +7,19 @@ using ColorzCore.Preprocessor.Directives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Preprocessor
 {
     public class DirectiveHandler
     {
-        private Dictionary<string, IDirective> directives;
+        public Dictionary<string, IDirective> Directives { get; }
 
         public DirectiveHandler(IncludeFileSearcher includeSearcher, IncludeFileSearcher toolSearcher)
         {
-            directives = new Dictionary<string, IDirective>
+            // TODO: move out from this directives that need external context
+            // (already done for pool, but could be done for includes as well)
+
+            Directives = new Dictionary<string, IDirective>
             {
                 { "include", new IncludeDirective { FileSearcher = includeSearcher } },
                 { "incbin", new IncludeBinaryDirective { FileSearcher = includeSearcher } },
@@ -31,7 +32,6 @@ namespace ColorzCore.Preprocessor
                 { "else", new ElseDirective() },
                 { "endif", new EndIfDirective() },
                 { "define", new DefineDirective() },
-                { "pool", new PoolDirective() },
                 { "undef", new UndefineDirective() },
             };
         }
@@ -40,7 +40,7 @@ namespace ColorzCore.Preprocessor
         {
             string directiveName = directive.Content.Substring(1);
 
-            if (directives.TryGetValue(directiveName, out IDirective? toExec))
+            if (Directives.TryGetValue(directiveName, out IDirective? toExec))
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {

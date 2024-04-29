@@ -24,7 +24,6 @@ namespace ColorzCore.Preprocessor
                 { "IsDefined", new IsDefined(parent) },
                 { "IsSymbolDefined", new IsSymbolDefined() },
                 { "IsLabelDefined", new IsSymbolDefined() }, // alias
-                { "AddToPool", new AddToPool(parent) },
             };
         }
 

@@ -4,6 +4,7 @@ using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.Preprocessor;
+using ColorzCore.Preprocessor.Directives;
 using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
 using System;
@@ -20,10 +21,10 @@ namespace ColorzCore
         private EAParser myParser;
         private string game, iFile;
         private Stream sin;
-        private Log log;
+        private Logger log;
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Log log)
+        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger log)
         {
             this.game = game;
             this.output = output;
@@ -41,8 +42,8 @@ namespace ColorzCore
                     column = 1
                 };
 
-                log.Message(Log.MessageKind.ERROR, loc, "An error occured while parsing raws");
-                log.Message(Log.MessageKind.ERROR, loc, e.Message);
+                log.Message(Logger.MessageKind.ERROR, loc, "An error occured while parsing raws");
+                log.Message(Logger.MessageKind.ERROR, loc, e.Message);
 
                 Environment.Exit(-1); // ew?
             }
@@ -83,6 +84,13 @@ namespace ColorzCore
                 myParser.Macros.BuiltInMacros.Add("ReadByteAt", unsupportedMacro);
                 myParser.Macros.BuiltInMacros.Add("ReadShortAt", unsupportedMacro);
                 myParser.Macros.BuiltInMacros.Add("ReadWordAt", unsupportedMacro);
+            }
+
+            {
+                Pool pool = new Pool();
+
+                myParser.Macros.BuiltInMacros.Add("AddToPool", new AddToPool(pool));
+                myParser.DirectiveHandler.Directives.Add("pool", new PoolDirective(pool));
             }
         }
 
@@ -145,7 +153,7 @@ namespace ColorzCore
                 {
                     if (Program.Debug)
                     {
-                        log.Message(Log.MessageKind.DEBUG, line.PrettyPrint(0));
+                        log.Message(Logger.MessageKind.DEBUG, line.PrettyPrint(0));
                     }
 
                     line.WriteData(output);

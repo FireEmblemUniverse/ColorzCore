@@ -34,7 +34,7 @@ namespace ColorzCore.Parser
         public string MakePoolLabelName()
         {
             // The presence of $ in the label name guarantees that it can't be a user label
-            return string.Format("{0}{1}", pooledLabelPrefix, poolLabelCounter++);
+            return $"{pooledLabelPrefix}{poolLabelCounter++}";
         }
     }
 }

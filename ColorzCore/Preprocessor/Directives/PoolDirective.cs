@@ -13,6 +13,13 @@ namespace ColorzCore.Preprocessor.Directives
         public override int? MaxParams => 0;
         public override bool RequireInclusion => true;
 
+        private readonly Pool pool;
+
+        public PoolDirective(Pool pool)
+        {
+            this.pool = pool;
+        }
+
         public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             BlockNode result = new BlockNode();
@@ -20,9 +27,9 @@ namespace ColorzCore.Preprocessor.Directives
             // Iterating indices (and not values via foreach)
             // to avoid crashes occuring with AddToPool within AddToPool
 
-            for (int i = 0; i < p.Pool.Lines.Count; ++i)
+            for (int i = 0; i < pool.Lines.Count; ++i)
             {
-                Pool.PooledLine line = p.Pool.Lines[i];
+                Pool.PooledLine line = pool.Lines[i];
 
                 MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line.Tokens);
                 tempGenerator.MoveNext();
@@ -34,7 +41,7 @@ namespace ColorzCore.Preprocessor.Directives
                 }
             }
 
-            p.Pool.Lines.Clear();
+            pool.Lines.Clear();
 
             return result;
         }

@@ -1,4 +1,4 @@
-using ColorzCore.DataTypes;
+﻿using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
@@ -19,47 +19,15 @@ namespace ColorzCore.Parser
 {
     public class EAParser
     {
-        public MacroCollection Macros { get; }
         public Dictionary<string, Definition> Definitions { get; }
+        public MacroCollection Macros { get; }
+        public DirectiveHandler DirectiveHandler { get; }
+
         public Dictionary<string, IList<Raw>> Raws { get; }
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
-        //public static readonly HashSet<string> BuiltInMacros = new HashSet<string> { "String", "AddToPool" };
-        //TODO: Built in macros.
-        //public static readonly Dictionary<string, BuiltInMacro(?)> BuiltInMacros;
-        public ImmutableStack<Closure> GlobalScope { get; }
-        public int CurrentOffset
-        {
-            get => currentOffset;
 
-            private set
-            {
-                if (value < 0 || value > EAOptions.MaximumBinarySize)
-                {
-                    if (validOffset) //Error only the first time.
-                    {
-                        Error($"Invalid offset: {value:X}");
-                        validOffset = false;
-                    }
-                }
-                else
-                {
-                    currentOffset = value;
-                    validOffset = true;
-                    offsetInitialized = true;
-                }
-            }
-
-        }
         public ImmutableStack<bool> Inclusion { get; set; }
 
-        public Pool Pool { get; private set; }
-
-        private readonly DirectiveHandler directiveHandler;
-
-        private readonly Stack<Tuple<int, bool>> pastOffsets; // currentOffset, offsetInitialized
-        private readonly IList<Tuple<int, int, Location>> protectedRegions;
-
-        public Log log;
+        public Logger log;
 
         public bool IsIncluding
         {
@@ -76,16 +44,13 @@ namespace ColorzCore.Parser
             }
         }
 
-        private bool validOffset;
-        private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
-        private int currentOffset;
-        private Token? head; //TODO: Make this make sense
+        private Token? head; // TODO: Make this make sense
 
-        public EAParser(Dictionary<string, IList<Raw>> raws, Log log, DirectiveHandler directiveHandler)
+        public EAParser(Dictionary<string, IList<Raw>> raws, Logger log, DirectiveHandler directiveHandler)
         {
             GlobalScope = new ImmutableStack<Closure>(new BaseClosure(), ImmutableStack<Closure>.Nil);
-            pastOffsets = new Stack<Tuple<int, bool>>();
-            protectedRegions = new List<Tuple<int, int, Location>>();
+            pastOffsets = new Stack<(int, bool)>();
+            protectedRegions = new List<(int, int, Location)>();
             this.log = log;
             Raws = raws;
             CurrentOffset = 0;
@@ -94,35 +59,33 @@ namespace ColorzCore.Parser
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
-            this.directiveHandler = directiveHandler;
-
-            Pool = new Pool();
+            DirectiveHandler = directiveHandler;
         }
 
         public bool IsReservedName(string name)
         {
             return Raws.ContainsKey(name.ToUpperInvariant()) || SpecialCodes.Contains(name.ToUpperInvariant());
         }
+
         public bool IsValidDefinitionName(string name)
         {
             return !(Definitions.ContainsKey(name) || IsReservedName(name));
         }
+
         public bool IsValidMacroName(string name, int paramNum)
         {
             return !Macros.HasMacro(name, paramNum) && !IsReservedName(name);
         }
-        public bool IsValidLabelName(string name)
-        {
-            return true;//!IsReservedName(name);
-            //TODO?
-        }
+
         public IList<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
         {
             //TODO: Make BlockNode or EAProgramNode?
             //Note must be strict to get all information on the closure before evaluating terms.
             IList<ILineNode> myLines = new List<ILineNode>();
+
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
             tokens.MoveNext();
+
             while (!tokens.EOS)
             {
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
@@ -131,6 +94,7 @@ namespace ColorzCore.Parser
                     retVal.IfJust(n => myLines.Add(n));
                 }
             }
+
             return myLines;
         }
 
@@ -138,6 +102,7 @@ namespace ColorzCore.Parser
         {
             Location start = tokens.Current.Location;
             tokens.MoveNext();
+
             BlockNode temp = new BlockNode();
 
             while (!tokens.EOS && tokens.Current.Type != TokenType.CLOSE_BRACE)
@@ -156,60 +121,43 @@ namespace ColorzCore.Parser
             }
             else
             {
-                Error(start, "Unmatched brace.");
+                Error(start, "Didn't find matching brace.");
             }
 
             return temp;
         }
 
-        // TODO: these next two functions should probably be moved into their own module
-
-        public static int ConvertToAddress(int value)
-        {
-            /*
-                NOTE: Offset 0 is always converted to a null address
-                If one wants to instead refer to ROM offset 0 they would want to use the address directly instead.
-                If ROM offset 0 is already address 0 then this is a moot point.
-            */
-
-            if (value > 0 && value < EAOptions.MaximumBinarySize)
-            {
-                value += EAOptions.BaseAddress;
-            }
-
-            return value;
-        }
-
-        public static int ConvertToOffset(int value)
-        {
-            if (value >= EAOptions.BaseAddress && value <= EAOptions.BaseAddress + EAOptions.MaximumBinarySize)
-            {
-                value -= EAOptions.BaseAddress;
-            }
-
-            return value;
-        }
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
 
         private ILineNode? ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            while (ExpandIdentifier(tokens, scopes)) { }
+            // NOTE: here previously lied en ExpandIdentifier loop
+            // though because this is only called from ParseLine after the corresponding check, this is not needed
 
             head = tokens.Current;
             tokens.MoveNext();
 
-            //TODO: Replace with real raw information, and error if not valid.
-            IList<IParamNode> parameters;
-            //TODO: Make intelligent to reject malformed parameters.
-            //TODO: Parse parameters after checking code validity.
-            if (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON)
+            switch (tokens.Current.Type)
             {
-                parameters = ParseParamList(tokens, scopes);
+                case TokenType.COLON:
+                    tokens.MoveNext();
+                    return HandleLabel(head.Content, scopes);
+
+                case TokenType.ASSIGN:
+                    tokens.MoveNext();
+                    return ParseAssignment(head.Content, tokens, scopes);
             }
-            else
+
+            // NOTE: those remarks are old ones from Colorz, idrk what they mean -Stan
+            // TODO: Replace with real raw information, and error if not valid.
+            // TODO: Make intelligent to reject malformed parameters.
+            // TODO: Parse parameters after checking code validity.
+
+            IList<IParamNode> parameters = tokens.Current.Type switch
             {
-                parameters = new List<IParamNode>();
-                tokens.MoveNext();
-            }
+                TokenType.NEWLINE or TokenType.SEMICOLON => new List<IParamNode>(),
+                _ => ParseParamList(tokens, scopes),
+            };
 
             string upperCodeIdentifier = head.Content.ToUpperInvariant();
 
@@ -217,38 +165,49 @@ namespace ColorzCore.Parser
             {
                 return upperCodeIdentifier switch
                 {
-                    "ORG" => ParseOrgStatement(parameters),
-                    "PUSH" => ParsePushStatement(parameters),
-                    "POP" => ParsePopStatement(parameters),
-                    "ASSERT" => ParseAssertStatement(parameters),
-                    "PROTECT" => ParseProtectStatement(parameters),
-                    "ALIGN" => ParseAlignStatement(parameters),
-                    "FILL" => ParseFillStatement(parameters),
+                    "ORG" => ParseOrgStatement(parameters, scopes),
+                    "PUSH" => ParsePushStatement(parameters, scopes),
+                    "POP" => ParsePopStatement(parameters, scopes),
+                    "ASSERT" => ParseAssertStatement(parameters, scopes),
+                    "PROTECT" => ParseProtectStatement(parameters, scopes),
+                    "ALIGN" => ParseAlignStatement(parameters, scopes),
+                    "FILL" => ParseFillStatement(parameters, scopes),
                     "MESSAGE" => ParseMessageStatement(parameters, scopes),
                     "WARNING" => ParseWarningStatement(parameters, scopes),
                     "ERROR" => ParseErrorStatement(parameters, scopes),
                     _ => null, // TODO: this is an error
                 };
             }
-            else if (Raws.TryGetValue(upperCodeIdentifier, out IList<Raw>? raws))
+
+            return ParseRawStatement(upperCodeIdentifier, tokens, parameters);
+        }
+
+        private ILineNode? ParseAssignment(string name, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        {
+            IAtomNode? atom = this.ParseAtom(tokens, scopes, true);
+
+            if (atom != null)
             {
-                //TODO: Check for matches. Currently should type error.
+                return HandleSymbolAssignment(name, atom, scopes);
+            }
+            else
+            {
+                Error($"Couldn't define symbol `{name}`: exprected expression.");
+            }
+
+            return null;
+        }
+
+        private ILineNode? ParseRawStatement(string upperCodeIdentifier, MergeableGenerator<Token> tokens, IList<IParamNode> parameters)
+        {
+            if (Raws.TryGetValue(upperCodeIdentifier, out IList<Raw>? raws))
+            {
+                // find the raw matching with parameters
                 foreach (Raw raw in raws)
                 {
                     if (raw.Fits(parameters))
                     {
-                        if ((CurrentOffset % raw.Alignment) != 0)
-                        {
-                            Error($"Bad code alignment (offset: {CurrentOffset:X8})");
-                        }
-
-                        StatementNode temp = new RawNode(raw, head, CurrentOffset, parameters);
-
-                        // TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
-                        CheckDataWrite(temp.Size);
-                        CurrentOffset += temp.Size;
-
-                        return temp;
+                        return HandleRawStatement(new RawNode(raw, head!, CurrentOffset, parameters));
                     }
                 }
 
@@ -260,7 +219,7 @@ namespace ColorzCore.Parser
                 {
                     StringBuilder sb = new StringBuilder();
 
-                    sb.Append($"Couldn't find suitable variant of raw `{head.Content}`.");
+                    sb.Append($"Couldn't find suitable variant of raw `{head!.Content}`.");
 
                     for (int i = 0; i < raws.Count; i++)
                     {
@@ -275,247 +234,141 @@ namespace ColorzCore.Parser
             }
             else
             {
-                Error("Unrecognized code: " + head.Content);
+                Error($"Unrecognized statement code: {head!.Content}");
                 return null;
             }
         }
 
-        private ILineNode? ParseOrgStatement(IList<IParamNode> parameters)
+        private ILineNode? ParseOrgStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
         {
-            if (parameters.Count != 1)
-            {
-                Error($"Incorrect number of parameters in ORG: {parameters.Count}");
-                return null;
-            }
-
-            parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                    offsetValue => { CurrentOffset = ConvertToOffset(offsetValue); },
-                    () => Error(parameters[0].MyLocation, "Expected atomic param to ORG.")));
-
-            return null;
+            return ParseStatementOneParam("ORG", parameters, HandleOrgStatement);
         }
 
-        private ILineNode? ParsePushStatement(IList<IParamNode> parameters)
+        private ILineNode? ParsePushStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
         {
-            if (parameters.Count != 0)
+            if (parameters.Count == 0)
             {
-                Error("Incorrect number of parameters in PUSH: " + parameters.Count);
+                return HandlePushStatement();
             }
             else
             {
-                pastOffsets.Push(new Tuple<int, bool>(CurrentOffset, offsetInitialized));
+                return StatementExpectsParamCount("PUSH", parameters, 0, 0);
             }
-
-            return null;
         }
 
-        private ILineNode? ParsePopStatement(IList<IParamNode> parameters)
+        private ILineNode? ParsePopStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
         {
-            if (parameters.Count != 0)
+            if (parameters.Count == 0)
             {
-                Error($"Incorrect number of parameters in POP: {parameters.Count}");
-            }
-            else if (pastOffsets.Count == 0)
-            {
-                Error("POP without matching PUSH.");
+                return HandlePopStatement();
             }
             else
             {
-                Tuple<int, bool> tuple = pastOffsets.Pop();
-
-                CurrentOffset = tuple.Item1;
-                offsetInitialized = tuple.Item2;
+                return StatementExpectsParamCount("POP", parameters, 0, 0);
             }
+        }
+
+        private ILineNode? ParseAssertStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        {
+            return ParseStatementOneParam("ASSERT", parameters, HandleAssertStatement);
+        }
+
+        // Helper method for printing errors
+        private ILineNode? StatementExpectsAtom(string statementName, IParamNode param)
+        {
+            Error(param.MyLocation,
+                $"{statementName} expects an Atom (got {DiagnosticsHelpers.PrettyParamType(param.Type)}).");
 
             return null;
         }
 
-        private ILineNode? ParseAssertStatement(IList<IParamNode> parameters)
+        // Helper method for printing errors
+        private ILineNode? StatementExpectsParamCount(string statementName, IList<IParamNode> parameters, int min, int max)
         {
-            if (parameters.Count != 1)
+            if (min == max)
             {
-                Error($"Incorrect number of parameters in ASSERT: {parameters.Count}");
-                return null;
-            }
-
-            // helper for distinguishing boolean expressions and other expressions
-            static bool IsConditionalOperatorHelper(IAtomNode node)
-            {
-                return node switch
-                {
-                    UnaryOperatorNode uon => uon.OperatorToken.Type switch
-                    {
-                        TokenType.LOGNOT_OP => true,
-                        _ => false,
-                    },
-
-                    OperatorNode on => on.OperatorToken.Type switch
-                    {
-                        TokenType.LOGAND_OP => true,
-                        TokenType.LOGOR_OP => true,
-                        TokenType.COMPARE_EQ => true,
-                        TokenType.COMPARE_NE => true,
-                        TokenType.COMPARE_GT => true,
-                        TokenType.COMPARE_GE => true,
-                        TokenType.COMPARE_LE => true,
-                        TokenType.COMPARE_LT => true,
-                        _ => false,
-                    },
-
-                    _ => false,
-                };
-            }
-
-            IAtomNode? atom = parameters[0].AsAtom();
-
-            if (atom != null)
-            {
-                bool isBoolean = IsConditionalOperatorHelper(atom);
-
-                atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                    temp =>
-                    {
-                        // if boolean expession => fail if 0, else (legacy behavoir) fail if negative
-                        if (isBoolean && temp == 0 || !isBoolean && temp < 0)
-                        {
-                            Error(parameters[0].MyLocation, "Assertion error: " + temp);
-                        }
-                    });
+                Error($"A {statementName} statement expects {min} parameters, got {parameters.Count}.");
             }
             else
             {
-                Error(parameters[0].MyLocation, "Expected atomic param to ASSERT.");
+                Error($"A {statementName} statement expects {min} to {max} parameters, got {parameters.Count}.");
             }
 
             return null;
         }
 
-        private ILineNode? ParseProtectStatement(IList<IParamNode> parameters)
+        private delegate ILineNode? HandleStatementOne(IAtomNode node);
+        private delegate ILineNode? HandleStatementTwo(IAtomNode firstNode, IAtomNode? optionalSecondNode);
+
+        private ILineNode? ParseStatementOneParam(string name, IList<IParamNode> parameters, HandleStatementOne handler)
         {
             if (parameters.Count == 1)
             {
-                parameters[0].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); }, EvaluationPhase.Immediate).IfJust(
-                    temp =>
-                    {
-                        protectedRegions.Add(new Tuple<int, int, Location>(temp, 4, head!.Location));
-                    }),
-                    () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); });
-            }
-            else if (parameters.Count == 2)
-            {
-                int start = 0, end = 0;
-                bool errorOccurred = false;
-                parameters[0].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }, EvaluationPhase.Immediate).IfJust(
-                    temp =>
-                    {
-                        start = temp;
-                    }),
-                    () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); errorOccurred = true; });
-                parameters[1].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => { Error(parameters[0].MyLocation, e.Message); errorOccurred = true; }, EvaluationPhase.Immediate).IfJust(
-                    temp =>
-                    {
-                        end = temp;
-                    }),
-                    () => { Error(parameters[0].MyLocation, "Expected atomic param to PROTECT"); errorOccurred = true; });
-                if (!errorOccurred)
+                if (parameters[0] is IAtomNode expr)
                 {
-                    int length = end - start;
-
-                    if (length > 0)
-                    {
-                        protectedRegions.Add(new Tuple<int, int, Location>(start, length, head!.Location));
-                    }
-                    else
-                    {
-                        Warning("Protected region not valid (end offset not after start offset). No region protected.");
-                    }
+                    return handler(expr);
+                }
+                else
+                {
+                    return StatementExpectsAtom(name, parameters[0]);
                 }
             }
             else
             {
-                Error("Incorrect number of parameters in PROTECT: " + parameters.Count);
+                return StatementExpectsParamCount(name, parameters, 1, 1);
             }
-
-            return null;
         }
 
-        private ILineNode? ParseAlignStatement(IList<IParamNode> parameters)
+        private ILineNode? ParseStatementTwoParam(string name, IList<IParamNode> parameters, HandleStatementTwo handler)
         {
-            if (parameters.Count != 1)
+            if (parameters.Count == 1)
             {
-                Error("Incorrect number of parameters in ALIGN: " + parameters.Count);
-                return null;
-            }
-
-            parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                temp =>
+                if (parameters[0] is IAtomNode firstNode)
                 {
-                    if (temp <= 0)
-                    {
-                        Error($"Cannot align address to {temp}");
-                    }
-                    else if (CurrentOffset % temp != 0)
-                    {
-                        CurrentOffset += temp - CurrentOffset % temp;
-                    }
-                }),
-                () => Error(parameters[0].MyLocation, "Expected atomic param to ALIGN"));
-
-            return null;
-        }
-
-        private ILineNode? ParseFillStatement(IList<IParamNode> parameters)
-        {
-            if (parameters.Count > 2 || parameters.Count == 0)
-            {
-                Error("Incorrect number of parameters in FILL: " + parameters.Count);
-                return null;
-            }
-
-            // FILL amount [value]
-
-            int amount = 0;
-            int value = 0;
-
-            if (parameters.Count == 2)
-            {
-                // param 2 (if given) is fill value
-
-                parameters[1].AsAtom().IfJust(
-                    atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                        val => { value = val; }),
-                    () => Error(parameters[0].MyLocation, "Expected atomic param to FILL"));
-            }
-
-            // param 1 is amount of bytes to fill
-            parameters[0].AsAtom().IfJust(
-                atom => atom.TryEvaluate(e => Error(parameters[0].MyLocation, e.Message), EvaluationPhase.Immediate).IfJust(
-                    val => { amount = val; }),
-                () => Error(parameters[0].MyLocation, "Expected atomic param to FILL"));
-
-            if (amount > 0)
-            {
-                var data = new byte[amount];
-
-                for (int i = 0; i < amount; ++i)
-                {
-                    data[i] = (byte)value;
+                    return handler(firstNode, null);
                 }
-
-                var node = new DataNode(CurrentOffset, data);
-
-                CheckDataWrite(amount);
-                CurrentOffset += amount;
-
-                return node;
+                else
+                {
+                    return StatementExpectsAtom(name, parameters[0]);
+                }
             }
+            else if (parameters.Count == 2)
+            {
+                if (parameters[0] is IAtomNode firstNode)
+                {
+                    if (parameters[1] is IAtomNode secondNode)
+                    {
+                        return handler(firstNode, secondNode);
+                    }
+                    else
+                    {
+                        return StatementExpectsAtom(name, parameters[1]);
+                    }
+                }
+                else
+                {
+                    return StatementExpectsAtom(name, parameters[0]);
+                }
+            }
+            else
+            {
+                return StatementExpectsParamCount(name, parameters, 1, 2);
+            }
+        }
 
-            return null;
+        private ILineNode? ParseProtectStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        {
+            return ParseStatementTwoParam("PROTECT", parameters, HandleProtectStatement);
+        }
+
+        private ILineNode? ParseAlignStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        {
+            return ParseStatementTwoParam("ALIGN", parameters, HandleAlignStatement);
+        }
+
+        private ILineNode? ParseFillStatement(IList<IParamNode> parameters, ImmutableStack<Closure> _)
+        {
+            return ParseStatementTwoParam("FILL", parameters, HandleFillStatement);
         }
 
         private ILineNode? ParseMessageStatement(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
@@ -543,6 +396,7 @@ namespace ColorzCore.Parser
 
             // HACK: this allows macro([1, 2, 3]) from expanding into a single parameter
             int bracketBalance = 0;
+
             do
             {
                 tokens.MoveNext();
@@ -571,8 +425,11 @@ namespace ColorzCore.Parser
                     currentParam.Add(tokens.Current);
                     tokens.MoveNext();
                 }
+
                 parameters.Add(currentParam);
-            } while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
+            }
+            while (tokens.Current.Type != TokenType.CLOSE_PAREN && tokens.Current.Type != TokenType.NEWLINE);
+
             if (tokens.Current.Type != TokenType.CLOSE_PAREN || parenNestings != 0)
             {
                 Error(tokens.Current.Location, "Unmatched open parenthesis.");
@@ -581,6 +438,7 @@ namespace ColorzCore.Parser
             {
                 tokens.MoveNext();
             }
+
             return parameters;
         }
 
@@ -658,263 +516,12 @@ namespace ColorzCore.Parser
                                 return new StringNode(new Token(TokenType.STRING, localHead.Location, localHead.GetSourceLocation().file));
 
                             default:
-                                return ParseAtom(tokens, scopes, expandDefs);
+                                return this.ParseAtom(tokens, scopes, expandDefs);
                         }
                     }
 
                 default:
-                    return ParseAtom(tokens, scopes, expandDefs);
-            }
-        }
-
-        private static readonly Dictionary<TokenType, int> precedences = new Dictionary<TokenType, int> {
-            { TokenType.MUL_OP, 3 },
-            { TokenType.DIV_OP, 3 },
-            { TokenType.MOD_OP, 3 },
-            { TokenType.ADD_OP, 4 },
-            { TokenType.SUB_OP, 4 },
-            { TokenType.LSHIFT_OP, 5 },
-            { TokenType.RSHIFT_OP, 5 },
-            { TokenType.SIGNED_RSHIFT_OP, 5 },
-            { TokenType.COMPARE_GE, 6 },
-            { TokenType.COMPARE_GT, 6 },
-            { TokenType.COMPARE_LT, 6 },
-            { TokenType.COMPARE_LE, 6 },
-            { TokenType.COMPARE_EQ, 7 },
-            { TokenType.COMPARE_NE, 7 },
-            { TokenType.AND_OP, 8 },
-            { TokenType.XOR_OP, 9 },
-            { TokenType.OR_OP, 10 },
-            { TokenType.LOGAND_OP, 11 },
-            { TokenType.LOGOR_OP, 12 },
-            { TokenType.UNDEFINED_COALESCE_OP, 13 },
-        };
-
-        public static bool IsInfixOperator(Token token) => precedences.ContainsKey(token.Type);
-
-        public IAtomNode? ParseAtom(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
-        {
-            //Use Shift Reduce Parsing
-            Token localHead = tokens.Current;
-            Stack<Either<IAtomNode, Token>> grammarSymbols = new Stack<Either<IAtomNode, Token>>();
-            bool ended = false;
-            while (!ended)
-            {
-                bool shift = false, lookingForAtom = grammarSymbols.Count == 0 || grammarSymbols.Peek().IsRight;
-                Token lookAhead = tokens.Current;
-
-                if (!ended && !lookingForAtom) //Is already a complete node. Needs an operator of matching precedence and a node of matching prec to reduce.
-                {
-                    //Verify next symbol to be a binary operator.
-                    switch (lookAhead.Type)
-                    {
-                        case TokenType.MUL_OP:
-                        case TokenType.DIV_OP:
-                        case TokenType.MOD_OP:
-                        case TokenType.ADD_OP:
-                        case TokenType.SUB_OP:
-                        case TokenType.LSHIFT_OP:
-                        case TokenType.RSHIFT_OP:
-                        case TokenType.SIGNED_RSHIFT_OP:
-                        case TokenType.AND_OP:
-                        case TokenType.XOR_OP:
-                        case TokenType.OR_OP:
-                        case TokenType.LOGAND_OP:
-                        case TokenType.LOGOR_OP:
-                        case TokenType.COMPARE_LT:
-                        case TokenType.COMPARE_LE:
-                        case TokenType.COMPARE_EQ:
-                        case TokenType.COMPARE_NE:
-                        case TokenType.COMPARE_GE:
-                        case TokenType.COMPARE_GT:
-                            if (precedences.TryGetValue(lookAhead.Type, out int precedence))
-                            {
-                                Reduce(grammarSymbols, precedence);
-                            }
-                            shift = true;
-                            break;
-                        case TokenType.UNDEFINED_COALESCE_OP:
-                            // '??' is right-associative, so don't reduce here
-                            shift = true;
-                            break;
-                        default:
-                            ended = true;
-                            break;
-                    }
-                }
-                else if (!ended) //Is just an operator. Error if two operators in a row.
-                {
-                    //Error if two operators in a row.
-                    switch (lookAhead.Type)
-                    {
-                        case TokenType.IDENTIFIER:
-                        case TokenType.MAYBE_MACRO:
-                        case TokenType.NUMBER:
-                            shift = true;
-                            break;
-                        case TokenType.OPEN_PAREN:
-                            {
-                                tokens.MoveNext();
-                                IAtomNode? interior = ParseAtom(tokens, scopes);
-                                if (tokens.Current.Type != TokenType.CLOSE_PAREN)
-                                {
-                                    Error(tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
-                                    return null;
-                                }
-                                else if (interior == null)
-                                {
-                                    Error(lookAhead.Location, "Expected expression inside paretheses. ");
-                                    return null;
-                                }
-                                else
-                                {
-                                    grammarSymbols.Push(new Left<IAtomNode, Token>(interior));
-                                    tokens.MoveNext();
-                                    break;
-                                }
-                            }
-                        case TokenType.SUB_OP:
-                        case TokenType.LOGNOT_OP:
-                        case TokenType.NOT_OP:
-                            {
-                                //Assume unary negation.
-                                tokens.MoveNext();
-                                IAtomNode? interior = ParseAtom(tokens, scopes);
-                                if (interior == null)
-                                {
-                                    Error(lookAhead.Location, "Expected expression after unary operator.");
-                                    return null;
-                                }
-                                grammarSymbols.Push(new Left<IAtomNode, Token>(new UnaryOperatorNode(lookAhead, interior)));
-                                break;
-                            }
-                        case TokenType.COMMA:
-                            Error(lookAhead.Location, "Unexpected comma (perhaps unrecognized macro invocation?).");
-                            IgnoreRestOfStatement(tokens);
-                            return null;
-                        case TokenType.MUL_OP:
-                        case TokenType.DIV_OP:
-                        case TokenType.MOD_OP:
-                        case TokenType.ADD_OP:
-                        case TokenType.LSHIFT_OP:
-                        case TokenType.RSHIFT_OP:
-                        case TokenType.SIGNED_RSHIFT_OP:
-                        case TokenType.AND_OP:
-                        case TokenType.XOR_OP:
-                        case TokenType.OR_OP:
-                        case TokenType.LOGAND_OP:
-                        case TokenType.LOGOR_OP:
-                        case TokenType.COMPARE_LT:
-                        case TokenType.COMPARE_LE:
-                        case TokenType.COMPARE_EQ:
-                        case TokenType.COMPARE_NE:
-                        case TokenType.COMPARE_GE:
-                        case TokenType.COMPARE_GT:
-                        case TokenType.UNDEFINED_COALESCE_OP:
-                        default:
-                            Error(lookAhead.Location, $"Expected identifier or literal, got {lookAhead.Type}: {lookAhead.Content}.");
-                            IgnoreRestOfStatement(tokens);
-                            return null;
-                    }
-                }
-
-                if (shift)
-                {
-                    switch (lookAhead.Type)
-                    {
-                        case TokenType.IDENTIFIER:
-                            if (expandDefs && ExpandIdentifier(tokens, scopes, true))
-                            {
-                                continue;
-                            }
-
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(lookAhead.Content.ToUpperInvariant() switch
-                            {
-                                "CURRENTOFFSET" => new NumberNode(lookAhead, CurrentOffset),
-                                "__LINE__" => new NumberNode(lookAhead, lookAhead.GetSourceLocation().line),
-                                _ => new IdentifierNode(lookAhead, scopes),
-                            }));
-
-                            break;
-
-                        case TokenType.MAYBE_MACRO:
-                            ExpandIdentifier(tokens, scopes, true);
-                            continue;
-                        case TokenType.NUMBER:
-                            grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));
-                            break;
-                        case TokenType.ERROR:
-                            Error(lookAhead.Location, $"Unexpected token: {lookAhead.Content}");
-                            tokens.MoveNext();
-                            return null;
-                        default:
-                            grammarSymbols.Push(new Right<IAtomNode, Token>(lookAhead));
-                            break;
-                    }
-                    tokens.MoveNext();
-                    continue;
-                }
-            }
-            while (grammarSymbols.Count > 1)
-            {
-                Reduce(grammarSymbols, int.MaxValue);
-            }
-            if (grammarSymbols.Peek().IsRight)
-            {
-                Error(grammarSymbols.Peek().GetRight.Location, $"Unexpected token: {grammarSymbols.Peek().GetRight.Type}");
-            }
-            return grammarSymbols.Peek().GetLeft;
-        }
-
-        /***
-         *   Precondition: grammarSymbols alternates between IAtomNodes, operator Tokens, .Count is odd
-         *                 the precedences of the IAtomNodes is increasing.
-         *   Postcondition: Either grammarSymbols.Count == 1, or everything in grammarSymbols will have precedence <= targetPrecedence.
-         *
-         */
-        private void Reduce(Stack<Either<IAtomNode, Token>> grammarSymbols, int targetPrecedence)
-        {
-            while (grammarSymbols.Count > 1)// && grammarSymbols.Peek().GetLeft.Precedence > targetPrecedence)
-            {
-                // These shouldn't error...
-                IAtomNode r = grammarSymbols.Pop().GetLeft;
-
-                if (precedences[grammarSymbols.Peek().GetRight.Type] > targetPrecedence)
-                {
-                    grammarSymbols.Push(new Left<IAtomNode, Token>(r));
-                    break;
-                }
-                else
-                {
-                    Token op = grammarSymbols.Pop().GetRight;
-                    IAtomNode l = grammarSymbols.Pop().GetLeft;
-
-                    OperatorNode operatorNode = new OperatorNode(l, op, r, l.Precedence);
-
-                    if (EAOptions.IsWarningEnabled(EAOptions.Warnings.UnintuitiveExpressionMacros))
-                    {
-                        if (DiagnosticHelpers.DoesOperationSpanMultipleMacrosUnintuitively(operatorNode))
-                        {
-                            MacroLocation? mloc = operatorNode.MyLocation.macroLocation;
-                            string message = DiagnosticHelpers.GetEmphasizedExpression(operatorNode, l => l.macroLocation == mloc);
-
-                            if (mloc != null)
-                            {
-                                message += $"\nUnintuitive expression resulting from expansion of macro `{mloc.MacroName}`.";
-                            }
-                            else
-                            {
-                                message += "\nUnintuitive expression resulting from expansion of macro.";
-                            }
-
-                            message += "\nConsider guarding your expressions using parenthesis.";
-
-                            Warning(operatorNode.MyLocation, message);
-                        }
-                    }
-
-                    grammarSymbols.Push(new Left<IAtomNode, Token>(operatorNode));
-                }
+                    return this.ParseAtom(tokens, scopes, expandDefs);
             }
         }
 
@@ -926,7 +533,7 @@ namespace ColorzCore.Parser
             IList<IAtomNode> atoms = new List<IAtomNode>();
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET)
             {
-                IAtomNode? res = ParseAtom(tokens, scopes);
+                IAtomNode? res = this.ParseAtom(tokens, scopes);
                 res.IfJust(
                     n => atoms.Add(n),
                     () => Error(tokens.Current.Location, "Expected atomic value, got " + tokens.Current.Type + "."));
@@ -956,6 +563,7 @@ namespace ColorzCore.Parser
                     tokens.MoveNext();
                     return null;
                 }
+
                 head = tokens.Current;
                 switch (head.Type)
                 {
@@ -981,44 +589,26 @@ namespace ColorzCore.Parser
                                     return null;
                             }
                         }
-                        else
-                        {
-                            tokens.MoveNext();
-                            switch (tokens.Current.Type)
-                            {
-                                case TokenType.COLON:
-                                    tokens.MoveNext();
-                                    TryDefineSymbol(scopes, head.Content, ConvertToAddress(CurrentOffset));
-                                    return null;
-                                case TokenType.ASSIGN:
-                                    tokens.MoveNext();
 
-                                    ParseAtom(tokens, scopes, true).IfJust(
-                                        atom => atom.TryEvaluate(
-                                            e => TryDefineSymbol(scopes, head.Content, atom), EvaluationPhase.Early).IfJust(
-                                            value => TryDefineSymbol(scopes, head.Content, value)),
-                                        () => Error($"Couldn't define symbol `{head.Content}`: exprected expression."));
+                        return ParseStatement(tokens, scopes);
 
-                                    return null;
-
-                                default:
-                                    tokens.PutBack(head);
-                                    return ParseStatement(tokens, scopes);
-                            }
-                        }
                     case TokenType.OPEN_BRACE:
                         return ParseBlock(tokens, new ImmutableStack<Closure>(new Closure(), scopes));
+
                     case TokenType.PREPROCESSOR_DIRECTIVE:
                         return ParsePreprocessor(tokens, scopes);
+
                     case TokenType.OPEN_BRACKET:
                         Error("Unexpected list literal.");
                         IgnoreRestOfLine(tokens);
                         break;
+
                     case TokenType.NUMBER:
                     case TokenType.OPEN_PAREN:
                         Error("Unexpected mathematical expression.");
                         IgnoreRestOfLine(tokens);
                         break;
+
                     default:
                         tokens.MoveNext();
 
@@ -1039,9 +629,9 @@ namespace ColorzCore.Parser
             else
             {
                 bool hasNext = true;
+
                 while (tokens.Current.Type != TokenType.PREPROCESSOR_DIRECTIVE && (hasNext = tokens.MoveNext()))
                 {
-                    ;
                 }
 
                 if (hasNext)
@@ -1056,46 +646,12 @@ namespace ColorzCore.Parser
             }
         }
 
-        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, int value)
-        {
-            if (scopes.Head.HasLocalSymbol(name))
-            {
-                Warning($"Symbol already in scope, ignoring: {name}");
-            }
-            else if (!IsValidLabelName(name))
-            {
-                // NOTE: IsValidLabelName returns true always. This is dead code
-                Error($"Invalid symbol name {name}.");
-            }
-            else
-            {
-                scopes.Head.AddSymbol(name, value);
-            }
-        }
-
-        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, IAtomNode expression)
-        {
-            if (scopes.Head.HasLocalSymbol(name))
-            {
-                Warning($"Symbol already in scope, ignoring: {name}");
-            }
-            else if (!IsValidLabelName(name))
-            {
-                // NOTE: IsValidLabelName returns true always. This is dead code
-                Error($"Invalid symbol name {name}.");
-            }
-            else
-            {
-                scopes.Head.AddSymbol(name, expression);
-            }
-        }
-
         private ILineNode? ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             head = tokens.Current;
             tokens.MoveNext();
 
-            ILineNode? result = directiveHandler.HandleDirective(this, head, tokens, scopes);
+            ILineNode? result = DirectiveHandler.HandleDirective(this, head, tokens, scopes);
 
             if (result != null)
             {
@@ -1168,7 +724,7 @@ namespace ColorzCore.Parser
 
                 IList<Token> expandedList = expandedTokens.ToList();
 
-                DiagnosticHelpers.VisitUnguardedOperators(expandedList,
+                DiagnosticsHelpers.VisitUnguardedOperators(expandedList,
                     token => Warning(token.Location, $"Unguarded expansion of mathematical operator. Consider adding guarding parenthesises around definition."));
 
                 tokens.PrependEnumerator(expandedList.GetEnumerator());
@@ -1179,13 +735,13 @@ namespace ColorzCore.Parser
             }
         }
 
-        private void MessageTrace(Log.MessageKind kind, Location? location, string message)
+        private void MessageTrace(Logger.MessageKind kind, Location? location, string message)
         {
             if (location is Location myLocation && myLocation.macroLocation != null)
             {
                 MacroLocation macroLocation = myLocation.macroLocation;
                 MessageTrace(kind, macroLocation.Location, message);
-                log.Message(Log.MessageKind.NOTE, location, $"From inside of macro `{macroLocation.MacroName}`.");
+                log.Message(Logger.MessageKind.NOTE, location, $"From inside of macro `{macroLocation.MacroName}`.");
             }
             else
             {
@@ -1194,22 +750,22 @@ namespace ColorzCore.Parser
 
                 for (int i = 1; i < messages.Length; i++)
                 {
-                    log.Message(Log.MessageKind.CONTINUE, messages[i]);
+                    log.Message(Logger.MessageKind.CONTINUE, messages[i]);
                 }
             }
         }
 
         // shorthand helpers
 
-        public void Message(Location? location, string message) => MessageTrace(Log.MessageKind.MESSAGE, location, message);
-        public void Warning(Location? location, string message) => MessageTrace(Log.MessageKind.WARNING, location, message);
-        public void Error(Location? location, string message) => MessageTrace(Log.MessageKind.ERROR, location, message);
+        public void Message(Location? location, string message) => MessageTrace(Logger.MessageKind.MESSAGE, location, message);
+        public void Warning(Location? location, string message) => MessageTrace(Logger.MessageKind.WARNING, location, message);
+        public void Error(Location? location, string message) => MessageTrace(Logger.MessageKind.ERROR, location, message);
 
-        public void Message(string message) => MessageTrace(Log.MessageKind.MESSAGE, head?.Location, message);
-        public void Warning(string message) => MessageTrace(Log.MessageKind.WARNING, head?.Location, message);
-        public void Error(string message) => MessageTrace(Log.MessageKind.ERROR, head?.Location, message);
+        public void Message(string message) => MessageTrace(Logger.MessageKind.MESSAGE, head?.Location, message);
+        public void Warning(string message) => MessageTrace(Logger.MessageKind.WARNING, head?.Location, message);
+        public void Error(string message) => MessageTrace(Logger.MessageKind.ERROR, head?.Location, message);
 
-        private void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
+        public void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) { }
             if (tokens.Current.Type == TokenType.SEMICOLON)
@@ -1245,16 +801,6 @@ namespace ColorzCore.Parser
             return result;
         }
 
-        public void Clear()
-        {
-            Macros.Clear();
-            Definitions.Clear();
-            Raws.Clear();
-            Inclusion = ImmutableStack<bool>.Nil;
-            CurrentOffset = 0;
-            pastOffsets.Clear();
-        }
-
         private string PrettyPrintParamsForMessage(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
         {
             return string.Join(" ", parameters.Select(parameter => parameter switch
@@ -1286,7 +832,7 @@ namespace ColorzCore.Parser
 
                 tokens.MoveNext();
 
-                IAtomNode? node = ParseAtom(tokens, scopes);
+                IAtomNode? node = this.ParseAtom(tokens, scopes);
 
                 if (node == null || tokens.Current.Type != TokenType.NEWLINE)
                 {
@@ -1314,16 +860,397 @@ namespace ColorzCore.Parser
             });
         }
 
+        /*
+         * =========================================
+         * = NON STRICTLY PARSE RELATED START HERE =
+         * =========================================
+         */
+
+        public int CurrentOffset
+        {
+            get => currentOffset;
+
+            private set
+            {
+                if (value < 0 || value > EAOptions.MaximumBinarySize)
+                {
+                    if (validOffset) //Error only the first time.
+                    {
+                        Error($"Invalid offset: {value:X}");
+                        validOffset = false;
+                    }
+                }
+                else
+                {
+                    currentOffset = value;
+                    validOffset = true;
+                    offsetInitialized = true;
+                }
+            }
+        }
+
+        public ImmutableStack<Closure> GlobalScope { get; }
+
+        private readonly Stack<(int, bool)> pastOffsets; // currentOffset, offsetInitialized
+        private readonly IList<(int, int, Location)> protectedRegions;
+
+        private bool validOffset;
+        private bool offsetInitialized; // false until first ORG, used to warn about writing before first org 
+        private int currentOffset;
+
+        // TODO: these next two functions should probably be moved into their own module
+
+        public static int ConvertToAddress(int value)
+        {
+            /*
+                NOTE: Offset 0 is always converted to a null address
+                If one wants to instead refer to ROM offset 0 they would want to use the address directly instead.
+                If ROM offset 0 is already address 0 then this is a moot point.
+            */
+
+            if (value > 0 && value < EAOptions.MaximumBinarySize)
+            {
+                value += EAOptions.BaseAddress;
+            }
+
+            return value;
+        }
+
+        public static int ConvertToOffset(int value)
+        {
+            if (value >= EAOptions.BaseAddress && value <= EAOptions.BaseAddress + EAOptions.MaximumBinarySize)
+            {
+                value -= EAOptions.BaseAddress;
+            }
+
+            return value;
+        }
+
+        // Helper method for statement handlers
+        private int? EvaluteAtom(IAtomNode node)
+        {
+            return node.TryEvaluate(e => Error(node.MyLocation, e.Message), EvaluationPhase.Immediate);
+        }
+
+        private ILineNode? HandleRawStatement(RawNode node)
+        {
+            if ((CurrentOffset % node.Raw.Alignment) != 0)
+            {
+                Error($"Bad alignment for raw {node.Raw.Name}: offseet ({CurrentOffset:X8}) needs to be {node.Raw.Alignment}-aligned.");
+                return null;
+            }
+            else
+            {
+                // TODO: more efficient spacewise to just have contiguous writing and not an offset with every line?
+                CheckDataWrite(node.Size);
+                CurrentOffset += node.Size;
+
+                return node;
+            }
+        }
+
+        private ILineNode? HandleOrgStatement(IAtomNode offsetNode)
+        {
+            if (EvaluteAtom(offsetNode) is int offset)
+            {
+                CurrentOffset = ConvertToOffset(offset);
+            }
+            else
+            {
+                // EvaluateAtom already printed an error message
+            }
+
+            return null;
+        }
+
+        private ILineNode? HandlePushStatement()
+        {
+            pastOffsets.Push((CurrentOffset, offsetInitialized));
+            return null;
+        }
+
+        private ILineNode? HandlePopStatement()
+        {
+            if (pastOffsets.Count == 0)
+            {
+                Error("POP without matching PUSH.");
+            }
+            else
+            {
+                (CurrentOffset, offsetInitialized) = pastOffsets.Pop();
+            }
+
+            return null;
+        }
+
+        private ILineNode? HandleAssertStatement(IAtomNode node)
+        {
+            // helper for distinguishing boolean expressions and other expressions
+            // TODO: move elsewhere perhaps
+            static bool IsBooleanResultHelper(IAtomNode node)
+            {
+                return node switch
+                {
+                    UnaryOperatorNode uon => uon.OperatorToken.Type switch
+                    {
+                        TokenType.LOGNOT_OP => true,
+                        _ => false,
+                    },
+
+                    OperatorNode on => on.OperatorToken.Type switch
+                    {
+                        TokenType.LOGAND_OP => true,
+                        TokenType.LOGOR_OP => true,
+                        TokenType.COMPARE_EQ => true,
+                        TokenType.COMPARE_NE => true,
+                        TokenType.COMPARE_GT => true,
+                        TokenType.COMPARE_GE => true,
+                        TokenType.COMPARE_LE => true,
+                        TokenType.COMPARE_LT => true,
+                        _ => false,
+                    },
+
+                    _ => false,
+                };
+            }
+
+            bool isBoolean = IsBooleanResultHelper(node);
+
+            if (EvaluteAtom(node) is int result)
+            {
+                if (isBoolean && result == 0)
+                {
+                    Error(node.MyLocation, "Assertion failed");
+                }
+                else if (!isBoolean && result < 0)
+                {
+                    Error(node.MyLocation, $"Assertion failed with value {result}.");
+                }
+            }
+            else
+            {
+                Error("Failed to evaluate ASSERT expression.");
+            }
+
+            return null;
+        }
+
+        private ILineNode? HandleProtectStatement(IAtomNode beginAtom, IAtomNode? endAtom)
+        {
+            if (EvaluteAtom(beginAtom) is int beginValue)
+            {
+                beginValue = ConvertToAddress(beginValue);
+
+                int length = 4;
+
+                if (endAtom != null)
+                {
+                    if (EvaluteAtom(endAtom) is int endValue)
+                    {
+                        endValue = ConvertToAddress(endValue);
+
+                        length = endValue - beginValue;
+
+                        switch (length)
+                        {
+                            case < 0:
+                                Error($"Invalid PROTECT region: end address ({endValue:X8}) is before start address ({beginValue:X8}).");
+                                return null;
+
+                            case 0:
+                                // NOTE: does this need to be an error?
+                                Error($"Empty PROTECT region: end address is equal to start address ({beginValue:X8}).");
+                                return null;
+                        }
+                    }
+                    else
+                    {
+                        // EvaluateAtom already printed an error message
+                        return null;
+                    }
+                }
+
+                protectedRegions.Add((beginValue, length, head!.Location));
+
+                return null;
+            }
+            else
+            {
+                // EvaluateAtom already printed an error message
+                return null;
+            }
+        }
+
+        private ILineNode? HandleAlignStatement(IAtomNode alignNode, IAtomNode? offsetNode)
+        {
+            if (EvaluteAtom(alignNode) is int alignValue)
+            {
+                if (alignValue > 0)
+                {
+                    int alignOffset = 0;
+
+                    if (offsetNode != null)
+                    {
+                        if (EvaluteAtom(offsetNode) is int rawOffset)
+                        {
+                            if (rawOffset >= 0)
+                            {
+                                alignOffset = ConvertToOffset(rawOffset) % alignValue;
+                            }
+                            else
+                            {
+                                Error($"ALIGN offset cannot be negative (got {rawOffset})");
+                                return null;
+                            }
+                        }
+                        else
+                        {
+                            // EvaluateAtom already printed an error message
+                            return null;
+                        }
+                    }
+
+                    if (CurrentOffset % alignValue != alignOffset)
+                    {
+                        CurrentOffset += alignValue - (CurrentOffset + alignValue - alignOffset) % alignValue;
+                    }
+
+                    return null;
+                }
+                else
+                {
+                    Error($"Invalid ALIGN value (got {alignValue}).");
+                    return null;
+                }
+            }
+            else
+            {
+                // EvaluateAtom already printed an error message
+                return null;
+            }
+        }
+
+        private ILineNode? HandleFillStatement(IAtomNode amountNode, IAtomNode? valueNode)
+        {
+            if (EvaluteAtom(amountNode) is int amount)
+            {
+                if (amount > 0)
+                {
+                    int fillValue = 0;
+
+                    if (valueNode != null)
+                    {
+                        if (EvaluteAtom(valueNode) is int rawValue)
+                        {
+                            fillValue = rawValue;
+                        }
+                        else
+                        {
+                            // EvaluateAtom already printed an error message
+                            return null;
+                        }
+                    }
+
+                    var data = new byte[amount];
+
+                    for (int i = 0; i < amount; ++i)
+                    {
+                        data[i] = (byte)fillValue;
+                    }
+
+                    var node = new DataNode(CurrentOffset, data);
+
+                    CheckDataWrite(amount);
+                    CurrentOffset += amount;
+
+                    return node;
+                }
+                else
+                {
+                    Error($"Invalid FILL amount (got {amount}).");
+                    return null;
+                }
+            }
+            else
+            {
+                // EvaluateAtom already printed an error message
+                return null;
+            }
+        }
+
+        private ILineNode? HandleSymbolAssignment(string name, IAtomNode atom, ImmutableStack<Closure> scopes)
+        {
+            if (atom.TryEvaluate(_ => { }, EvaluationPhase.Early) is int value)
+            {
+                TryDefineSymbol(scopes, name, value);
+            }
+            else
+            {
+                TryDefineSymbol(scopes, name, atom);
+            }
+
+            return null;
+        }
+
+        private ILineNode? HandleLabel(string name, ImmutableStack<Closure> scopes)
+        {
+            TryDefineSymbol(scopes, name, ConvertToAddress(CurrentOffset));
+            return null;
+        }
+
+        public bool IsValidLabelName(string name)
+        {
+            // TODO: this could be where checks for CURRENTOFFSET, __LINE__ and __FILE__ are?
+            return true; // !IsReservedName(name);
+        }
+
+        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, int value)
+        {
+            if (scopes.Head.HasLocalSymbol(name))
+            {
+                Warning($"Symbol already in scope, ignoring: {name}");
+            }
+            else if (!IsValidLabelName(name))
+            {
+                // NOTE: IsValidLabelName returns true always. This is dead code
+                Error($"Invalid symbol name {name}.");
+            }
+            else
+            {
+                scopes.Head.AddSymbol(name, value);
+            }
+        }
+
+        private void TryDefineSymbol(ImmutableStack<Closure> scopes, string name, IAtomNode expression)
+        {
+            if (scopes.Head.HasLocalSymbol(name))
+            {
+                Warning($"Symbol already in scope, ignoring: {name}");
+            }
+            else if (!IsValidLabelName(name))
+            {
+                // NOTE: IsValidLabelName returns true always. This is dead code
+                Error($"Invalid symbol name {name}.");
+            }
+            else
+            {
+                scopes.Head.AddSymbol(name, expression);
+            }
+        }
+
         // Return value: Location where protection occurred. Nothing if location was not protected.
         private Location? IsProtected(int offset, int length)
         {
-            foreach (Tuple<int, int, Location> protectedRegion in protectedRegions)
+            int address = ConvertToAddress(offset);
+
+            foreach ((int protectedAddress, int protectedLength, Location location) in protectedRegions)
             {
-                //They intersect if the last offset in the given region is after the start of this one
-                //and the first offset in the given region is before the last of this one
-                if (offset + length > protectedRegion.Item1 && offset < protectedRegion.Item1 + protectedRegion.Item2)
+                /* They intersect if the last offset in the given region is after the start of this one
+                 * and the first offset in the given region is before the last of this one. */
+
+                if (address + length > protectedAddress && address < protectedAddress + protectedLength)
                 {
-                    return protectedRegion.Item3;
+                    return location;
                 }
             }
 
