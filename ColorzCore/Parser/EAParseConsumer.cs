@@ -216,7 +216,7 @@ namespace ColorzCore.Parser
         {
             if (EvaluteAtom(beginAtom) is int beginValue)
             {
-                beginValue = ConvertToAddress(beginValue);
+                beginValue = ConvertToOffset(beginValue);
 
                 int length = 4;
 
@@ -224,7 +224,7 @@ namespace ColorzCore.Parser
                 {
                     if (EvaluteAtom(endAtom) is int endValue)
                     {
-                        endValue = ConvertToAddress(endValue);
+                        endValue = ConvertToOffset(endValue);
 
                         length = endValue - beginValue;
 
@@ -243,9 +243,11 @@ namespace ColorzCore.Parser
                     else
                     {
                         // EvaluateAtom already printed an error message
+                        return;
                     }
                 }
 
+                Logger.Message(location, $"{beginValue} {length}");
                 protectedRegions.Add((beginValue, length, location));
             }
             else
@@ -418,14 +420,14 @@ namespace ColorzCore.Parser
         // Return value: Location where protection occurred. Nothing if location was not protected.
         public Location? IsProtected(int offset, int length)
         {
-            int address = ConvertToAddress(offset);
+            offset = ConvertToOffset(offset);
 
-            foreach ((int protectedAddress, int protectedLength, Location location) in protectedRegions)
+            foreach ((int protectedOffset, int protectedLength, Location location) in protectedRegions)
             {
                 /* They intersect if the last offset in the given region is after the start of this one
                  * and the first offset in the given region is before the last of this one. */
 
-                if (address + length > protectedAddress && address < protectedAddress + protectedLength)
+                if (offset + length > protectedOffset && offset < protectedOffset + protectedLength)
                 {
                     return location;
                 }
