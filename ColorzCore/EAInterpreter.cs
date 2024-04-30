@@ -20,14 +20,13 @@ namespace ColorzCore
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
         private EAParseConsumer myParseConsumer;
-        private string game, iFile;
+        private string iFile;
         private Stream sin;
-        private Logger log;
+        private Logger Logger { get; }
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger log)
+        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger logger)
         {
-            this.game = game;
             this.output = output;
 
             try
@@ -36,21 +35,16 @@ namespace ColorzCore
             }
             catch (RawReader.RawParseException e)
             {
-                Location loc = new Location
-                {
-                    file = e.FileName,
-                    line = e.LineNumber,
-                    column = 1
-                };
+                Location loc = new Location(e.FileName, e.LineNumber, 1);
 
-                log.Message(Logger.MessageKind.ERROR, loc, "An error occured while parsing raws");
-                log.Message(Logger.MessageKind.ERROR, loc, e.Message);
+                logger.Message(Logger.MessageKind.ERROR, loc, "An error occured while parsing raws");
+                logger.Message(Logger.MessageKind.ERROR, loc, e.Message);
 
                 Environment.Exit(-1); // ew?
             }
 
             this.sin = sin;
-            this.log = log;
+            Logger = logger;
             iFile = inFileName;
 
             IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
@@ -59,14 +53,8 @@ namespace ColorzCore
             foreach (string path in EAOptions.IncludePaths)
                 includeSearcher.IncludeDirectories.Add(path);
 
-            IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
-            toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
-
-            foreach (string path in EAOptions.ToolsPaths)
-                includeSearcher.IncludeDirectories.Add(path);
-
-            myParseConsumer = new EAParseConsumer(log);
-            myParser = new EAParser(log, allRaws, new DirectiveHandler(includeSearcher, toolSearcher), myParseConsumer);
+            myParseConsumer = new EAParseConsumer(logger);
+            myParser = new EAParser(logger, allRaws, new DirectiveHandler(includeSearcher), myParseConsumer);
 
             myParser.Definitions[$"_{game}_"] = new Definition();
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
@@ -88,6 +76,25 @@ namespace ColorzCore
                 myParser.Macros.BuiltInMacros.Add("ReadWordAt", unsupportedMacro);
             }
 
+            if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.IncludeTools))
+            {
+                IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
+                toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
+
+                foreach (string path in EAOptions.ToolsPaths)
+                {
+                    includeSearcher.IncludeDirectories.Add(path);
+                }
+
+                IDirective incextDirective = new IncludeExternalDirective { FileSearcher = toolSearcher };
+                IDirective inctextDirective = new IncludeToolEventDirective { FileSearcher = toolSearcher };
+
+                myParser.DirectiveHandler.Directives["incext"] = incextDirective;
+                myParser.DirectiveHandler.Directives["inctext"] = inctextDirective;
+                myParser.DirectiveHandler.Directives["inctevent"] = inctextDirective;
+            }
+
+            if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.AddToPool))
             {
                 Pool pool = new Pool();
 
@@ -98,16 +105,16 @@ namespace ColorzCore
 
         public bool Interpret()
         {
-            Tokenizer t = new Tokenizer();
+            Tokenizer tokenizer = new Tokenizer();
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
             foreach ((string name, string body) in EAOptions.PreDefintions)
             {
-                myParser.ParseAll(t.TokenizeLine($"#define {name} {body}", "cmd", 0));
+                myParser.ParseAll(tokenizer.TokenizeLine($"#define {name} {body}", "cmd", 0));
             }
 
-            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(t.Tokenize(sin, iFile)));
+            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(tokenizer.Tokenize(sin, iFile)));
 
             /* First pass on AST: Identifier resolution.
              * 
@@ -128,7 +135,7 @@ namespace ColorzCore
                 }
                 catch (MacroInvocationNode.MacroException e)
                 {
-                    log.Error(e.CausedError.MyLocation, "Unexpanded macro.");
+                    Logger.Error(e.CausedError.MyLocation, "Unexpanded macro.");
                 }
             }
 
@@ -137,11 +144,11 @@ namespace ColorzCore
                 if (e is IdentifierNode.UndefinedIdentifierException uie
                     && uie.CausedError.Content.StartsWith(Pool.pooledLabelPrefix, StringComparison.Ordinal))
                 {
-                    log.Error(location, "Unpooled data (forgot #pool?)");
+                    Logger.Error(location, "Unpooled data (forgot #pool?)");
                 }
                 else
                 {
-                    log.Error(location, e.Message);
+                    Logger.Error(location, e.Message);
                 }
             }
 
@@ -149,13 +156,13 @@ namespace ColorzCore
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_DATAWRITE);
 
-            if (!log.HasErrored)
+            if (!Logger.HasErrored)
             {
                 foreach (ILineNode line in lines)
                 {
                     if (Program.Debug)
                     {
-                        log.Message(Logger.MessageKind.DEBUG, line.PrettyPrint(0));
+                        Logger.Message(Logger.MessageKind.DEBUG, line.PrettyPrint(0));
                     }
 
                     line.WriteData(output);
@@ -163,21 +170,42 @@ namespace ColorzCore
 
                 output.Commit();
 
-                log.Output.WriteLine("No errors. Please continue being awesome.");
+                Logger.Output.WriteLine("No errors. Please continue being awesome.");
                 return true;
             }
             else
             {
-                log.Output.WriteLine("Errors occurred; no changes written.");
+                Logger.Output.WriteLine("Errors occurred; no changes written.");
                 return false;
             }
         }
 
         public bool WriteNocashSymbols(TextWriter output)
         {
-            foreach (var label in myParseConsumer.GlobalScope.Head.LocalSymbols())
+            for (int i = 0; i < myParseConsumer.AllScopes.Count; i++)
             {
-                output.WriteLine("{0:X8} {1}", EAParseConsumer.ConvertToAddress(label.Value), label.Key);
+                string manglePrefix = string.Empty;
+
+                switch (i)
+                {
+                    case 0:
+                        output.WriteLine("; global scope");
+                        break;
+                    default:
+                        output.WriteLine($"; local scope {i}");
+                        manglePrefix = $"${i}$";
+                        break;
+                }
+
+                Closure scope = myParseConsumer.AllScopes[i];
+
+                foreach (KeyValuePair<string, int> pair in scope.LocalSymbols())
+                {
+                    string name = pair.Key;
+                    int address = EAParseConsumer.ConvertToAddress(pair.Value);
+
+                    output.WriteLine($"{address:X8} {manglePrefix}{name}");
+                }
             }
 
             return true;

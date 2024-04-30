@@ -26,7 +26,7 @@ namespace ColorzCore.Preprocessor.Directives
          */
         public abstract int? MaxParams { get; }
 
-        public ILineNode? Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             // Note: Not a ParseParamList because no commas.
             // HACK: #if wants its parameters to be expanded, but other directives (define, ifdef, undef, etc) do not
@@ -34,15 +34,14 @@ namespace ColorzCore.Preprocessor.Directives
 
             if (MinParams <= parameters.Count && (!MaxParams.HasValue || parameters.Count <= MaxParams))
             {
-                return Execute(p, self, parameters, tokens);
+                Execute(p, self, parameters, tokens);
             }
             else
             {
-                p.Logger.Error(self.Location, $"Invalid number of parameters ({parameters.Count}) to directive {self}.");
-                return null;
+                p.Logger.Error(self.Location, $"Invalid number of parameters ({parameters.Count}) to directive {self.Content}.");
             }
         }
 
-        public abstract ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens);
+        public abstract void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens);
     }
 }

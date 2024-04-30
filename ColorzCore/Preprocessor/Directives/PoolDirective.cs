@@ -20,7 +20,7 @@ namespace ColorzCore.Preprocessor.Directives
             this.pool = pool;
         }
 
-        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             // Iterating indices (and not values via foreach)
             // to avoid crashes occuring with AddToPool within AddToPool
@@ -39,7 +39,6 @@ namespace ColorzCore.Preprocessor.Directives
             }
 
             pool.Lines.Clear();
-            return null;
         }
     }
 }

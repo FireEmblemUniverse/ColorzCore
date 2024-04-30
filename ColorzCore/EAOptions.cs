@@ -38,7 +38,14 @@ namespace ColorzCore
             // enable ReadByteAt and friends
             ReadDataMacros = 1,
 
+            // enable incext and inctext/inctevent
+            IncludeTools = 2,
+
+            // enable AddToPool and #pool
+            AddToPool = 4,
+
             All = long.MaxValue,
+            Default = IncludeTools | AddToPool,
         }
 
         public static bool WarningsAreErrors { get; set; }
@@ -57,7 +64,7 @@ namespace ColorzCore
         public static List<(string, string)> PreDefintions { get; } = new List<(string, string)>();
 
         public static Warnings EnabledWarnings { get; set; } = Warnings.All;
-        public static Extensions EnabledExtensions { get; set; } = Extensions.None;
+        public static Extensions EnabledExtensions { get; set; } = Extensions.Default;
 
         public static bool IsWarningEnabled(Warnings warning) => EnabledWarnings.HasFlag(warning);
         public static bool IsExtensionEnabled(Extensions extension) => EnabledExtensions.HasFlag(extension);

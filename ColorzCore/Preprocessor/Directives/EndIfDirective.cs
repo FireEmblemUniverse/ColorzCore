@@ -17,14 +17,16 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override bool RequireInclusion => false;
 
-        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             if (p.Inclusion.IsEmpty)
+            {
                 p.Logger.Error(self.Location, "No matching conditional (if, ifdef, ifndef).");
+            }
             else
+            {
                 p.Inclusion = p.Inclusion.Tail;
-
-            return null;
+            }
         }
     }
 }

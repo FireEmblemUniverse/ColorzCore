@@ -4,6 +4,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
+using ColorzCore.Raws;
 
 namespace ColorzCore.Parser
 {
@@ -87,7 +88,10 @@ namespace ColorzCore.Parser
 
         public void OnOpenScope(Location _)
         {
-            CurrentScope = new ImmutableStack<Closure>(new Closure(), CurrentScope);
+            Closure newClosure = new Closure();
+
+            AllScopes.Add(newClosure);
+            CurrentScope = new ImmutableStack<Closure>(newClosure, CurrentScope);
         }
 
         public void OnCloseScope(Location location)
@@ -102,8 +106,10 @@ namespace ColorzCore.Parser
             }
         }
 
-        public void OnRawStatement(Location location, RawNode node)
+        public void OnRawStatement(Location location, Raw raw, IList<IParamNode> parameters)
         {
+            RawNode node = new RawNode(raw, CurrentOffset, parameters);
+
             if ((CurrentOffset % node.Raw.Alignment) != 0)
             {
                 Logger.Error(location,
@@ -360,8 +366,9 @@ namespace ColorzCore.Parser
             TryDefineSymbol(location, name, ConvertToAddress(CurrentOffset));
         }
 
-        public void OnPreprocessorData(Location location, ILineNode node)
+        public void OnData(Location location, byte[] data)
         {
+            DataNode node = new DataNode(CurrentOffset, data);
             CheckWriteBytes(location, node.Size);
             LineNodes.Add(node);
         }

@@ -19,7 +19,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public override ILineNode? Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
@@ -28,7 +28,7 @@ namespace ColorzCore.Preprocessor.Directives
             if (validFile == null)
             {
                 parse.Logger.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
-                return null;
+                return;
             }
             //TODO: abstract out all this running stuff into a method so I don't have code duplication with inctext
 
@@ -77,7 +77,7 @@ namespace ColorzCore.Preprocessor.Directives
 
             ExecTimer.Timer.AddTimingPoint(parameters[0].ToString()!.ToLower());
 
-            return new DataNode(parse.ParseConsumer.CurrentOffset, output);
+            parse.ParseConsumer.OnData(self.Location, output);
         }
     }
 }

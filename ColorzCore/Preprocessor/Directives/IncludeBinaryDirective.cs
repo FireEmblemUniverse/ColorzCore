@@ -10,54 +10,19 @@ using ColorzCore.IO;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class IncludeBinaryDirective : SimpleDirective
+    public class IncludeBinaryDirective : BaseIncludeDirective
     {
-        public override int MinParams => 1;
-
-        public override int? MaxParams => 1;
-
-        public override bool RequireInclusion => true;
-
-        public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
-
-        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void HandleInclude(EAParser p, Token self, string path, MergeableGenerator<Token> _)
         {
-            string pathExpression = parameters[0].ToString()!;
-
-            if (EAOptions.TranslateBackslashesInPaths)
+            try
             {
-                pathExpression = pathExpression.Replace('\\', '/');
+                byte[] data = File.ReadAllBytes(path);
+                p.ParseConsumer.OnData(self.Location, data);
             }
-
-            string? existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), pathExpression);
-
-            if (existantFile != null)
+            catch (IOException e)
             {
-                if (EAOptions.IsWarningEnabled(EAOptions.Warnings.NonPortablePath))
-                {
-                    string portablePathExpression = IOUtility.GetPortablePathExpression(existantFile, pathExpression);
-
-                    if (pathExpression != portablePathExpression)
-                    {
-                        p.Logger.Warning(self.Location, $"Path is not portable (should be \"{portablePathExpression}\").");
-                    }
-                }
-
-                try
-                {
-                    return new DataNode(p.ParseConsumer.CurrentOffset, File.ReadAllBytes(existantFile));
-                }
-                catch (Exception)
-                {
-                    p.Logger.Error(self.Location, "Error reading file \"" + parameters[0].ToString() + "\".");
-                }
+                p.Logger.Error(self.Location, $"Error reading file \"{path}\": {e.Message}.");
             }
-            else
-            {
-                p.Logger.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
-            }
-
-            return null;
         }
     }
 }

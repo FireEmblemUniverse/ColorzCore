@@ -44,8 +44,6 @@ namespace ColorzCore.Parser
             }
         }
 
-        private Token? head; // TODO: Make this make sense
-
         public EAParseConsumer ParseConsumer { get; }
 
         public EAParser(Logger log, Dictionary<string, IList<Raw>> raws, DirectiveHandler directiveHandler, EAParseConsumer parseConsumer)
@@ -90,14 +88,30 @@ namespace ColorzCore.Parser
             return ParseConsumer.HandleEndOfInput();
         }
 
-        public static readonly HashSet<string> SpecialCodes = new HashSet<string> { "ORG", "PUSH", "POP", "MESSAGE", "WARNING", "ERROR", "ASSERT", "PROTECT", "ALIGN", "FILL" };
+        public static readonly HashSet<string> SpecialCodes = new HashSet<string>()
+        {
+            "ORG",
+            "PUSH",
+            "POP",
+            "MESSAGE",
+            "WARNING",
+            "ERROR",
+            "ASSERT",
+            "PROTECT",
+            "ALIGN",
+            "FILL",
+            "UTF8",
+            "BASE64",
+            // "SECTION", // TODO
+            // "DSECTION", // TODO
+        };
 
         private void ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             // NOTE: here previously lied en ExpandIdentifier loop
             // though because this is only called from ParseLine after the corresponding check, this is not needed
 
-            head = tokens.Current;
+            Token head = tokens.Current;
             tokens.MoveNext();
 
             switch (tokens.Current.Type)
@@ -109,7 +123,7 @@ namespace ColorzCore.Parser
 
                 case TokenType.ASSIGN:
                     tokens.MoveNext();
-                    ParseAssignment(head.Content, tokens);
+                    ParseAssignment(head, head.Content, tokens);
                     return;
             }
 
@@ -131,67 +145,75 @@ namespace ColorzCore.Parser
                 switch (upperCodeIdentifier)
                 {
                     case "ORG":
-                        ParseOrgStatement(parameters);
-                        return;
+                        ParseOrgStatement(head, parameters);
+                        break;
 
                     case "PUSH":
-                        ParsePushStatement(parameters);
-                        return;
+                        ParsePushStatement(head, parameters);
+                        break;
 
                     case "POP":
-                        ParsePopStatement(parameters);
-                        return;
+                        ParsePopStatement(head, parameters);
+                        break;
 
                     case "ASSERT":
-                        ParseAssertStatement(parameters);
-                        return;
+                        ParseAssertStatement(head, parameters);
+                        break;
 
                     case "PROTECT":
-                        ParseProtectStatement(parameters);
-                        return;
+                        ParseProtectStatement(head, parameters);
+                        break;
 
                     case "ALIGN":
-                        ParseAlignStatement(parameters);
-                        return;
+                        ParseAlignStatement(head, parameters);
+                        break;
 
                     case "FILL":
-                        ParseFillStatement(parameters);
-                        return;
+                        ParseFillStatement(head, parameters);
+                        break;
 
                     case "MESSAGE":
-                        ParseMessageStatement(parameters);
-                        return;
+                        ParseMessageStatement(head, parameters);
+                        break;
 
                     case "WARNING":
-                        ParseWarningStatement(parameters);
-                        return;
+                        ParseWarningStatement(head, parameters);
+                        break;
 
                     case "ERROR":
-                        ParseErrorStatement(parameters);
-                        return;
+                        ParseErrorStatement(head, parameters);
+                        break;
+
+                    case "UTF8":
+                        ParseUtf8Statement(head, parameters);
+                        break;
+
+                    case "BASE64":
+                        ParseBase64Statement(head, parameters);
+                        break;
                 }
             }
             else
             {
-                ParseRawStatement(upperCodeIdentifier, tokens, parameters);
+                ParseRawStatement(head, upperCodeIdentifier, tokens, parameters);
             }
         }
 
-        private void ParseAssignment(string name, MergeableGenerator<Token> tokens)
+        private void ParseAssignment(Token head, string name, MergeableGenerator<Token> tokens)
         {
             IAtomNode? atom = this.ParseAtom(tokens, ParseConsumer.CurrentScope, true);
 
             if (atom != null)
             {
-                ParseConsumer.OnSymbolAssignment(head!.Location, name, atom);
+                ParseConsumer.OnSymbolAssignment(head.Location, name, atom);
             }
             else
             {
-                Logger.Error(head!.Location, $"Couldn't define symbol `{name}`: exprected expression.");
+                Logger.Error(head.Location, $"Couldn't define symbol `{name}`: exprected expression.");
             }
         }
 
-        private void ParseRawStatement(string upperCodeIdentifier, MergeableGenerator<Token> tokens, IList<IParamNode> parameters)
+        private void ParseRawStatement(Token head, string upperCodeIdentifier, MergeableGenerator<Token> tokens, IList<IParamNode> parameters)
         {
             if (Raws.TryGetValue(upperCodeIdentifier, out IList<Raw>? raws))
             {
@@ -200,70 +222,69 @@ namespace ColorzCore.Parser
                 {
                     if (raw.Fits(parameters))
                     {
-                        RawNode rawNode = new RawNode(raw, head!, ParseConsumer.CurrentOffset, parameters);
-                        ParseConsumer.OnRawStatement(head!.Location, rawNode);
+                        ParseConsumer.OnRawStatement(head.Location, raw, parameters);
                         return;
                     }
                 }
 
                 if (raws.Count == 1)
                 {
-                    Logger.Error(head!.Location, $"Incorrect parameters in raw `{raws[0].ToPrettyString()}`");
+                    Logger.Error(head.Location, $"Incorrect parameters in raw `{raws[0].ToPrettyString()}`");
                 }
                 else
                 {
                     StringBuilder sb = new StringBuilder();
 
-                    sb.Append($"Couldn't find suitable variant of raw `{head!.Content}`.");
+                    sb.Append($"Couldn't find suitable variant of raw `{upperCodeIdentifier}`.");
 
                     for (int i = 0; i < raws.Count; i++)
                     {
                         sb.Append($"\nVariant {i + 1}: `{raws[i].ToPrettyString()}`");
                     }
 
-                    Logger.Error(head!.Location, sb.ToString());
+                    Logger.Error(head.Location, sb.ToString());
                 }
 
                 IgnoreRestOfStatement(tokens);
             }
             else
             {
-                Logger.Error(head!.Location, $"Unrecognized statement code: {head!.Content}");
+                Logger.Error(head.Location, $"Unrecognized statement code: {upperCodeIdentifier}");
             }
         }
 
-        private void ParseOrgStatement(IList<IParamNode> parameters)
+        private void ParseOrgStatement(Token head, IList<IParamNode> parameters)
         {
-            ParseStatementOneParam("ORG", parameters, ParseConsumer.OnOrgStatement);
+            ParseStatementOneParam(head, "ORG", parameters, ParseConsumer.OnOrgStatement);
         }
 
-        private void ParsePushStatement(IList<IParamNode> parameters)
-        {
-            if (parameters.Count == 0)
-            {
-                ParseConsumer.OnPushStatement(head!.Location);
-            }
-            else
-            {
-                StatementExpectsParamCount("PUSH", parameters, 0, 0);
-            }
-        }
-
-        private void ParsePopStatement(IList<IParamNode> parameters)
+        private void ParsePushStatement(Token head, IList<IParamNode> parameters)
         {
             if (parameters.Count == 0)
             {
-                ParseConsumer.OnPopStatement(head!.Location);
+                ParseConsumer.OnPushStatement(head.Location);
             }
             else
             {
-                StatementExpectsParamCount("POP", parameters, 0, 0);
+                StatementExpectsParamCount(head, "PUSH", parameters, 0, 0);
             }
         }
 
-        private void ParseAssertStatement(IList<IParamNode> parameters)
+        private void ParsePopStatement(Token head, IList<IParamNode> parameters)
         {
-            ParseStatementOneParam("ASSERT", parameters, ParseConsumer.OnAssertStatement);
+            if (parameters.Count == 0)
+            {
+                ParseConsumer.OnPopStatement(head.Location);
+            }
+            else
+            {
+                StatementExpectsParamCount(head, "POP", parameters, 0, 0);
+            }
+        }
+
+        private void ParseAssertStatement(Token head, IList<IParamNode> parameters)
+        {
+            ParseStatementOneParam(head, "ASSERT", parameters, ParseConsumer.OnAssertStatement);
         }
 
         // Helper method for printing errors
@@ -274,28 +295,28 @@ namespace ColorzCore.Parser
         }
 
         // Helper method for printing errors
-        private void StatementExpectsParamCount(string statementName, IList<IParamNode> parameters, int min, int max)
+        private void StatementExpectsParamCount(Token head, string statementName, IList<IParamNode> parameters, int min, int max)
         {
             if (min == max)
             {
-                Logger.Error(head!.Location, $"A {statementName} statement expects {min} parameters, got {parameters.Count}.");
+                Logger.Error(head.Location, $"A {statementName} statement expects {min} parameters, got {parameters.Count}.");
             }
             else
             {
-                Logger.Error(head!.Location, $"A {statementName} statement expects {min} to {max} parameters, got {parameters.Count}.");
+                Logger.Error(head.Location, $"A {statementName} statement expects {min} to {max} parameters, got {parameters.Count}.");
             }
         }
 
         private delegate void HandleStatementOne(Location location, IAtomNode node);
         private delegate void HandleStatementTwo(Location location, IAtomNode firstNode, IAtomNode? optionalSecondNode);
 
-        private void ParseStatementOneParam(string name, IList<IParamNode> parameters, HandleStatementOne handler)
+        private void ParseStatementOneParam(Token head, string name, IList<IParamNode> parameters, HandleStatementOne handler)
         {
             if (parameters.Count == 1)
             {
                 if (parameters[0] is IAtomNode expr)
                 {
-                    handler(head!.Location, expr);
+                    handler(head.Location, expr);
                 }
                 else
                 {
@@ -304,17 +325,17 @@ namespace ColorzCore.Parser
             }
             else
             {
-                StatementExpectsParamCount(name, parameters, 1, 1);
+                StatementExpectsParamCount(head, name, parameters, 1, 1);
             }
         }
 
-        private void ParseStatementTwoParam(string name, IList<IParamNode> parameters, HandleStatementTwo handler)
+        private void ParseStatementTwoParam(Token head, string name, IList<IParamNode> parameters, HandleStatementTwo handler)
         {
             if (parameters.Count == 1)
             {
                 if (parameters[0] is IAtomNode firstNode)
                 {
-                    handler(head!.Location, firstNode, null);
+                    handler(head.Location, firstNode, null);
                 }
                 else
                 {
@@ -327,7 +348,7 @@ namespace ColorzCore.Parser
                 {
                     if (parameters[1] is IAtomNode secondNode)
                     {
-                        handler(head!.Location, firstNode, secondNode);
+                        handler(head.Location, firstNode, secondNode);
                     }
                     else
                     {
@@ -341,41 +362,91 @@ namespace ColorzCore.Parser
             }
             else
             {
-                StatementExpectsParamCount(name, parameters, 1, 2);
+                StatementExpectsParamCount(head, name, parameters, 1, 2);
             }
         }
 
-        private void ParseProtectStatement(IList<IParamNode> parameters)
+        private void ParseProtectStatement(Token head, IList<IParamNode> parameters)
         {
-            ParseStatementTwoParam("PROTECT", parameters, ParseConsumer.OnProtectStatement);
+            ParseStatementTwoParam(head, "PROTECT", parameters, ParseConsumer.OnProtectStatement);
         }
 
-        private void ParseAlignStatement(IList<IParamNode> parameters)
+        private void ParseAlignStatement(Token head, IList<IParamNode> parameters)
         {
-            ParseStatementTwoParam("ALIGN", parameters, ParseConsumer.OnAlignStatement);
+            ParseStatementTwoParam(head, "ALIGN", parameters, ParseConsumer.OnAlignStatement);
         }
 
-        private void ParseFillStatement(IList<IParamNode> parameters)
+        private void ParseFillStatement(Token head, IList<IParamNode> parameters)
         {
-            ParseStatementTwoParam("FILL", parameters, ParseConsumer.OnFillStatement);
+            ParseStatementTwoParam(head, "FILL", parameters, ParseConsumer.OnFillStatement);
         }
 
-        private void ParseMessageStatement(IList<IParamNode> parameters)
+        private void ParseMessageStatement(Token head, IList<IParamNode> parameters)
         {
             ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Message(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Message(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
         }
 
-        private void ParseWarningStatement(IList<IParamNode> parameters)
+        private void ParseWarningStatement(Token head, IList<IParamNode> parameters)
         {
             ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Warning(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Warning(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
         }
 
-        private void ParseErrorStatement(IList<IParamNode> parameters)
+        private void ParseErrorStatement(Token head, IList<IParamNode> parameters)
         {
             ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Error(head!.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Error(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
+        }
+
+        private void ParseUtf8Statement(Token head, IList<IParamNode> parameters)
+        {
+            using MemoryStream memoryStream = new MemoryStream();
+
+            foreach (IParamNode parameter in parameters)
+            {
+                if (parameter is StringNode node)
+                {
+                    byte[] utf8Bytes = Encoding.UTF8.GetBytes(node.Value);
+                    memoryStream.Write(utf8Bytes, 0, utf8Bytes.Length);
+                }
+                else
+                {
+                    Logger.Error(head.Location, $"expects a String (got {DiagnosticsHelpers.PrettyParamType(parameter.Type)}).");
+                }
+            }
+
+            byte[] bytes = memoryStream.ToArray();
+            ParseConsumer.OnData(head.Location, bytes);
+        }
+
+        private void ParseBase64Statement(Token head, IList<IParamNode> parameters)
+        {
+            using MemoryStream memoryStream = new MemoryStream();
+
+            foreach (IParamNode parameter in parameters)
+            {
+                if (parameter is StringNode node)
+                {
+                    try
+                    {
+                        byte[] base64Bytes = Convert.FromBase64String(node.Value);
+                        memoryStream.Write(base64Bytes, 0, base64Bytes.Length);
+                    }
+                    catch (FormatException e)
+                    {
+                        Logger.Error(node.MyLocation, $"Failed to parse Base64 string: {e.Message}");
+                        return;
+                    }
+                }
+                else
+                {
+                    Logger.Error(head.Location, $"expects a String (got {DiagnosticsHelpers.PrettyParamType(parameter.Type)}).");
+                }
+            }
+
+            byte[] bytes = memoryStream.ToArray();
+            ParseConsumer.OnData(head.Location, bytes);
         }
 
         public IList<IList<Token>> ParseMacroParamList(MergeableGenerator<Token> tokens)
@@ -553,7 +624,7 @@ namespace ColorzCore.Parser
                     return;
                 }
 
-                head = tokens.Current;
+                Token head = tokens.Current;
                 switch (head.Type)
                 {
                     case TokenType.IDENTIFIER:
@@ -575,7 +646,7 @@ namespace ColorzCore.Parser
                                 default:
                                     // it is somewhat common for users to do '#define Foo 0xABCD' and then later 'Foo:'
                                     Logger.Error(head.Location, $"Expansion of macro `{head.Content}` did not result in a valid statement. Did you perhaps attempt to define a label or symbol with that name?");
-                                    IgnoreRestOfLine(tokens);
+                                    IgnoreRestOfStatement(tokens);
                                     break;
                             }
 
@@ -604,13 +675,13 @@ namespace ColorzCore.Parser
 
                     case TokenType.OPEN_BRACKET:
                         Logger.Error(head.Location, "Unexpected list literal.");
-                        IgnoreRestOfLine(tokens);
+                        IgnoreRestOfStatement(tokens);
                         break;
 
                     case TokenType.NUMBER:
                     case TokenType.OPEN_PAREN:
                         Logger.Error(head.Location, "Unexpected mathematical expression.");
-                        IgnoreRestOfLine(tokens);
+                        IgnoreRestOfStatement(tokens);
                         break;
 
                     default:
@@ -625,7 +696,7 @@ namespace ColorzCore.Parser
                             Logger.Error(head.Location, $"Unexpected token: {head.Type}: {head.Content}.");
                         }
 
-                        IgnoreRestOfLine(tokens);
+                        IgnoreRestOfStatement(tokens);
                         break;
                 }
             }
@@ -650,15 +721,9 @@ namespace ColorzCore.Parser
 
         private void ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
-            head = tokens.Current;
+            Token head = tokens.Current;
             tokens.MoveNext();
-
-            ILineNode? result = DirectiveHandler.HandleDirective(this, head, tokens, scopes);
-
-            if (result != null)
-            {
-                ParseConsumer.OnPreprocessorData(head.Location, result);
-            }
+            DirectiveHandler.HandleDirective(this, head, tokens, scopes);
         }
 
         /***
@@ -737,7 +802,10 @@ namespace ColorzCore.Parser
 
         public void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
+            // TODO: also check for OPEN_BRACE?
+
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) { }
+
             if (tokens.Current.Type == TokenType.SEMICOLON)
             {
                 tokens.MoveNext();
@@ -746,7 +814,9 @@ namespace ColorzCore.Parser
 
         public void IgnoreRestOfLine(MergeableGenerator<Token> tokens)
         {
-            while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext()) { }
+            while (tokens.Current.Type != TokenType.NEWLINE && tokens.MoveNext())
+            {
+            }
         }
 
         /// <summary>

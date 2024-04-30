@@ -19,7 +19,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public IncludeFileSearcher FileSearcher { get; set; } = new IncludeFileSearcher();
 
-        public override ILineNode? Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser parse, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
@@ -28,7 +28,7 @@ namespace ColorzCore.Preprocessor.Directives
             if (validFile == null)
             {
                 parse.Logger.Error(parameters[0].MyLocation, "Tool " + parameters[0].ToString() + " not found.");
-                return null;
+                return;
             }
 
             //from http://stackoverflow.com/a/206347/1644720
@@ -78,8 +78,6 @@ namespace ColorzCore.Preprocessor.Directives
             }
 
             ExecTimer.Timer.AddTimingPoint(parameters[0].ToString()!.ToLower());
-
-            return null;
         }
     }
 }

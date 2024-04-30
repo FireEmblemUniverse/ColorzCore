@@ -1,6 +1,7 @@
-
+using System.Collections.Generic;
 using ColorzCore.DataTypes;
 using ColorzCore.Parser.AST;
+using ColorzCore.Raws;
 
 namespace ColorzCore.Parser
 {
@@ -8,7 +9,7 @@ namespace ColorzCore.Parser
     {
         void OnOpenScope(Location location);
         void OnCloseScope(Location location);
-        void OnRawStatement(Location location, RawNode node);
+        void OnRawStatement(Location location, Raw raw, IList<IParamNode> parameters);
         void OnOrgStatement(Location location, IAtomNode offsetNode);
         void OnPushStatement(Location location);
         void OnPopStatement(Location location);
@@ -18,6 +19,6 @@ namespace ColorzCore.Parser
         void OnFillStatement(Location location, IAtomNode amountNode, IAtomNode? valueNode);
         void OnSymbolAssignment(Location location, string name, IAtomNode atom);
         void OnLabel(Location location, string name);
-        void OnPreprocessorData(Location location, ILineNode node);
+        void OnData(Location location, byte[] data);
     }
 }

@@ -14,7 +14,7 @@ namespace ColorzCore.Preprocessor
     {
         public Dictionary<string, IDirective> Directives { get; }
 
-        public DirectiveHandler(IncludeFileSearcher includeSearcher, IncludeFileSearcher toolSearcher)
+        public DirectiveHandler(IncludeFileSearcher includeSearcher)
         {
             // TODO: move out from this directives that need external context
             // (already done for pool, but could be done for includes as well)
@@ -23,9 +23,6 @@ namespace ColorzCore.Preprocessor
             {
                 { "include", new IncludeDirective { FileSearcher = includeSearcher } },
                 { "incbin", new IncludeBinaryDirective { FileSearcher = includeSearcher } },
-                { "incext", new IncludeExternalDirective { FileSearcher = toolSearcher } },
-                { "inctext", new IncludeToolEventDirective { FileSearcher = toolSearcher } },
-                { "inctevent", new IncludeToolEventDirective { FileSearcher = toolSearcher } },
                 { "ifdef", new IfDefinedDirective(false) },
                 { "ifndef", new IfDefinedDirective(true) },
                 { "if", new IfDirective() },
@@ -36,7 +33,7 @@ namespace ColorzCore.Preprocessor
             };
         }
 
-        public ILineNode? HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             string directiveName = directive.Content.Substring(1);
 
@@ -44,15 +41,14 @@ namespace ColorzCore.Preprocessor
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {
-                    return toExec.Execute(p, directive, tokens, scopes);
+                    toExec.Execute(p, directive, tokens, scopes);
                 }
             }
             else
             {
                 p.Logger.Error(directive.Location, $"Directive not recognized: {directiveName}");
+                p.IgnoreRestOfLine(tokens);
             }
-
-            return null;
         }
     }
 }

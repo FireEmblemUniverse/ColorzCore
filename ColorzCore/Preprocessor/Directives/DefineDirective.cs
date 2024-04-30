@@ -14,7 +14,7 @@ namespace ColorzCore.Preprocessor.Directives
     {
         public bool RequireInclusion => true;
 
-        public ILineNode? Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
         {
             Token nextToken = tokens.Current;
             IList<string>? parameters;
@@ -33,12 +33,12 @@ namespace ColorzCore.Preprocessor.Directives
 
                 case TokenType.NEWLINE:
                     p.Logger.Error(self.Location, "Invalid use of directive '#define': missing macro name.");
-                    return null;
+                    return;
 
                 default:
                     p.Logger.Error(self.Location, $"Invalid use of directive '#define': expected macro name, got {nextToken}");
                     p.IgnoreRestOfLine(tokens);
-                    return null;
+                    return;
             }
 
             IList<Token>? macroBody = ExpandMacroBody(p, p.GetRestOfLine(tokens, scopes));
@@ -53,8 +53,6 @@ namespace ColorzCore.Preprocessor.Directives
                 // object-like macro
                 DefineObjectMacro(p, nextToken, macroBody);
             }
-
-            return null;
         }
 
         private static void DefineObjectMacro(EAParser p, Token nameToken, IList<Token> macroBody)

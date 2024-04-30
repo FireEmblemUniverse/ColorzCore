@@ -17,7 +17,7 @@ namespace ColorzCore.Preprocessor.Directives
 
         public override bool RequireInclusion => false;
 
-        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             bool flag = true;
 
@@ -37,7 +37,6 @@ namespace ColorzCore.Preprocessor.Directives
             }
 
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
-            return null;
         }
     }
 }

@@ -24,12 +24,14 @@ namespace ColorzCore.Preprocessor.Directives
             Inverted = invert;
         }
 
-        public override ILineNode? Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
         {
             bool flag = true;
-            string? identifier;
+
             foreach (IParamNode parameter in parameters)
             {
+                string? identifier;
+
                 if (parameter.Type == ParamType.ATOM && (identifier = ((IAtomNode)parameter).GetIdentifier()) != null)
                 {
                     // TODO: Built in definitions?
@@ -41,8 +43,8 @@ namespace ColorzCore.Preprocessor.Directives
                     p.Logger.Error(parameter.MyLocation, "Definition name must be an identifier.");
                 }
             }
+
             p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
-            return null;
         }
     }
 }

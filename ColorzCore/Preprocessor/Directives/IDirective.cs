@@ -1,7 +1,6 @@
 ﻿using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
-using ColorzCore.Parser.AST;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,7 +15,7 @@ namespace ColorzCore.Preprocessor.Directives
          * 
          * Return: If a string is returned, it is interpreted as an error.
          */
-        ILineNode? Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes);
+        void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes);
 
         /***
          * Whether requires the parser to be taking in tokens.
