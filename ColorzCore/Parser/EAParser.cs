@@ -81,7 +81,7 @@ namespace ColorzCore.Parser
             {
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                 {
-                    ParseLine(tokens, ParseConsumer.GlobalScope);
+                    ParseLine(tokens, ParseConsumer.CurrentScope);
                 }
             }
 

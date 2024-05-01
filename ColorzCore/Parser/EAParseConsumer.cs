@@ -247,7 +247,6 @@ namespace ColorzCore.Parser
                     }
                 }
 
-                Logger.Message(location, $"{beginValue} {length}");
                 protectedRegions.Add((beginValue, length, location));
             }
             else
