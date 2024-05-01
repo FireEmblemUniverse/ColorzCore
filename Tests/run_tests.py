@@ -59,9 +59,9 @@ PREPROC_TESTS = [
 ]
 
 
-import statements
+import statements, symbols
 
-ALL_TEST_CASES = BASIC_TESTS + statements.TESTS + EXPRESSION_TESTS + PREPROC_TESTS
+ALL_TEST_CASES = BASIC_TESTS + statements.TESTS + symbols.TESTS + EXPRESSION_TESTS + PREPROC_TESTS
 
 def main(args):
     import argparse
