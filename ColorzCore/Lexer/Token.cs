@@ -14,14 +14,7 @@ namespace ColorzCore.Lexer
         public int LineNumber => Location.line;
         public int ColumnNumber => Location.column;
 
-        public Token(TokenType type, string fileName, int lineNum, int colNum, string original = "")
-        {
-            Type = type;
-            Location = new Location(fileName, lineNum, colNum + 1);
-            Content = original;
-        }
-
-        public Token(TokenType type, Location location, string content)
+        public Token(TokenType type, Location location, string content = "")
         {
             Type = type;
             Location = location;

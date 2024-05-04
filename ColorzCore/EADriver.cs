@@ -68,7 +68,7 @@ namespace ColorzCore
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
 
             myParser.Definitions["__COLORZ_CORE_VERSION__"] = new Definition(
-                new Token(TokenType.NUMBER, new Location("builtin", 0, 0), "20240502"));
+                new Token(TokenType.NUMBER, new Location("builtin", 0, 0), "20240504"));
 
             if (game != null)
             {
@@ -147,7 +147,8 @@ namespace ColorzCore
 
             foreach ((string name, string body) in EAOptions.PreDefintions)
             {
-                myParser.ParseAll(tokenizer.TokenizeLine($"#define {name} \"{body}\"", "cmd", 0));
+                Location location = new Location("CMD", 0, 1);
+                myParser.ParseAll(tokenizer.TokenizePhrase($"#define {name} \"{body}\"", location));
             }
 
             myParser.ParseAll(tokenizer.Tokenize(sin, iFile));
