@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter.Diagnostics;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Diagnostics;
 
 namespace ColorzCore.Parser
 {

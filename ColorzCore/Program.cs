@@ -406,17 +406,17 @@ namespace ColorzCore
             if (EAOptions.QuietMessages)
                 log.IgnoredKinds.Add(Logger.MessageKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
+            EADriver myDriver = new EADriver(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
 
-            bool success = myInterpreter.Interpret();
+            bool success = myDriver.Interpret();
 
             if (success && EAOptions.ProduceNocashSym)
             {
                 using StreamWriter symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym"));
 
-                if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
+                if (!(success = myDriver.WriteNocashSymbols(symOut)))
                 {
                     log.Message(Logger.MessageKind.ERROR, "Error trying to write no$gba symbol file.");
                 }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ColorzCore.Lexer;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.Parser.AST
 {

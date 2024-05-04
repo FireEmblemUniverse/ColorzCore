@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
@@ -12,21 +13,17 @@ namespace ColorzCore.Parser.AST
     public class StringNode : IParamNode
     {
         public static readonly Regex idRegex = new Regex("^([a-zA-Z_][a-zA-Z0-9_]*)$");
-        public Token MyToken { get; }
 
-        public Location MyLocation => MyToken.Location;
+        public Token SourceToken { get; }
+
+        public Location MyLocation => SourceToken.Location;
         public ParamType Type => ParamType.STRING;
 
-        public string Value => MyToken.Content;
+        public string Value => SourceToken.Content;
 
         public StringNode(Token value)
         {
-            MyToken = value;
-        }
-
-        public IEnumerable<byte> ToBytes()
-        {
-            return Encoding.ASCII.GetBytes(ToString());
+            SourceToken = value;
         }
 
         public override string ToString()
@@ -39,16 +36,11 @@ namespace ColorzCore.Parser.AST
             return $"\"{Value}\"";
         }
 
-        public IEnumerable<Token> ToTokens() { yield return MyToken; }
+        public IEnumerable<Token> ToTokens() { yield return SourceToken; }
 
         public bool IsValidIdentifier()
         {
             return idRegex.IsMatch(Value);
-        }
-
-        public IdentifierNode ToIdentifier(ImmutableStack<Closure> scope)
-        {
-            return new IdentifierNode(MyToken, scope);
         }
 
         public IAtomNode? AsAtom() => null;

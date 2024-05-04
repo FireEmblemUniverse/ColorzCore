@@ -1,6 +1,6 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.IO;
-using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;

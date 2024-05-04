@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 
-namespace ColorzCore.Parser.Diagnostics
+namespace ColorzCore.Interpreter.Diagnostics
 {
     public static class DiagnosticsHelpers
     {

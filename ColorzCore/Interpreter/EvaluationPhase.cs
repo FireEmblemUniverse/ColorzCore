@@ -1,6 +1,6 @@
 using System;
 
-namespace ColorzCore.Parser
+namespace ColorzCore.Interpreter
 {
     public enum EvaluationPhase
     {

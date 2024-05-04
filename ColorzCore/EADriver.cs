@@ -1,9 +1,10 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
+using ColorzCore.Interpreter.Diagnostics;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Diagnostics;
 using ColorzCore.Preprocessor;
 using ColorzCore.Preprocessor.Directives;
 using ColorzCore.Preprocessor.Macros;
@@ -15,20 +16,18 @@ using System.Linq;
 
 namespace ColorzCore
 {
-    // Class to excapsulate all steps in EA script interpretation.
-    // TODO: this is just another Program
-    // the name is problematic as EAParseConsumer would really like to be called EAInterpreter
-    class EAInterpreter
+    // Class to excapsulate all steps in EA script interpretation (lexing -> parsing -> interpretation -> commit).
+    class EADriver
     {
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
-        private EAParseConsumer myInterpreter;
+        private EAInterpreter myInterpreter;
         private string iFile;
         private Stream sin;
         private Logger Logger { get; }
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string? game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger logger)
+        public EADriver(IOutput output, string? game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger logger)
         {
             this.output = output;
 
@@ -50,7 +49,7 @@ namespace ColorzCore
             Logger = logger;
             iFile = inFileName;
 
-            myInterpreter = new EAParseConsumer(logger);
+            myInterpreter = new EAInterpreter(logger);
 
             ParseConsumerChain parseConsumers = new ParseConsumerChain();
 
@@ -234,7 +233,7 @@ namespace ColorzCore
                 foreach (KeyValuePair<string, int> pair in scope.LocalSymbols())
                 {
                     string name = pair.Key;
-                    int address = EAParseConsumer.ConvertToAddress(pair.Value);
+                    int address = EAInterpreter.ConvertToAddress(pair.Value);
 
                     output.WriteLine($"{address:X8} {manglePrefix}{name}");
                 }

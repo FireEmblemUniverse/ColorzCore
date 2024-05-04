@@ -1,4 +1,5 @@
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
@@ -8,29 +9,33 @@ namespace ColorzCore.Parser.AST
 {
     public class IdentifierNode : AtomNodeKernel
     {
-        private Token identifier;
-        readonly ImmutableStack<Closure> scope;
+        private readonly ImmutableStack<Closure> boundScope;
 
-        public override int Precedence { get { return 11; } }
-        public override Location MyLocation { get { return identifier.Location; } }
+        public Token IdentifierToken { get; }
 
-        public IdentifierNode(Token id, ImmutableStack<Closure> scopes)
+        public override int Precedence => int.MaxValue;
+        public override Location MyLocation => IdentifierToken.Location;
+
+        public IdentifierNode(Token identifierToken, ImmutableStack<Closure> scope)
         {
-            identifier = id;
-            scope = scopes;
+            IdentifierToken = identifierToken;
+            boundScope = scope;
         }
 
         private int ToInt(EvaluationPhase evaluationPhase)
         {
-            ImmutableStack<Closure> temp = scope;
-            while (!temp.IsEmpty)
+            if (boundScope != null)
             {
-                if (temp.Head.HasLocalSymbol(identifier.Content))
-                    return temp.Head.GetSymbol(identifier.Content, evaluationPhase);
-                else
-                    temp = temp.Tail;
+                for (ImmutableStack<Closure> it = boundScope; !it.IsEmpty; it = it.Tail)
+                {
+                    if (it.Head.HasLocalSymbol(IdentifierToken.Content))
+                    {
+                        return it.Head.GetSymbol(IdentifierToken.Content, evaluationPhase);
+                    }
+                }
             }
-            throw new UndefinedIdentifierException(identifier);
+
+            throw new UndefinedIdentifierException(IdentifierToken);
         }
 
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
@@ -53,7 +58,7 @@ namespace ColorzCore.Parser.AST
 
         public override string? GetIdentifier()
         {
-            return identifier.Content;
+            return IdentifierToken.Content;
         }
 
         public override string PrettyPrint()
@@ -64,28 +69,33 @@ namespace ColorzCore.Parser.AST
             }
             catch (UndefinedIdentifierException)
             {
-                return identifier.Content;
+                return IdentifierToken.Content;
             }
             catch (Closure.SymbolComputeException)
             {
-                return identifier.Content;
-            }
-        }
-
-        public override IEnumerable<Token> ToTokens() { yield return identifier; }
-
-        public class UndefinedIdentifierException : Exception
-        {
-            public Token CausedError { get; set; }
-            public UndefinedIdentifierException(Token causedError) : base($"Undefined identifier `{causedError.Content}`")
-            {
-                this.CausedError = causedError;
+                return IdentifierToken.Content;
             }
         }
 
         public override string ToString()
         {
-            return identifier.Content;
+            return IdentifierToken.Content;
+        }
+
+        public override IEnumerable<Token> ToTokens()
+        {
+            yield return IdentifierToken;
+        }
+
+        // TODO: move this outside of this class
+        public class UndefinedIdentifierException : Exception
+        {
+            public Token CausedError { get; set; }
+
+            public UndefinedIdentifierException(Token causedError) : base($"Undefined identifier `{causedError.Content}`")
+            {
+                CausedError = causedError;
+            }
         }
     }
 }

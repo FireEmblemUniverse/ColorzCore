@@ -1,18 +1,16 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.IO;
-using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
     class DataNode : ILineNode
     {
-        private int offset;
-        private byte[] data;
+        private readonly int offset;
+        private readonly byte[] data;
 
         public DataNode(int offset, byte[] data)
         {
@@ -24,7 +22,7 @@ namespace ColorzCore.Parser.AST
 
         public string PrettyPrint(int indentation)
         {
-            return String.Format("Raw Data Block of Length {0}", Size);
+            return $"Raw Data Block of Length {Size}";
         }
 
         public void WriteData(IOutput output)

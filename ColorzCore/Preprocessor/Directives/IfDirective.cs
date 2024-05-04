@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;

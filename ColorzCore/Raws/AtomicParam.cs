@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections;
-using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.Raws
 {
@@ -33,7 +33,7 @@ namespace ColorzCore.Raws
         {
             if (pointer)
             {
-                value = EAParseConsumer.ConvertToAddress(value);
+                value = EAInterpreter.ConvertToAddress(value);
             }
 
             data.SetBits(Position, Length, value);

@@ -2,9 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ColorzCore.Parser;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.IO
 {
@@ -20,7 +18,7 @@ namespace ColorzCore.IO
 
         private void WriteToASM(int position, byte[] data)
         {
-            string sectionName = $".ea_{EAParseConsumer.ConvertToAddress(position):x}";
+            string sectionName = $".ea_{EAInterpreter.ConvertToAddress(position):x}";
             asmStream.WriteLine($".section {sectionName},\"ax\",%progbits");
             asmStream.WriteLine($".global {sectionName}");
             asmStream.WriteLine($"{sectionName}:");
@@ -32,8 +30,8 @@ namespace ColorzCore.IO
 
         private void WriteToLDS(int position)
         {
-            string sectionName = $".ea_{EAParseConsumer.ConvertToAddress(position):x}";
-            ldsStream.WriteLine($". = 0x{EAParseConsumer.ConvertToAddress(position):x};");
+            string sectionName = $".ea_{EAInterpreter.ConvertToAddress(position):x}";
+            ldsStream.WriteLine($". = 0x{EAInterpreter.ConvertToAddress(position):x};");
             ldsStream.WriteLine($"{sectionName} : {{*.o({sectionName})}}");
         }
 

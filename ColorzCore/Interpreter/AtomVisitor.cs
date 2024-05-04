@@ -1,7 +1,7 @@
 
 using ColorzCore.Parser.AST;
 
-namespace ColorzCore.Parser
+namespace ColorzCore.Interpreter
 {
     public abstract class AtomVisitor
     {

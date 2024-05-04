@@ -1,11 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ColorzCore.Preprocessor.Macros
 {
@@ -38,7 +39,7 @@ namespace ColorzCore.Preprocessor.Macros
             }
             else if (atom?.TryEvaluate(e => parser.Logger.Error(atom.MyLocation, e.Message), EvaluationPhase.Immediate) is int offset)
             {
-                offset = EAParseConsumer.ConvertToOffset(offset);
+                offset = EAInterpreter.ConvertToOffset(offset);
 
                 if (offset >= 0 && offset <= EAOptions.MaximumBinarySize - readLength)
                 {

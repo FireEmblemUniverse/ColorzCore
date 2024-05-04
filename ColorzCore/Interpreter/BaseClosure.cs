@@ -1,4 +1,4 @@
-﻿namespace ColorzCore.Parser
+﻿namespace ColorzCore.Interpreter
 {
     class BaseClosure : Closure
     {

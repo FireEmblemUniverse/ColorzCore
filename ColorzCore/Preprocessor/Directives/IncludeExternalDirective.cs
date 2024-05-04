@@ -8,6 +8,7 @@ using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.IO;
 using System.IO;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.Preprocessor.Directives
 {

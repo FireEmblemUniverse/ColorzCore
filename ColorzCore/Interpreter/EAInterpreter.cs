@@ -3,13 +3,14 @@ using System.Linq;
 using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
+using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Diagnostics;
+using ColorzCore.Interpreter.Diagnostics;
 using ColorzCore.Raws;
 
-namespace ColorzCore.Parser
+namespace ColorzCore.Interpreter
 {
-    public class EAParseConsumer : IParseConsumer
+    public class EAInterpreter : IParseConsumer
     {
         public int CurrentOffset => currentOffset;
 
@@ -25,12 +26,14 @@ namespace ColorzCore.Parser
         private bool offsetInitialized; // false until first ORG, used for diagnostics
         private int currentOffset;
 
-        Logger Logger { get; }
+        public Logger Logger { get; }
 
-        public EAParseConsumer(Logger logger)
+        public EAInterpreter(Logger logger)
         {
-            AllScopes = new List<Closure>() { new BaseClosure() };
-            CurrentScope = GlobalScope = new ImmutableStack<Closure>(AllScopes.First()!, ImmutableStack<Closure>.Nil);
+            Closure headScope = new BaseClosure();
+            AllScopes = new List<Closure>() { headScope };
+            GlobalScope = new ImmutableStack<Closure>(headScope, ImmutableStack<Closure>.Nil);
+            CurrentScope = GlobalScope;
             pastOffsets = new Stack<(int, bool)>();
             protectedRegions = new List<(int, int, Location)>();
             currentOffset = 0;

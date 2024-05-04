@@ -1,8 +1,9 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
+using ColorzCore.Interpreter.Diagnostics;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
-using ColorzCore.Parser.Diagnostics;
 using ColorzCore.Preprocessor;
 using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
@@ -571,7 +572,7 @@ namespace ColorzCore.Parser
                 if (temp[i] is StringNode stringNode && stringNode.IsValidIdentifier())
                 {
                     // TODO: what is this for? can we omit it?
-                    temp[i] = BindIdentifier(stringNode.MyToken);
+                    temp[i] = BindIdentifier(stringNode.SourceToken);
                 }
             }
 
@@ -928,7 +929,7 @@ namespace ColorzCore.Parser
                 }
 
                 if (node.TryEvaluate(e => Logger.Error(node.MyLocation, e.Message),
-                    EvaluationPhase.Early) is int value)
+                    EvaluationPhase.Immediate) is int value)
                 {
                     try
                     {

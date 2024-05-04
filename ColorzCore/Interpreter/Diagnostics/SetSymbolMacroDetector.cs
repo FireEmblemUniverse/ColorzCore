@@ -1,11 +1,12 @@
-
+using System;
 using System.Collections.Generic;
 using ColorzCore.DataTypes;
 using ColorzCore.IO;
+using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
 using ColorzCore.Raws;
 
-namespace ColorzCore.Parser.Diagnostics
+namespace ColorzCore.Interpreter.Diagnostics
 {
     public class SetSymbolMacroDetector : IParseConsumer
     {

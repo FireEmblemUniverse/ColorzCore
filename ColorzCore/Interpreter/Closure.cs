@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ColorzCore.Parser.AST;
 
-namespace ColorzCore.Parser
+namespace ColorzCore.Interpreter
 {
     public class Closure
     {
