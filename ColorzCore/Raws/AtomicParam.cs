@@ -31,7 +31,7 @@ namespace ColorzCore.Raws
 
         public void Set(byte[] data, int value)
         {
-            if (pointer)
+            if (pointer && value != 0)
             {
                 value = EAInterpreter.ConvertToAddress(value);
             }

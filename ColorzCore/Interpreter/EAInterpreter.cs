@@ -46,13 +46,7 @@ namespace ColorzCore.Interpreter
 
         public static int ConvertToAddress(int value)
         {
-            /*
-                NOTE: Offset 0 is always converted to a null address
-                If one wants to instead refer to ROM offset 0 they would want to use the address directly instead.
-                If ROM offset 0 is already address 0 then this is a moot point.
-            */
-
-            if (value > 0 && value < EAOptions.MaximumBinarySize)
+            if (value >= 0 && value < EAOptions.MaximumBinarySize)
             {
                 value += EAOptions.BaseAddress;
             }
