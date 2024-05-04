@@ -395,7 +395,7 @@ namespace ColorzCore.Lexer
                 }
 
                 Location location = new Location(fileName, curLine, 1);
-                foreach (Token t in TokenizeLine(line, location))
+                foreach (Token t in TokenizePhrase(line, location))
                 {
                     yield return t;
                 }
