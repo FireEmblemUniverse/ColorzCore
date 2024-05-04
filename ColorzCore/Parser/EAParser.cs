@@ -51,10 +51,10 @@ namespace ColorzCore.Parser
         public IParseConsumer ParseConsumer { get; }
 
         // TODO: IParseContextProvider or something like that?
-        // could also provide expanded format strings and stuff
         public BindIdentifierFunc BindIdentifier { get; }
+        public StringProcessor StringProcessor { get; }
 
-        public EAParser(Logger log, Dictionary<string, IList<Raw>> raws, IParseConsumer parseConsumer, BindIdentifierFunc bindIdentifier)
+        public EAParser(Logger log, Dictionary<string, IList<Raw>> raws, IParseConsumer parseConsumer, BindIdentifierFunc bindIdentifier, StringProcessor stringProcessor)
         {
             Logger = log;
             Raws = raws;
@@ -64,6 +64,7 @@ namespace ColorzCore.Parser
             DirectiveHandler = new DirectiveHandler();
             ParseConsumer = parseConsumer;
             BindIdentifier = bindIdentifier;
+            StringProcessor = stringProcessor;
         }
 
         public bool IsReservedName(string name)
@@ -403,20 +404,19 @@ namespace ColorzCore.Parser
             Logger.Error(head.Location, PrettyPrintParamsForMessage(parameters));
         }
 
-
         private void ParseStringStatement(Token head, IList<IParamNode> parameters)
         {
-            void HandleStringStatement(Token head, string inputString, string? encodingName)
+            void HandleStringStatement(Token head, StringNode node, string? encodingName)
             {
-                if (encodingName != null && encodingName != "UTF-8")
+                string formattedString = StringProcessor.ExpandUserFormatString(
+                    node.MyLocation, this, node.Value);
+
+                byte[] encodedString = StringProcessor.EncodeString(
+                    head.Location, formattedString, encodingName);
+
+                if (encodedString.Length != 0)
                 {
-                    Logger.Error(head.Location,
-                        $"Custom STRING encoding is not yet supported (requested encoding: `{encodingName}`.");
-                }
-                else
-                {
-                    byte[] utf8Bytes = Encoding.UTF8.GetBytes(inputString);
-                    ParseConsumer.OnData(head.Location, utf8Bytes);
+                    ParseConsumer.OnData(head.Location, encodedString);
                 }
             }
 
@@ -426,7 +426,7 @@ namespace ColorzCore.Parser
             {
                 if (parameters[0] is StringNode firstNode)
                 {
-                    HandleStringStatement(head, firstNode.Value, null);
+                    HandleStringStatement(head, firstNode, null);
                 }
                 else
                 {
@@ -440,7 +440,7 @@ namespace ColorzCore.Parser
                 {
                     if (parameters[1] is StringNode secondNode)
                     {
-                        HandleStringStatement(head, firstNode.Value, secondNode.Value);
+                        HandleStringStatement(head, firstNode, secondNode.Value);
                     }
                     else
                     {
@@ -579,7 +579,7 @@ namespace ColorzCore.Parser
             return temp;
         }
 
-        private IParamNode? ParseParam(MergeableGenerator<Token> tokens)
+        public IParamNode? ParseParam(MergeableGenerator<Token> tokens)
         {
             Token localHead = tokens.Current;
             switch (localHead.Type)
@@ -894,59 +894,9 @@ namespace ColorzCore.Parser
         {
             return string.Join(" ", parameters.Select(parameter => parameter switch
             {
-                StringNode node => ExpandUserFormatString(parameter.MyLocation, node.Value),
+                StringNode node => StringProcessor.ExpandUserFormatString(parameter.MyLocation, this, node.Value),
                 _ => parameter.PrettyPrint(),
             }));
-        }
-
-        private static readonly Regex formatItemRegex = new Regex(@"\{(?<expr>[^:}]+)(?:\:(?<format>[^:}]*))?\}");
-
-        private string ExpandUserFormatString(Location baseLocation, string stringValue)
-        {
-            string UserFormatStringError(Location loc, string message, string details)
-            {
-                Logger.Error(loc, $"An error occurred while expanding format string ({message}).");
-                return $"<{message}: {details}>";
-            }
-
-            return formatItemRegex.Replace(stringValue, match =>
-            {
-                string expr = match.Groups["expr"].Value!;
-                string? format = match.Groups["format"].Value;
-
-                Location itemLocation = baseLocation.OffsetBy(match.Index);
-
-                MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
-                    Tokenizer.TokenizeLine($"{expr} \n", itemLocation));
-
-                tokens.MoveNext();
-
-                IAtomNode? node = this.ParseAtom(tokens);
-
-                if (node == null || tokens.Current.Type != TokenType.NEWLINE)
-                {
-                    return UserFormatStringError(itemLocation, "bad expression", $"'{expr}'");
-                }
-
-                if (node.TryEvaluate(e => Logger.Error(node.MyLocation, e.Message),
-                    EvaluationPhase.Immediate) is int value)
-                {
-                    try
-                    {
-                        // TODO: do we need to raise an error when result == format?
-                        // this happens (I think) when a custom format specifier with no substitution
-                        return value.ToString(format, CultureInfo.InvariantCulture);
-                    }
-                    catch (FormatException e)
-                    {
-                        return UserFormatStringError(node.MyLocation, "bad format specifier", $"'{format}' ({e.Message})");
-                    }
-                }
-                else
-                {
-                    return UserFormatStringError(node.MyLocation, "failed to evaluate expression", $"'{expr}'");
-                }
-            });
         }
     }
 }

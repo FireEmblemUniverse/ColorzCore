@@ -61,7 +61,9 @@ namespace ColorzCore
             // add the interpreter last
             parseConsumers.Add(myInterpreter);
 
-            myParser = new EAParser(logger, allRaws, parseConsumers, myInterpreter.BindIdentifier);
+            StringProcessor stringProcessor = new StringProcessor();
+
+            myParser = new EAParser(logger, allRaws, parseConsumers, myInterpreter.BindIdentifier, stringProcessor);
 
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
 
@@ -83,6 +85,11 @@ namespace ColorzCore
 
             myParser.DirectiveHandler.Directives["include"] = new IncludeDirective() { FileSearcher = includeSearcher };
             myParser.DirectiveHandler.Directives["incbin"] = new IncludeBinaryDirective() { FileSearcher = includeSearcher };
+
+            myParser.DirectiveHandler.Directives["inctbl"] = new IncludeEncodingTableDirective(stringProcessor)
+            {
+                FileSearcher = includeSearcher
+            };
 
             if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.ReadDataMacros) && output is ROM rom)
             {
