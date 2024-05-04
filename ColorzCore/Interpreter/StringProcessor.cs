@@ -18,8 +18,15 @@ namespace ColorzCore.Interpreter
         public IDictionary<string, TblEncoding> TableEncodings { get; } = new Dictionary<string, TblEncoding>();
         public Logger Logger { get; }
 
+        public StringProcessor(Logger logger)
+        {
+            Logger = logger;
+        }
+
         public byte[] EncodeString(Location locationForLogger, string inputString, string? encodingName)
         {
+            encodingName ??= "UTF-8";
+
             switch (encodingName.ToUpperInvariant())
             {
                 case "UTF-8":

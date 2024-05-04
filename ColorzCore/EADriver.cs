@@ -61,7 +61,7 @@ namespace ColorzCore
             // add the interpreter last
             parseConsumers.Add(myInterpreter);
 
-            StringProcessor stringProcessor = new StringProcessor();
+            StringProcessor stringProcessor = new StringProcessor(logger);
 
             myParser = new EAParser(logger, allRaws, parseConsumers, myInterpreter.BindIdentifier, stringProcessor);
 

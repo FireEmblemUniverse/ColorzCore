@@ -120,12 +120,13 @@ TESTS = [
         "ASSERT 1 - 2",
         None),
 
-    # ==================
-    # = UTF8 Statement =
-    # ==================
+    # ====================
+    # = STRING Statement =
+    # ====================
+    # incomplete
 
-    T("UTF8",
-        "ORG 0 ;UTF8 \"Hello World\"",
+    T("STRING Basic",
+        "ORG 0 ; STRING \"Hello World\"",
         b"Hello World"),
 
     # ====================
