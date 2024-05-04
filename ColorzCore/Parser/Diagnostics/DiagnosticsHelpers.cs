@@ -5,7 +5,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
 
-namespace ColorzCore.Parser
+namespace ColorzCore.Parser.Diagnostics
 {
     public static class DiagnosticsHelpers
     {
@@ -208,6 +208,28 @@ namespace ColorzCore.Parser
             ParamType.STRING => "String",
             ParamType.MACRO => "Macro",
             _ => "<internal error: bad ParamType>",
+        };
+
+        // absolute as in "not relative to the value of a symbol"
+        public static bool IsAbsoluteAtom(IAtomNode node) => node switch
+        {
+            IdentifierNode => false,
+
+            OperatorNode operatorNode => operatorNode.OperatorToken.Type switch
+            {
+                // A + B is not absolute if either one is relative, but not both
+                TokenType.ADD_OP => IsAbsoluteAtom(operatorNode.Left) == IsAbsoluteAtom(operatorNode.Right),
+
+                // A - B is not absolute if A is relative and not B
+                TokenType.SUB_OP => IsAbsoluteAtom(operatorNode.Left) || !IsAbsoluteAtom(operatorNode.Right),
+
+                // A ?? B is not absolute if A and B aren't absolute
+                TokenType.UNDEFINED_COALESCE_OP => IsAbsoluteAtom(operatorNode.Left) || IsAbsoluteAtom(operatorNode.Right),
+
+                _ => true,
+            },
+
+            _ => true,
         };
     }
 }

@@ -3,6 +3,7 @@ using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Diagnostics;
 using ColorzCore.Preprocessor;
 using ColorzCore.Preprocessor.Directives;
 using ColorzCore.Preprocessor.Macros;
@@ -14,18 +15,20 @@ using System.Linq;
 
 namespace ColorzCore
 {
-    //Class to excapsulate all steps in EA script interpretation.
+    // Class to excapsulate all steps in EA script interpretation.
+    // TODO: this is just another Program
+    // the name is problematic as EAParseConsumer would really like to be called EAInterpreter
     class EAInterpreter
     {
         private Dictionary<string, IList<Raw>> allRaws;
         private EAParser myParser;
-        private EAParseConsumer myParseConsumer;
+        private EAParseConsumer myInterpreter;
         private string iFile;
         private Stream sin;
         private Logger Logger { get; }
         private IOutput output;
 
-        public EAInterpreter(IOutput output, string game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger logger)
+        public EAInterpreter(IOutput output, string? game, string? rawsFolder, string rawsExtension, Stream sin, string inFileName, Logger logger)
         {
             this.output = output;
 
@@ -47,17 +50,40 @@ namespace ColorzCore
             Logger = logger;
             iFile = inFileName;
 
+            myInterpreter = new EAParseConsumer(logger);
+
+            ParseConsumerChain parseConsumers = new ParseConsumerChain();
+
+            if (EAOptions.IsWarningEnabled(EAOptions.Warnings.SetSymbolMacros))
+            {
+                parseConsumers.Add(new SetSymbolMacroDetector(logger));
+            }
+
+            // add the interpreter last
+            parseConsumers.Add(myInterpreter);
+
+            myParser = new EAParser(logger, allRaws, parseConsumers, myInterpreter.BindIdentifier);
+
+            myParser.Definitions["__COLORZ_CORE__"] = new Definition();
+
+            myParser.Definitions["__COLORZ_CORE_VERSION__"] = new Definition(
+                new Token(TokenType.NUMBER, new Location("builtin", 0, 0), "20240502"));
+
+            if (game != null)
+            {
+                myParser.Definitions[$"_{game}_"] = new Definition();
+            }
+
             IncludeFileSearcher includeSearcher = new IncludeFileSearcher();
             includeSearcher.IncludeDirectories.Add(AppDomain.CurrentDomain.BaseDirectory);
 
             foreach (string path in EAOptions.IncludePaths)
+            {
                 includeSearcher.IncludeDirectories.Add(path);
+            }
 
-            myParseConsumer = new EAParseConsumer(logger);
-            myParser = new EAParser(logger, allRaws, new DirectiveHandler(includeSearcher), myParseConsumer);
-
-            myParser.Definitions[$"_{game}_"] = new Definition();
-            myParser.Definitions["__COLORZ_CORE__"] = new Definition();
+            myParser.DirectiveHandler.Directives["include"] = new IncludeDirective() { FileSearcher = includeSearcher };
+            myParser.DirectiveHandler.Directives["incbin"] = new IncludeBinaryDirective() { FileSearcher = includeSearcher };
 
             if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.ReadDataMacros) && output is ROM rom)
             {
@@ -78,6 +104,8 @@ namespace ColorzCore
 
             if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.IncludeTools))
             {
+                myParser.Definitions["__has_incext"] = new Definition();
+
                 IncludeFileSearcher toolSearcher = new IncludeFileSearcher { AllowRelativeInclude = false };
                 toolSearcher.IncludeDirectories.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools"));
 
@@ -96,6 +124,8 @@ namespace ColorzCore
 
             if (EAOptions.IsExtensionEnabled(EAOptions.Extensions.AddToPool))
             {
+                myParser.Definitions["__has_pool"] = new Definition();
+
                 Pool pool = new Pool();
 
                 myParser.Macros.BuiltInMacros.Add("AddToPool", new AddToPool(pool));
@@ -111,10 +141,12 @@ namespace ColorzCore
 
             foreach ((string name, string body) in EAOptions.PreDefintions)
             {
-                myParser.ParseAll(tokenizer.TokenizeLine($"#define {name} {body}", "cmd", 0));
+                myParser.ParseAll(tokenizer.TokenizeLine($"#define {name} \"{body}\"", "cmd", 0));
             }
 
-            IList<ILineNode> lines = new List<ILineNode>(myParser.ParseAll(tokenizer.Tokenize(sin, iFile)));
+            myParser.ParseAll(tokenizer.Tokenize(sin, iFile));
+
+            IList<ILineNode> lines = myInterpreter.HandleEndOfInput();
 
             /* First pass on AST: Identifier resolution.
              * 
@@ -182,7 +214,7 @@ namespace ColorzCore
 
         public bool WriteNocashSymbols(TextWriter output)
         {
-            for (int i = 0; i < myParseConsumer.AllScopes.Count; i++)
+            for (int i = 0; i < myInterpreter.AllScopes.Count; i++)
             {
                 string manglePrefix = string.Empty;
 
@@ -197,7 +229,7 @@ namespace ColorzCore
                         break;
                 }
 
-                Closure scope = myParseConsumer.AllScopes[i];
+                Closure scope = myInterpreter.AllScopes[i];
 
                 foreach (KeyValuePair<string, int> pair in scope.LocalSymbols())
                 {
@@ -261,14 +293,16 @@ namespace ColorzCore
             };
         }
 
-        private static Dictionary<string, IList<Raw>> SelectRaws(string game, IList<Raw> allRaws)
+        private static Dictionary<string, IList<Raw>> SelectRaws(string? game, IList<Raw> allRaws)
         {
             Dictionary<string, IList<Raw>> result = new Dictionary<string, IList<Raw>>();
 
-            foreach (Raw r in allRaws)
+            foreach (Raw raw in allRaws)
             {
-                if (r.Game.Count == 0 || r.Game.Contains(game))
-                    result.AddTo(r.Name, r);
+                if (raw.Game.Count == 0 || (game != null && raw.Game.Contains(game)))
+                {
+                    result.AddTo(raw.Name, raw);
+                }
             }
 
             return result;

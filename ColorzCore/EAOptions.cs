@@ -26,6 +26,9 @@ namespace ColorzCore
             // warn on expansion of unguarded expression within macro ()
             UnguardedExpressionMacros = 16,
 
+            // warn on macro expanded into "PUSH ; ORG value ; name : ; POP"
+            SetSymbolMacros = 32,
+
             Extra = UnguardedExpressionMacros,
             All = long.MaxValue & ~Extra,
         }

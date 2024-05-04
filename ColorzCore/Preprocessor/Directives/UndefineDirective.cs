@@ -13,7 +13,7 @@ namespace ColorzCore.Preprocessor.Directives
     {
         public bool RequireInclusion => true;
 
-        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens)
         {
             if (tokens.Current.Type == TokenType.NEWLINE)
             {

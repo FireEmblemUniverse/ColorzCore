@@ -10,6 +10,6 @@ namespace ColorzCore.Preprocessor.Macros
     public abstract class BuiltInMacro : IMacro
     {
         public abstract bool ValidNumParams(int num);
-        public abstract IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes);
+        public abstract IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters);
     }
 }

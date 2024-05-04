@@ -26,11 +26,11 @@ namespace ColorzCore.Preprocessor.Directives
          */
         public abstract int? MaxParams { get; }
 
-        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens)
         {
             // Note: Not a ParseParamList because no commas.
             // HACK: #if wants its parameters to be expanded, but other directives (define, ifdef, undef, etc) do not
-            IList<IParamNode> parameters = p.ParsePreprocParamList(tokens, scopes, self.Content == "#if");
+            IList<IParamNode> parameters = p.ParsePreprocParamList(tokens);
 
             if (MinParams <= parameters.Count && (!MaxParams.HasValue || parameters.Count <= MaxParams))
             {

@@ -15,7 +15,7 @@ namespace ColorzCore.Preprocessor.Directives
          * 
          * Return: If a string is returned, it is interpreted as an error.
          */
-        void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes);
+        void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens);
 
         /***
          * Whether requires the parser to be taking in tokens.

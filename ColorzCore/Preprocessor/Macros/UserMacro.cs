@@ -27,7 +27,7 @@ namespace ColorzCore.Preprocessor.Macros
         /***
          *   Precondition: parameters.Count = max(keys(idToParamNum))
          */
-        public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             MacroLocation macroLocation = new MacroLocation(head.Content, head.Location);
 

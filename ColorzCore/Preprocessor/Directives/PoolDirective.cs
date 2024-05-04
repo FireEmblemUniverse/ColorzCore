@@ -34,7 +34,7 @@ namespace ColorzCore.Preprocessor.Directives
 
                 while (!tempGenerator.EOS)
                 {
-                    p.ParseLine(tempGenerator, line.Scope);
+                    p.ParseLine(tempGenerator);
                 }
             }
 

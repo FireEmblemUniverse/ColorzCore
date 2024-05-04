@@ -22,14 +22,14 @@ namespace ColorzCore.Preprocessor.Macros
             this.readLength = readLength;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             // HACK: hack
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(
                 Enumerable.Repeat(new Token(TokenType.NEWLINE, head.Location, "\n"), 1));
             tokens.PrependEnumerator(parameters[0].GetEnumerator());
 
-            IAtomNode? atom = parser.ParseAtom(tokens, scopes, true);
+            IAtomNode? atom = parser.ParseAtom(tokens);
 
             if (tokens.Current.Type != TokenType.NEWLINE)
             {

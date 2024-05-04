@@ -2,6 +2,7 @@
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Diagnostics;
 using ColorzCore.Preprocessor;
 using ColorzCore.Preprocessor.Macros;
 using ColorzCore.Raws;
@@ -44,17 +45,24 @@ namespace ColorzCore.Parser
             }
         }
 
-        public EAParseConsumer ParseConsumer { get; }
+        public delegate IAtomNode BindIdentifierFunc(Token identifierToken);
 
-        public EAParser(Logger log, Dictionary<string, IList<Raw>> raws, DirectiveHandler directiveHandler, EAParseConsumer parseConsumer)
+        public IParseConsumer ParseConsumer { get; }
+
+        // TODO: IParseContextProvider or something like that?
+        // could also provide expanded format strings and stuff
+        public BindIdentifierFunc BindIdentifier { get; }
+
+        public EAParser(Logger log, Dictionary<string, IList<Raw>> raws, IParseConsumer parseConsumer, BindIdentifierFunc bindIdentifier)
         {
             Logger = log;
             Raws = raws;
             Macros = new MacroCollection(this);
             Definitions = new Dictionary<string, Definition>();
             Inclusion = ImmutableStack<bool>.Nil;
-            DirectiveHandler = directiveHandler;
+            DirectiveHandler = new DirectiveHandler();
             ParseConsumer = parseConsumer;
+            BindIdentifier = bindIdentifier;
         }
 
         public bool IsReservedName(string name)
@@ -72,7 +80,7 @@ namespace ColorzCore.Parser
             return !Macros.HasMacro(name, paramNum) && !IsReservedName(name);
         }
 
-        public IList<ILineNode> ParseAll(IEnumerable<Token> tokenStream)
+        public void ParseAll(IEnumerable<Token> tokenStream)
         {
             MergeableGenerator<Token> tokens = new MergeableGenerator<Token>(tokenStream);
             tokens.MoveNext();
@@ -81,11 +89,9 @@ namespace ColorzCore.Parser
             {
                 if (tokens.Current.Type != TokenType.NEWLINE || tokens.MoveNext())
                 {
-                    ParseLine(tokens, ParseConsumer.CurrentScope);
+                    ParseLine(tokens);
                 }
             }
-
-            return ParseConsumer.HandleEndOfInput();
         }
 
         public static readonly HashSet<string> SpecialCodes = new HashSet<string>()
@@ -100,13 +106,13 @@ namespace ColorzCore.Parser
             "PROTECT",
             "ALIGN",
             "FILL",
-            "UTF8",
+            "UTF8", // TODO: remove en favor of generic STRING with .tbl support
             "BASE64",
             // "SECTION", // TODO
             // "DSECTION", // TODO
         };
 
-        private void ParseStatement(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private void ParseStatement(MergeableGenerator<Token> tokens)
         {
             // NOTE: here previously lied en ExpandIdentifier loop
             // though because this is only called from ParseLine after the corresponding check, this is not needed
@@ -135,7 +141,7 @@ namespace ColorzCore.Parser
             IList<IParamNode> parameters = tokens.Current.Type switch
             {
                 TokenType.NEWLINE or TokenType.SEMICOLON => new List<IParamNode>(),
-                _ => ParseParamList(tokens, scopes),
+                _ => ParseParamList(tokens),
             };
 
             string upperCodeIdentifier = head.Content.ToUpperInvariant();
@@ -201,7 +207,7 @@ namespace ColorzCore.Parser
 
         private void ParseAssignment(Token head, string name, MergeableGenerator<Token> tokens)
         {
-            IAtomNode? atom = this.ParseAtom(tokens, ParseConsumer.CurrentScope, true);
+            IAtomNode? atom = this.ParseAtom(tokens);
 
             if (atom != null)
             {
@@ -383,20 +389,17 @@ namespace ColorzCore.Parser
 
         private void ParseMessageStatement(Token head, IList<IParamNode> parameters)
         {
-            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Message(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Message(head.Location, PrettyPrintParamsForMessage(parameters));
         }
 
         private void ParseWarningStatement(Token head, IList<IParamNode> parameters)
         {
-            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Warning(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Warning(head.Location, PrettyPrintParamsForMessage(parameters));
         }
 
         private void ParseErrorStatement(Token head, IList<IParamNode> parameters)
         {
-            ImmutableStack<Closure> scopes = ParseConsumer.CurrentScope;
-            Logger.Error(head.Location, PrettyPrintParamsForMessage(parameters, scopes));
+            Logger.Error(head.Location, PrettyPrintParamsForMessage(parameters));
         }
 
         private void ParseUtf8Statement(Token head, IList<IParamNode> parameters)
@@ -502,18 +505,16 @@ namespace ColorzCore.Parser
             return parameters;
         }
 
-        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandFirstDef = true)
+        private IList<IParamNode> ParseParamList(MergeableGenerator<Token> tokens)
         {
             IList<IParamNode> paramList = new List<IParamNode>();
-            bool first = true;
 
-            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && !tokens.EOS)
+            while (!IsTokenAlwaysPastEndOfStatement(tokens.Current) && !tokens.EOS)
             {
                 Token localHead = tokens.Current;
-                ParseParam(tokens, scopes, expandFirstDef || !first).IfJust(
+                ParseParam(tokens).IfJust(
                     n => paramList.Add(n),
                     () => Logger.Error(localHead.Location, "Expected parameter."));
-                first = false;
             }
 
             if (tokens.Current.Type == TokenType.SEMICOLON)
@@ -524,48 +525,49 @@ namespace ColorzCore.Parser
             return paramList;
         }
 
-        public IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool allowsFirstExpanded)
+        public IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens)
         {
-            IList<IParamNode> temp = ParseParamList(tokens, scopes, allowsFirstExpanded);
+            IList<IParamNode> temp = ParseParamList(tokens);
 
             for (int i = 0; i < temp.Count; i++)
             {
-                if (temp[i].Type == ParamType.STRING && ((StringNode)temp[i]).IsValidIdentifier())
+                if (temp[i] is StringNode stringNode && stringNode.IsValidIdentifier())
                 {
-                    temp[i] = ((StringNode)temp[i]).ToIdentifier(scopes);
+                    // TODO: what is this for? can we omit it?
+                    temp[i] = BindIdentifier(stringNode.SourceToken);
                 }
             }
 
             return temp;
         }
 
-        private IParamNode? ParseParam(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
+        private IParamNode? ParseParam(MergeableGenerator<Token> tokens)
         {
             Token localHead = tokens.Current;
             switch (localHead.Type)
             {
                 case TokenType.OPEN_BRACKET:
-                    return new ListNode(localHead.Location, ParseList(tokens, scopes));
+                    return new ListNode(localHead.Location, ParseList(tokens));
                 case TokenType.STRING:
                     tokens.MoveNext();
                     return new StringNode(localHead);
                 case TokenType.MAYBE_MACRO:
                     //TODO: Move this and the one in ExpandId to a separate ParseMacroNode that may return an Invocation.
-                    if (expandDefs && ExpandIdentifier(tokens, scopes, true))
+                    if (ExpandIdentifier(tokens, true))
                     {
-                        return ParseParam(tokens, scopes);
+                        return ParseParam(tokens);
                     }
                     else
                     {
                         tokens.MoveNext();
                         IList<IList<Token>> param = ParseMacroParamList(tokens);
                         //TODO: Smart errors if trying to redefine a macro with the same num of params.
-                        return new MacroInvocationNode(this, localHead, param, scopes);
+                        return new MacroInvocationNode(this, localHead, param);
                     }
                 case TokenType.IDENTIFIER:
-                    if (expandDefs && ExpandIdentifier(tokens, scopes, true))
+                    if (ExpandIdentifier(tokens, true))
                     {
-                        return ParseParam(tokens, scopes, expandDefs);
+                        return ParseParam(tokens);
                     }
                     else
                     {
@@ -576,16 +578,16 @@ namespace ColorzCore.Parser
                                 return new StringNode(new Token(TokenType.STRING, localHead.Location, localHead.GetSourceLocation().file));
 
                             default:
-                                return this.ParseAtom(tokens, scopes, expandDefs);
+                                return this.ParseAtom(tokens);
                         }
                     }
 
                 default:
-                    return this.ParseAtom(tokens, scopes, expandDefs);
+                    return this.ParseAtom(tokens);
             }
         }
 
-        private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private IList<IAtomNode> ParseList(MergeableGenerator<Token> tokens)
         {
             Token localHead = tokens.Current;
             tokens.MoveNext();
@@ -593,7 +595,7 @@ namespace ColorzCore.Parser
             IList<IAtomNode> atoms = new List<IAtomNode>();
             while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.CLOSE_BRACKET)
             {
-                IAtomNode? res = this.ParseAtom(tokens, scopes);
+                IAtomNode? res = this.ParseAtom(tokens);
                 res.IfJust(
                     n => atoms.Add(n),
                     () => Logger.Error(tokens.Current.Location, "Expected atomic value, got " + tokens.Current.Type + "."));
@@ -614,7 +616,7 @@ namespace ColorzCore.Parser
             return atoms;
         }
 
-        public void ParseLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void ParseLine(MergeableGenerator<Token> tokens)
         {
             if (IsIncluding)
             {
@@ -629,7 +631,7 @@ namespace ColorzCore.Parser
                 {
                     case TokenType.IDENTIFIER:
                     case TokenType.MAYBE_MACRO:
-                        if (ExpandIdentifier(tokens, scopes))
+                        if (ExpandIdentifier(tokens))
                         {
                             // NOTE: we check here if we didn't end up with something that can't be a statement
 
@@ -640,7 +642,7 @@ namespace ColorzCore.Parser
                                 case TokenType.OPEN_BRACE:
                                 case TokenType.PREPROCESSOR_DIRECTIVE:
                                     // recursion!
-                                    ParseLine(tokens, scopes);
+                                    ParseLine(tokens);
                                     return;
 
                                 default:
@@ -654,7 +656,7 @@ namespace ColorzCore.Parser
                         }
                         else
                         {
-                            ParseStatement(tokens, scopes);
+                            ParseStatement(tokens);
                         }
 
                         break;
@@ -670,7 +672,7 @@ namespace ColorzCore.Parser
                         break;
 
                     case TokenType.PREPROCESSOR_DIRECTIVE:
-                        ParsePreprocessor(tokens, scopes);
+                        ParsePreprocessor(tokens);
                         break;
 
                     case TokenType.OPEN_BRACKET:
@@ -710,7 +712,7 @@ namespace ColorzCore.Parser
 
                 if (hasNext)
                 {
-                    ParsePreprocessor(tokens, scopes);
+                    ParsePreprocessor(tokens);
                 }
                 else
                 {
@@ -719,11 +721,11 @@ namespace ColorzCore.Parser
             }
         }
 
-        private void ParsePreprocessor(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        private void ParsePreprocessor(MergeableGenerator<Token> tokens)
         {
             Token head = tokens.Current;
             tokens.MoveNext();
-            DirectiveHandler.HandleDirective(this, head, tokens, scopes);
+            DirectiveHandler.HandleDirective(this, head, tokens);
         }
 
         /***
@@ -731,7 +733,7 @@ namespace ColorzCore.Parser
          *   Postcondition: tokens.Current is fully reduced (i.e. not a macro, and not a definition)
          *   Returns: true iff tokens was actually expanded.
          */
-        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool insideExpression = false)
+        public bool ExpandIdentifier(MergeableGenerator<Token> tokens, bool insideExpression = false)
         {
             // function-like macros
             if (tokens.Current.Type == TokenType.MAYBE_MACRO)
@@ -749,7 +751,7 @@ namespace ColorzCore.Parser
                          * since the attribute is unavailable in .NET Framework (which we still target),
                          * the compiler will still diagnose a nullable dereference if we don't use '!' also */
 
-                        ApplyMacroExpansion(tokens, macro!.ApplyMacro(localHead, parameters, scopes), insideExpression);
+                        ApplyMacroExpansion(tokens, macro!.ApplyMacro(localHead, parameters), insideExpression);
                     }
                     else
                     {
@@ -802,9 +804,9 @@ namespace ColorzCore.Parser
 
         public void IgnoreRestOfStatement(MergeableGenerator<Token> tokens)
         {
-            // TODO: also check for OPEN_BRACE?
-
-            while (tokens.Current.Type != TokenType.NEWLINE && tokens.Current.Type != TokenType.SEMICOLON && tokens.MoveNext()) { }
+            while (!IsTokenAlwaysPastEndOfStatement(tokens.Current) && tokens.MoveNext())
+            {
+            }
 
             if (tokens.Current.Type == TokenType.SEMICOLON)
             {
@@ -825,13 +827,13 @@ namespace ColorzCore.Parser
         /// <param name="tokens">token stream</param>
         /// <param name="scopesForMacros">If non-null, will expand any macros as they are encountered using this scope</param>
         /// <returns>The resulting list of tokens</returns>
-        public IList<Token> GetRestOfLine(MergeableGenerator<Token> tokens, ImmutableStack<Closure>? scopesForMacros)
+        public IList<Token> GetRestOfLine(MergeableGenerator<Token> tokens)
         {
             IList<Token> result = new List<Token>();
 
             while (tokens.Current.Type != TokenType.NEWLINE)
             {
-                if (scopesForMacros == null || !ExpandIdentifier(tokens, scopesForMacros))
+                if (!ExpandIdentifier(tokens))
                 {
                     result.Add(tokens.Current);
                     tokens.MoveNext();
@@ -841,18 +843,27 @@ namespace ColorzCore.Parser
             return result;
         }
 
-        private string PrettyPrintParamsForMessage(IList<IParamNode> parameters, ImmutableStack<Closure> scopes)
+        private static bool IsTokenAlwaysPastEndOfStatement(Token token) => token.Type switch
+        {
+            TokenType.NEWLINE => true,
+            TokenType.SEMICOLON => true,
+            TokenType.OPEN_BRACE => true,
+            TokenType.CLOSE_BRACE => true,
+            _ => false,
+        };
+
+        private string PrettyPrintParamsForMessage(IList<IParamNode> parameters)
         {
             return string.Join(" ", parameters.Select(parameter => parameter switch
             {
-                StringNode node => ExpandUserFormatString(scopes, parameter.MyLocation, node.Value),
+                StringNode node => ExpandUserFormatString(parameter.MyLocation, node.Value),
                 _ => parameter.PrettyPrint(),
             }));
         }
 
         private static readonly Regex formatItemRegex = new Regex(@"\{(?<expr>[^:}]+)(?:\:(?<format>[^:}]*))?\}");
 
-        private string ExpandUserFormatString(ImmutableStack<Closure> scopes, Location baseLocation, string stringValue)
+        private string ExpandUserFormatString(Location baseLocation, string stringValue)
         {
             string UserFormatStringError(Location loc, string message, string details)
             {
@@ -872,7 +883,7 @@ namespace ColorzCore.Parser
 
                 tokens.MoveNext();
 
-                IAtomNode? node = this.ParseAtom(tokens, scopes);
+                IAtomNode? node = this.ParseAtom(tokens);
 
                 if (node == null || tokens.Current.Type != TokenType.NEWLINE)
                 {

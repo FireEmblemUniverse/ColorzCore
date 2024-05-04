@@ -5,17 +5,14 @@ using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
-using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class IfDefinedDirective : SimpleDirective
+    class IfDefinedDirective : IDirective
     {
-        public override int MinParams => 1;
+        // This directive does not inherit SimpleDirective so as to avoid having its parameter expanded
 
-        public override int? MaxParams => 1;
-
-        public override bool RequireInclusion => false;
+        public bool RequireInclusion => false;
 
         public bool Inverted { get; }
 
@@ -24,27 +21,31 @@ namespace ColorzCore.Preprocessor.Directives
             Inverted = invert;
         }
 
-        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens)
         {
-            bool flag = true;
-
-            foreach (IParamNode parameter in parameters)
+            if (tokens.Current.Type != TokenType.IDENTIFIER)
             {
-                string? identifier;
+                p.Logger.Error(self.Location, $"Invalid use of directive '{self.Content}': expected macro name, got {tokens.Current}.");
+                p.IgnoreRestOfLine(tokens);
+            }
+            else
+            {
+                string identifier = tokens.Current.Content;
+                tokens.MoveNext();
 
-                if (parameter.Type == ParamType.ATOM && (identifier = ((IAtomNode)parameter).GetIdentifier()) != null)
+                // here we could parse a potential parameter list/specifier
+
+                bool isDefined = p.Macros.ContainsName(identifier) || p.Definitions.ContainsKey(identifier);
+                bool flag = Inverted ? !isDefined : isDefined;
+
+                p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
+
+                if (tokens.Current.Type != TokenType.NEWLINE)
                 {
-                    // TODO: Built in definitions?
-                    bool isDefined = p.Macros.ContainsName(identifier) || p.Definitions.ContainsKey(identifier);
-                    flag &= Inverted ? !isDefined : isDefined;
-                }
-                else
-                {
-                    p.Logger.Error(parameter.MyLocation, "Definition name must be an identifier.");
+                    p.Logger.Error(self.Location, $"Garbage at the end of directive '{self.Content}' (got {tokens.Current}).");
+                    p.IgnoreRestOfLine(tokens);
                 }
             }
-
-            p.Inclusion = new ImmutableStack<bool>(flag, p.Inclusion);
         }
     }
 }

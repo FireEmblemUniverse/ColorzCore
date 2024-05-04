@@ -11,6 +11,6 @@ namespace ColorzCore.Preprocessor.Macros
 {
     public interface IMacro
     {
-        IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes);
+        IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters);
     }
 }

@@ -9,12 +9,10 @@ namespace ColorzCore.Parser
     {
         public struct PooledLine
         {
-            public ImmutableStack<Closure> Scope { get; private set; }
             public List<Token> Tokens { get; private set; }
 
-            public PooledLine(ImmutableStack<Closure> scope, List<Token> tokens)
+            public PooledLine(List<Token> tokens)
             {
-                Scope = scope;
                 Tokens = tokens;
             }
         }

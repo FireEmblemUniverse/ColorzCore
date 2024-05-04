@@ -14,7 +14,7 @@ namespace ColorzCore.Preprocessor.Directives
     {
         public bool RequireInclusion => true;
 
-        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens)
         {
             Token nextToken = tokens.Current;
             IList<string>? parameters;
@@ -41,7 +41,7 @@ namespace ColorzCore.Preprocessor.Directives
                     return;
             }
 
-            IList<Token>? macroBody = ExpandMacroBody(p, p.GetRestOfLine(tokens, scopes));
+            IList<Token>? macroBody = ExpandMacroBody(p, p.GetRestOfLine(tokens));
 
             if (parameters != null)
             {

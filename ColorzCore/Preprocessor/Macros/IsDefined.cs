@@ -15,7 +15,7 @@ namespace ColorzCore.Preprocessor.Macros
             ParentParser = parent;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             if (parameters[0].Count != 1)
             {

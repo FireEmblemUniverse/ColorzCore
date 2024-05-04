@@ -21,6 +21,11 @@ namespace ColorzCore.Preprocessor
             replacement = null;
         }
 
+        public Definition(Token token)
+        {
+            replacement = new List<Token> { token };
+        }
+
         public Definition(IList<Token> defn)
         {
             replacement = defn;

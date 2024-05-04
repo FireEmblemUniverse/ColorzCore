@@ -101,7 +101,7 @@ namespace ColorzCore.Parser.AST
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             /* undefined-coalescing operator is special because
-             * 1. it should only be evaluated at final evaluation.
+             * 1. it should not be evaluated early.
              * 2. it is legal for its left operand to fail evaluation. */
             if (OperatorToken.Type == TokenType.UNDEFINED_COALESCE_OP)
             {
@@ -109,17 +109,12 @@ namespace ColorzCore.Parser.AST
 
                 switch (evaluationPhase)
                 {
-                    case EvaluationPhase.Immediate:
-                        handler(new Exception("Invalid use of '??'."));
-                        return null;
                     case EvaluationPhase.Early:
-                        /* NOTE: you'd think one could optimize this by reducing this if left can be evaluated early
-                         * but that would allow simplifying expressions even in contexts where '??' makes no sense
-                         * (for example: 'ORG SomePossiblyUndefinedLabel ?? SomeOtherLabel')
-                         * I don't think that's desirable */
+                        /* NOTE: maybe one could optimize this by reducing this if left can be evaluated early? */
                         handler(new Exception("The value of a '??' expression cannot be resolved early."));
                         return null;
-                    case EvaluationPhase.Final:
+
+                    default:
                         return TryCoalesceUndefined(handler);
                 }
             }

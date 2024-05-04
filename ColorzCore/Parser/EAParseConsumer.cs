@@ -20,7 +20,7 @@ namespace ColorzCore.Parser
         private readonly Stack<(int, bool)> pastOffsets; // currentOffset, offsetInitialized
         private readonly IList<(int, int, Location)> protectedRegions;
 
-        private bool diagnosedOverflow; // true until first overflow diagnostic.
+        private bool diagnosedOverflow; // false until first overflow diagnostic.
         private bool offsetInitialized; // false until first ORG, used for diagnostics
         private int currentOffset;
 
@@ -33,7 +33,7 @@ namespace ColorzCore.Parser
             pastOffsets = new Stack<(int, bool)>();
             protectedRegions = new List<(int, int, Location)>();
             currentOffset = 0;
-            diagnosedOverflow = true;
+            diagnosedOverflow = false;
             offsetInitialized = false;
             Logger = logger;
         }
@@ -64,6 +64,15 @@ namespace ColorzCore.Parser
             }
 
             return value;
+        }
+
+        public IAtomNode BindIdentifier(Token identifierToken)
+        {
+            return identifierToken.Content.ToUpperInvariant() switch
+            {
+                "CURRENTOFFSET" => new NumberNode(identifierToken, EAOptions.BaseAddress + CurrentOffset),
+                _ => new IdentifierNode(identifierToken, CurrentScope),
+            };
         }
 
         // Helper method for statement handlers

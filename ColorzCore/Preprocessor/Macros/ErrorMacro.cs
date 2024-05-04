@@ -23,7 +23,7 @@ namespace ColorzCore.Preprocessor.Macros
             this.validateNumParamsIndirect = validateNumParamsIndirect;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             parser.Logger.Error(head.Location, message);
             yield return new Token(TokenType.NUMBER, head.Location, "0");

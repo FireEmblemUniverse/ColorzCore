@@ -21,15 +21,13 @@ namespace ColorzCore.Parser.AST
 
         private readonly EAParser p;
         private readonly Token invokeToken;
-        private readonly ImmutableStack<Closure> scope;
         public IList<IList<Token>> Parameters { get; }
 
-        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters)
         {
             this.p = p;
-            this.invokeToken = invokeTok;
-            this.Parameters = parameters;
-            this.scope = scopes;
+            invokeToken = invokeTok;
+            Parameters = parameters;
         }
 
         public ParamType Type => ParamType.MACRO;
@@ -54,7 +52,7 @@ namespace ColorzCore.Parser.AST
 
         public IEnumerable<Token> ExpandMacro()
         {
-            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters, scope);
+            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters);
         }
 
         public Either<int, string> TryEvaluate()

@@ -3,6 +3,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Diagnostics;
 
 namespace ColorzCore.Parser
 {
@@ -33,7 +34,7 @@ namespace ColorzCore.Parser
 
         public static bool IsInfixOperator(Token token) => precedences.ContainsKey(token.Type);
 
-        public static IAtomNode? ParseAtom(this EAParser self, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes, bool expandDefs = true)
+        public static IAtomNode? ParseAtom(this EAParser self, MergeableGenerator<Token> tokens)
         {
             //Use Shift Reduce Parsing
             Token localHead = tokens.Current;
@@ -96,7 +97,7 @@ namespace ColorzCore.Parser
                         case TokenType.OPEN_PAREN:
                             {
                                 tokens.MoveNext();
-                                IAtomNode? interior = self.ParseAtom(tokens, scopes);
+                                IAtomNode? interior = self.ParseAtom(tokens);
                                 if (tokens.Current.Type != TokenType.CLOSE_PAREN)
                                 {
                                     self.Logger.Error(tokens.Current.Location, "Unmatched open parenthesis (currently at " + tokens.Current.Type + ").");
@@ -120,7 +121,7 @@ namespace ColorzCore.Parser
                             {
                                 //Assume unary negation.
                                 tokens.MoveNext();
-                                IAtomNode? interior = self.ParseAtom(tokens, scopes);
+                                IAtomNode? interior = self.ParseAtom(tokens);
                                 if (interior == null)
                                 {
                                     self.Logger.Error(lookAhead.Location, "Expected expression after unary operator.");
@@ -164,22 +165,21 @@ namespace ColorzCore.Parser
                     switch (lookAhead.Type)
                     {
                         case TokenType.IDENTIFIER:
-                            if (expandDefs && self.ExpandIdentifier(tokens, scopes, true))
+                            if (self.ExpandIdentifier(tokens, true))
                             {
                                 continue;
                             }
 
                             grammarSymbols.Push(new Left<IAtomNode, Token>(lookAhead.Content.ToUpperInvariant() switch
                             {
-                                "CURRENTOFFSET" => new NumberNode(lookAhead, self.ParseConsumer.CurrentOffset),
                                 "__LINE__" => new NumberNode(lookAhead, lookAhead.GetSourceLocation().line),
-                                _ => new IdentifierNode(lookAhead, scopes),
+                                _ => self.BindIdentifier(lookAhead),
                             }));
 
                             break;
 
                         case TokenType.MAYBE_MACRO:
-                            self.ExpandIdentifier(tokens, scopes, true);
+                            self.ExpandIdentifier(tokens, true);
                             continue;
                         case TokenType.NUMBER:
                             grammarSymbols.Push(new Left<IAtomNode, Token>(new NumberNode(lookAhead)));

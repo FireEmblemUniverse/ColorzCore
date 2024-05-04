@@ -2,7 +2,6 @@
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
-using ColorzCore.Parser.AST;
 using ColorzCore.Preprocessor.Directives;
 using System;
 using System.Collections.Generic;
@@ -12,17 +11,14 @@ namespace ColorzCore.Preprocessor
 {
     public class DirectiveHandler
     {
+        // TODO: do we need this class? Could we not just have this part of EAParser?
+
         public Dictionary<string, IDirective> Directives { get; }
 
-        public DirectiveHandler(IncludeFileSearcher includeSearcher)
+        public DirectiveHandler()
         {
-            // TODO: move out from this directives that need external context
-            // (already done for pool, but could be done for includes as well)
-
             Directives = new Dictionary<string, IDirective>
             {
-                { "include", new IncludeDirective { FileSearcher = includeSearcher } },
-                { "incbin", new IncludeBinaryDirective { FileSearcher = includeSearcher } },
                 { "ifdef", new IfDefinedDirective(false) },
                 { "ifndef", new IfDefinedDirective(true) },
                 { "if", new IfDirective() },
@@ -33,7 +29,7 @@ namespace ColorzCore.Preprocessor
             };
         }
 
-        public void HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens, ImmutableStack<Closure> scopes)
+        public void HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens)
         {
             string directiveName = directive.Content.Substring(1);
 
@@ -41,7 +37,7 @@ namespace ColorzCore.Preprocessor
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {
-                    toExec.Execute(p, directive, tokens, scopes);
+                    toExec.Execute(p, directive, tokens);
                 }
             }
             else

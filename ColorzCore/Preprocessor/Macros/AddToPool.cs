@@ -21,7 +21,7 @@ namespace ColorzCore.Preprocessor.Macros
             Pool = pool;
         }
 
-        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
             List<Token> line = new List<Token>(6 + parameters[0].Count);
 
@@ -45,7 +45,7 @@ namespace ColorzCore.Preprocessor.Macros
             line.AddRange(parameters[0]);
             line.Add(new Token(TokenType.NEWLINE, head.Location, "\n"));
 
-            Pool.Lines.Add(new Pool.PooledLine(scopes, line));
+            Pool.Lines.Add(new Pool.PooledLine(line));
 
             yield return new Token(TokenType.IDENTIFIER, head.Location, labelName);
         }
