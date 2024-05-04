@@ -4,6 +4,7 @@ using ColorzCore.DataTypes;
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
+using ColorzCore.Parser.Diagnostics;
 using ColorzCore.Raws;
 
 namespace ColorzCore.Parser
@@ -203,6 +204,7 @@ namespace ColorzCore.Parser
             }
 
             bool isBoolean = IsBooleanResultHelper(node);
+            bool isSubtractionOfCurrentOffset = DiagnosticsHelpers.IsSubtractionOfCurrentOffset(node);
 
             if (EvaluteAtom(node) is int result)
             {
@@ -212,7 +214,23 @@ namespace ColorzCore.Parser
                 }
                 else if (!isBoolean && result < 0)
                 {
-                    Logger.Error(location, $"Assertion failed with value {result}.");
+                    /* users may do something like ASSERT UpperBound - CURRENTOFFSET
+                     * If UpperBound is an offset rather than an address, this will now certainly fail.
+                     * as CURRENTOFFSET was changed to be expanded into an address rather than a ROM offset.
+                     * we do not want this to break too hard so we try to emit a warning rather than an error. */
+
+                    if (isSubtractionOfCurrentOffset && result + EAOptions.BaseAddress >= 0)
+                    {
+                        Logger.Warning(location,
+                            $"Assertion would fail with value {result} if CURRENTOFFSET is treated as an address.\n"
+                          + "ColorzCore was recently changed to work in terms of addresses rather that ROM offsets.\n"
+                          + "Consider changing the left operand to an address, or if you need to keep compatibility,\n"
+                          + "You can also bitwise AND CURRENTOFFSET to keep it within the desired bounds.");
+                    }
+                    else
+                    {
+                        Logger.Error(location, $"Assertion failed with value {result}.");
+                    }
                 }
             }
             else

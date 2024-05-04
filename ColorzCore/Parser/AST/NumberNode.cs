@@ -10,24 +10,27 @@ namespace ColorzCore.Parser.AST
 {
     public class NumberNode : AtomNodeKernel
     {
+        public Token SourceToken { get; }
         public int Value { get; }
 
-        public override Location MyLocation { get; }
-        public override int Precedence { get { return 11; } }
+        public override Location MyLocation => SourceToken.Location;
+        public override int Precedence => int.MaxValue;
 
         public NumberNode(Token num)
         {
-            MyLocation = num.Location;
+            SourceToken = num;
             Value = num.Content.ToInt();
         }
+
         public NumberNode(Token text, int value)
         {
-            MyLocation = text.Location;
+            SourceToken = text;
             Value = value;
         }
+
         public NumberNode(Location loc, int value)
         {
-            MyLocation = loc;
+            SourceToken = new Token(TokenType.NUMBER, loc, value.ToString());
             Value = value;
         }
 

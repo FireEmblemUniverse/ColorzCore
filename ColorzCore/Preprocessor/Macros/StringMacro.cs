@@ -12,8 +12,15 @@ namespace ColorzCore.Preprocessor.Macros
     {
         public override IEnumerable<Token> ApplyMacro(Token head, IList<IList<Token>> parameters)
         {
-            yield return new Token(TokenType.IDENTIFIER, head.Location, "UTF8");
-            yield return new Token(TokenType.STRING, parameters[0][0].Location, parameters[0][0].Content);
+            MacroLocation macroLocation = new MacroLocation(head.Content, head.Location);
+
+            Token token = parameters[0][0];
+            Location location = token.Location.MacroClone(macroLocation);
+
+            yield return new Token(TokenType.IDENTIFIER, location, "STRING");
+            yield return new Token(TokenType.STRING, location, token.Content);
+            yield return new Token(TokenType.STRING, location, "UTF-8");
+            yield return new Token(TokenType.SEMICOLON, location, ";");
         }
 
         public override bool ValidNumParams(int num)

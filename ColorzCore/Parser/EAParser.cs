@@ -106,7 +106,7 @@ namespace ColorzCore.Parser
             "PROTECT",
             "ALIGN",
             "FILL",
-            "UTF8", // TODO: remove en favor of generic STRING with .tbl support
+            "STRING",
             "BASE64",
             // "SECTION", // TODO
             // "DSECTION", // TODO
@@ -190,8 +190,8 @@ namespace ColorzCore.Parser
                         ParseErrorStatement(head, parameters);
                         break;
 
-                    case "UTF8":
-                        ParseUtf8Statement(head, parameters);
+                    case "STRING":
+                        ParseStringStatement(head, parameters);
                         break;
 
                     case "BASE64":
@@ -402,25 +402,62 @@ namespace ColorzCore.Parser
             Logger.Error(head.Location, PrettyPrintParamsForMessage(parameters));
         }
 
-        private void ParseUtf8Statement(Token head, IList<IParamNode> parameters)
-        {
-            using MemoryStream memoryStream = new MemoryStream();
 
-            foreach (IParamNode parameter in parameters)
+        private void ParseStringStatement(Token head, IList<IParamNode> parameters)
+        {
+            void HandleStringStatement(Token head, string inputString, string? encodingName)
             {
-                if (parameter is StringNode node)
+                if (encodingName != null && encodingName != "UTF-8")
                 {
-                    byte[] utf8Bytes = Encoding.UTF8.GetBytes(node.Value);
-                    memoryStream.Write(utf8Bytes, 0, utf8Bytes.Length);
+                    Logger.Error(head.Location,
+                        $"Custom STRING encoding is not yet supported (requested encoding: `{encodingName}`.");
                 }
                 else
                 {
-                    Logger.Error(head.Location, $"expects a String (got {DiagnosticsHelpers.PrettyParamType(parameter.Type)}).");
+                    byte[] utf8Bytes = Encoding.UTF8.GetBytes(inputString);
+                    ParseConsumer.OnData(head.Location, utf8Bytes);
                 }
             }
 
-            byte[] bytes = memoryStream.ToArray();
-            ParseConsumer.OnData(head.Location, bytes);
+            // NOTE: this is copy-pasted from ParseStatementTwoParam but adjusted for string param
+
+            if (parameters.Count == 1)
+            {
+                if (parameters[0] is StringNode firstNode)
+                {
+                    HandleStringStatement(head, firstNode.Value, null);
+                }
+                else
+                {
+                    Logger.Error(parameters[0].MyLocation,
+                        $"STRING expects a String (got {DiagnosticsHelpers.PrettyParamType(parameters[0].Type)}).");
+                }
+            }
+            else if (parameters.Count == 2)
+            {
+                if (parameters[0] is StringNode firstNode)
+                {
+                    if (parameters[1] is StringNode secondNode)
+                    {
+                        HandleStringStatement(head, firstNode.Value, secondNode.Value);
+                    }
+                    else
+                    {
+                        Logger.Error(parameters[1].MyLocation,
+                            $"STRING expects a String (got {DiagnosticsHelpers.PrettyParamType(parameters[1].Type)}).");
+                    }
+                }
+                else
+                {
+                    Logger.Error(parameters[0].MyLocation,
+                        $"STRING expects a String (got {DiagnosticsHelpers.PrettyParamType(parameters[0].Type)}).");
+                }
+            }
+            else
+            {
+                Logger.Error(head.Location,
+                    $"A STRING statement expects 1 to 2 parameters, got {parameters.Count}.");
+            }
         }
 
         private void ParseBase64Statement(Token head, IList<IParamNode> parameters)
@@ -534,7 +571,7 @@ namespace ColorzCore.Parser
                 if (temp[i] is StringNode stringNode && stringNode.IsValidIdentifier())
                 {
                     // TODO: what is this for? can we omit it?
-                    temp[i] = BindIdentifier(stringNode.SourceToken);
+                    temp[i] = BindIdentifier(stringNode.MyToken);
                 }
             }
 

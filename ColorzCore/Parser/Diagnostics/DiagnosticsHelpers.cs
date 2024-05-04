@@ -211,6 +211,7 @@ namespace ColorzCore.Parser.Diagnostics
         };
 
         // absolute as in "not relative to the value of a symbol"
+        // NOTE: currently unused (I considered using this for SetSymbol detection)
         public static bool IsAbsoluteAtom(IAtomNode node) => node switch
         {
             IdentifierNode => false,
@@ -231,5 +232,20 @@ namespace ColorzCore.Parser.Diagnostics
 
             _ => true,
         };
+
+        public static bool IsSubtractionOfCurrentOffset(IAtomNode node)
+        {
+            if (node is OperatorNode operatorNode && operatorNode.OperatorToken.Type == TokenType.SUB_OP)
+            {
+                // the "CURRENTOFFSET" node is a number node whose source token is an identifier
+                if (operatorNode.Right is NumberNode numberNode)
+                {
+                    Token token = numberNode.SourceToken;
+                    return token.Type == TokenType.IDENTIFIER && token.Content.ToUpperInvariant() == "CURRENTOFFSET";
+                }
+            }
+
+            return false;
+        }
     }
 }
