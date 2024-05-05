@@ -13,13 +13,7 @@ namespace ColorzCore.Parser.AST
 
         public ParamType Type => ParamType.ATOM;
 
-        public virtual string? GetIdentifier()
-        {
-            return null;
-        }
-
         public abstract string PrettyPrint();
-        public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
         public abstract int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase);
@@ -27,11 +21,6 @@ namespace ColorzCore.Parser.AST
         public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             return this.Simplify(handler, evaluationPhase);
-        }
-
-        public IAtomNode? AsAtom()
-        {
-            return this;
         }
     }
 }

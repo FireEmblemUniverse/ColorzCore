@@ -12,8 +12,6 @@ namespace ColorzCore.Parser.AST
 {
     public class StringNode : IParamNode
     {
-        public static readonly Regex idRegex = new Regex("^([a-zA-Z_][a-zA-Z0-9_]*)$");
-
         public Token SourceToken { get; }
 
         public Location MyLocation => SourceToken.Location;
@@ -36,14 +34,6 @@ namespace ColorzCore.Parser.AST
             return $"\"{Value}\"";
         }
 
-        public IEnumerable<Token> ToTokens() { yield return SourceToken; }
-
-        public bool IsValidIdentifier()
-        {
-            return idRegex.IsMatch(Value);
-        }
-
-        public IAtomNode? AsAtom() => null;
         public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase) => this;
     }
 }

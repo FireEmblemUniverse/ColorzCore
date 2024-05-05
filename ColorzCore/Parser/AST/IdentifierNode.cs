@@ -26,11 +26,24 @@ namespace ColorzCore.Parser.AST
         {
             if (boundScope != null)
             {
-                for (ImmutableStack<Closure> it = boundScope; !it.IsEmpty; it = it.Tail)
+                if (evaluationPhase == EvaluationPhase.Early)
                 {
-                    if (it.Head.HasLocalSymbol(IdentifierToken.Content))
+                    /* We only check the immediate scope.
+                     * As an outer scope symbol may get shadowed by an upcoming inner scope symbol. */
+
+                    if (boundScope.Head.HasLocalSymbol(IdentifierToken.Content))
                     {
-                        return it.Head.GetSymbol(IdentifierToken.Content, evaluationPhase);
+                        return boundScope.Head.GetSymbol(IdentifierToken.Content, evaluationPhase);
+                    }
+                }
+                else
+                {
+                    for (ImmutableStack<Closure> it = boundScope; !it.IsEmpty; it = it.Tail)
+                    {
+                        if (it.Head.HasLocalSymbol(IdentifierToken.Content))
+                        {
+                            return it.Head.GetSymbol(IdentifierToken.Content, evaluationPhase);
+                        }
                     }
                 }
             }
@@ -56,11 +69,6 @@ namespace ColorzCore.Parser.AST
             }
         }
 
-        public override string? GetIdentifier()
-        {
-            return IdentifierToken.Content;
-        }
-
         public override string PrettyPrint()
         {
             try
@@ -80,11 +88,6 @@ namespace ColorzCore.Parser.AST
         public override string ToString()
         {
             return IdentifierToken.Content;
-        }
-
-        public override IEnumerable<Token> ToTokens()
-        {
-            yield return IdentifierToken;
         }
 
         // TODO: move this outside of this class

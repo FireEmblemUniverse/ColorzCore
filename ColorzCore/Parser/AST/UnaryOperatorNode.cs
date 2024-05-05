@@ -21,7 +21,7 @@ namespace ColorzCore.Parser.AST
             Inner = inside;
         }
 
-        public override int Precedence => 11;
+        public override int Precedence => int.MaxValue;
         public override Location MyLocation => OperatorToken.Location;
 
         public string OperatorString => OperatorToken.Type switch
@@ -35,13 +35,6 @@ namespace ColorzCore.Parser.AST
         public override string PrettyPrint()
         {
             return OperatorString + Inner.PrettyPrint();
-        }
-
-        public override IEnumerable<Token> ToTokens()
-        {
-            yield return OperatorToken;
-            foreach (Token t in Inner.ToTokens())
-                yield return t;
         }
 
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)

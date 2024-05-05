@@ -11,8 +11,6 @@ namespace ColorzCore.Parser.AST
     {
         //TODO: Simplify() partial evaluation as much as is defined, to save on memory space.
         int Precedence { get; }
-        string? GetIdentifier();
-        IEnumerable<Token> ToTokens();
         int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase); //Simplifies the AST as much as possible.
     }
 

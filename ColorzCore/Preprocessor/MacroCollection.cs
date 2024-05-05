@@ -22,8 +22,6 @@ namespace ColorzCore.Preprocessor
             {
                 { "String", new StringMacro() },
                 { "IsDefined", new IsDefined(parent) },
-                { "IsSymbolDefined", new IsSymbolDefined() },
-                { "IsLabelDefined", new IsSymbolDefined() }, // alias
             };
         }
 

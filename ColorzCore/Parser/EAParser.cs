@@ -563,13 +563,20 @@ namespace ColorzCore.Parser
             return paramList;
         }
 
+        private static readonly Regex idRegex = new Regex("^([a-zA-Z_][a-zA-Z0-9_]*)$");
+
         public IList<IParamNode> ParsePreprocParamList(MergeableGenerator<Token> tokens)
         {
+            static bool IsValidIdentifier(string value)
+            {
+                return idRegex.IsMatch(value);
+            }
+
             IList<IParamNode> temp = ParseParamList(tokens);
 
             for (int i = 0; i < temp.Count; i++)
             {
-                if (temp[i] is StringNode stringNode && stringNode.IsValidIdentifier())
+                if (temp[i] is StringNode stringNode && IsValidIdentifier(stringNode.Value))
                 {
                     // TODO: what is this for? can we omit it?
                     temp[i] = BindIdentifier(stringNode.SourceToken);

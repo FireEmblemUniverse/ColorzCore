@@ -54,19 +54,6 @@ namespace ColorzCore.Parser.AST
             return $"({Left.PrettyPrint()} {OperatorString} {Right.PrettyPrint()})";
         }
 
-        public override IEnumerable<Token> ToTokens()
-        {
-            foreach (Token t in Left.ToTokens())
-            {
-                yield return t;
-            }
-            yield return OperatorToken;
-            foreach (Token t in Right.ToTokens())
-            {
-                yield return t;
-            }
-        }
-
         private int? TryCoalesceUndefined(Action<Exception> handler)
         {
             List<Exception>? leftExceptions = null;

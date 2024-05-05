@@ -34,7 +34,7 @@ namespace ColorzCore.Interpreter.Diagnostics
         private void AppendString(bool strong, string value)
         {
             // HACK: on Windows, ANSI terminal escape codes don't (always?) work
-            if (strong && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (strong && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !EAOptions.MonochromeLog)
             {
                 stringBuilder.Append("\x1B[1;37m");
                 stringBuilder.Append(value);
@@ -72,7 +72,7 @@ namespace ColorzCore.Interpreter.Diagnostics
 
         protected override void VisitNode(IdentifierNode node)
         {
-            AppendString(emphasisPredicate(node.MyLocation), node.GetIdentifier()!);
+            AppendString(emphasisPredicate(node.MyLocation), node.IdentifierToken.Content);
         }
 
         protected override void VisitNode(NumberNode node)

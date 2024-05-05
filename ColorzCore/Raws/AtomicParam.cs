@@ -24,9 +24,10 @@ namespace ColorzCore.Raws
             pointer = isPointer;
         }
 
+        // Precondition: input is an IAtomNode
         public void Set(byte[] data, IParamNode input)
         {
-            Set(data, input.AsAtom()!.CoerceInt());
+            Set(data, (input as IAtomNode)!.CoerceInt());
         }
 
         public void Set(byte[] data, int value)

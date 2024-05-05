@@ -18,18 +18,23 @@ namespace ColorzCore
             ReDefine = 2,
 
             // warn on write before ORG
+            // NOTE: currently no way to disable
             UninitializedOffset = 4,
 
             // warn on unintuitive macro expansions (#define A 1 + 2 ... BYTE A * 2 )
             UnintuitiveExpressionMacros = 8,
 
-            // warn on expansion of unguarded expression within macro ()
+            // warn on expansion of unguarded expression within macro
             UnguardedExpressionMacros = 16,
 
             // warn on macro expanded into "PUSH ; ORG value ; name : ; POP"
+            // NOTE: currently no way to disable
             SetSymbolMacros = 32,
 
-            Extra = UnguardedExpressionMacros,
+            // warn on use of legacy features that were superceded (such as the String macro)
+            LegacyFeatures = 64,
+
+            Extra = UnguardedExpressionMacros | LegacyFeatures,
             All = long.MaxValue & ~Extra,
         }
 
@@ -47,8 +52,8 @@ namespace ColorzCore
             // enable AddToPool and #pool
             AddToPool = 4,
 
+            Extra = All,
             All = long.MaxValue,
-            Default = IncludeTools | AddToPool,
         }
 
         public static bool WarningsAreErrors { get; set; }
@@ -57,6 +62,8 @@ namespace ColorzCore
         public static bool MonochromeLog { get; set; }
         public static bool BenchmarkBuildTimes { get; set; }
         public static bool ProduceNocashSym { get; set; }
+
+        // NOTE: currently this is not exposed to users
         public static bool TranslateBackslashesInPaths { get; set; } = true;
 
         public static int BaseAddress { get; set; } = 0x8000000;
@@ -67,7 +74,9 @@ namespace ColorzCore
         public static List<(string, string)> PreDefintions { get; } = new List<(string, string)>();
 
         public static Warnings EnabledWarnings { get; set; } = Warnings.All;
-        public static Extensions EnabledExtensions { get; set; } = Extensions.Default;
+
+        // NOTE: currently this is not exposed to users
+        public static Extensions EnabledExtensions { get; set; } = Extensions.All;
 
         public static bool IsWarningEnabled(Warnings warning) => EnabledWarnings.HasFlag(warning);
         public static bool IsExtensionEnabled(Extensions extension) => EnabledExtensions.HasFlag(extension);

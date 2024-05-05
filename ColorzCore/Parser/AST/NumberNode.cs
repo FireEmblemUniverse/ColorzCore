@@ -33,11 +33,6 @@ namespace ColorzCore.Parser.AST
             Value = value;
         }
 
-        public override IEnumerable<Token> ToTokens()
-        {
-            yield return new Token(TokenType.NUMBER, MyLocation, Value.ToString());
-        }
-
         public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             return Value;

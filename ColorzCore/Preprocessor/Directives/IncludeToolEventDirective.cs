@@ -45,7 +45,11 @@ namespace ColorzCore.Preprocessor.Directives
             StringBuilder argumentBuilder = new StringBuilder();
             for (int i = 1; i < parameters.Count; i++)
             {
-                parameters[i].AsAtom().IfJust((IAtomNode n) => { parameters[i] = n.Simplify(EvaluationPhase.Early); });
+                if (parameters[i] is IAtomNode atom)
+                {
+                    parameters[i] = atom.Simplify(EvaluationPhase.Early);
+                }
+
                 argumentBuilder.Append(parameters[i].PrettyPrint());
                 argumentBuilder.Append(' ');
             }

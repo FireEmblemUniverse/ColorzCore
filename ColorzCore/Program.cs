@@ -16,13 +16,9 @@ namespace ColorzCore
             { "unintuitive-expression-macros" , EAOptions.Warnings.UnintuitiveExpressionMacros },
             { "unguarded-expression-macros", EAOptions.Warnings.UnguardedExpressionMacros },
             { "redefine", EAOptions.Warnings.ReDefine },
+            { "legacy", EAOptions.Warnings.LegacyFeatures },
             { "all", EAOptions.Warnings.All },
             { "extra", EAOptions.Warnings.Extra },
-        };
-
-        private static readonly IDictionary<string, EAOptions.Extensions> extensionNames = new Dictionary<string, EAOptions.Extensions>()
-        {
-            { "read-data-macros", EAOptions.Extensions.ReadDataMacros }
         };
 
         private static readonly string[] helpstringarr = {
@@ -83,9 +79,6 @@ namespace ColorzCore
             "   Sets the maximum size of the binary. Defaults to 0x02000000.",
             "-romoffset:<number>",
             "   Compatibility alias for --base-address:<number>",
-            "--extensions:[no-]<name>:...",
-            "   Enable or disable extensions. By default, no extension is enabled.",
-            "   Possible values: " + string.Join(", ", extensionNames.Keys),
             "-h|--help",
             "   Display this message and exit.",
             ""
@@ -297,44 +290,6 @@ namespace ColorzCore
                                     else
                                     {
                                         Console.Error.WriteLine($"Unrecognized warning: {name}");
-                                    }
-                                }
-                            }
-
-                            break;
-
-                        case "--extensions":
-                            if (flag.Length == 1)
-                            {
-                                EAOptions.EnabledExtensions |= EAOptions.Extensions.All;
-                            }
-                            else
-                            {
-                                foreach (string extension in flag[1].Split(':'))
-                                {
-                                    string name = extension;
-                                    bool invert = false;
-
-                                    if (name.StartsWith("no-"))
-                                    {
-                                        name = name.Substring(3);
-                                        invert = true;
-                                    }
-
-                                    if (extensionNames.TryGetValue(name, out EAOptions.Extensions extFlag))
-                                    {
-                                        if (invert)
-                                        {
-                                            EAOptions.EnabledExtensions &= ~extFlag;
-                                        }
-                                        else
-                                        {
-                                            EAOptions.EnabledExtensions |= extFlag;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.Error.WriteLine($"Unrecognized extension: {name}");
                                     }
                                 }
                             }

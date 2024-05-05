@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
+    // TODO: what do we need this for?
     class MacroInvocationNode : IParamNode
     {
         public class MacroException : Exception
@@ -51,21 +52,7 @@ namespace ColorzCore.Parser.AST
             return sb.ToString();
         }
 
-        public IEnumerable<Token> ExpandMacro()
-        {
-            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters);
-        }
-
-        public Either<int, string> TryEvaluate()
-        {
-            return new Right<int, string>("Expected atomic parameter.");
-        }
-
-        public string Name { get { return invokeToken.Content; } }
-
         public Location MyLocation { get { return invokeToken.Location; } }
-
-        public IAtomNode? AsAtom() { return null; }
 
         public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
