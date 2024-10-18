@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections;
 using ColorzCore.Parser.AST;
 using ColorzCore.DataTypes;
-using System.Collections;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.Raws
 {
@@ -27,16 +24,18 @@ namespace ColorzCore.Raws
             pointer = isPointer;
         }
 
+        // Precondition: input is an IAtomNode
         public void Set(byte[] data, IParamNode input)
         {
-            Set(data, input.AsAtom().FromJust.CoerceInt());
+            Set(data, (input as IAtomNode)!.CoerceInt());
         }
 
         public void Set(byte[] data, int value)
         {
             if (pointer && value != 0)
-                value |= EAOptions.Instance.romOffset; 
-                //TODO: Perhaps additional EAOption to add for ROM offsets that aren't address spaces, e.g. program being loaded at 0x100?
+            {
+                value = EAInterpreter.ConvertToAddress(value);
+            }
 
             data.SetBits(Position, Length, value);
         }

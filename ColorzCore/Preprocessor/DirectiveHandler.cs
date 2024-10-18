@@ -2,63 +2,49 @@
 using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
-using ColorzCore.Parser.AST;
 using ColorzCore.Preprocessor.Directives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Preprocessor
 {
-    class DirectiveHandler
+    public class DirectiveHandler
     {
-        private Dictionary<string, IDirective> directives;
+        // TODO: do we need this class? Could we not just have this part of EAParser?
 
-        public DirectiveHandler(IncludeFileSearcher includeSearcher, IncludeFileSearcher toolSearcher)
+        public Dictionary<string, IDirective> Directives { get; }
+
+        public DirectiveHandler()
         {
-            directives = new Dictionary<string, IDirective>
+            Directives = new Dictionary<string, IDirective>
             {
-                { "include", new IncludeDirective { FileSearcher = includeSearcher } },
-                { "incbin", new IncludeBinaryDirective { FileSearcher = includeSearcher } },
-                { "incext", new IncludeExternalDirective { FileSearcher = toolSearcher } },
-                { "inctext", new IncludeToolEventDirective { FileSearcher = toolSearcher } },
-                { "inctevent", new IncludeToolEventDirective { FileSearcher = toolSearcher } },
-                { "ifdef", new IfDefinedDirective() },
-                { "ifndef", new IfNotDefinedDirective() },
+                { "ifdef", new IfDefinedDirective(false) },
+                { "ifndef", new IfDefinedDirective(true) },
+                { "if", new IfDirective() },
                 { "else", new ElseDirective() },
                 { "endif", new EndIfDirective() },
                 { "define", new DefineDirective() },
-                { "pool", new PoolDirective() },
                 { "undef", new UndefineDirective() },
             };
         }
 
-        public Maybe<ILineNode> HandleDirective(EAParser p, Token directive, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public void HandleDirective(EAParser p, Token directive, MergeableGenerator<Token> tokens)
         {
             string directiveName = directive.Content.Substring(1);
 
-            if (directives.TryGetValue(directiveName, out IDirective toExec))
+            if (Directives.TryGetValue(directiveName, out IDirective? toExec))
             {
                 if (!toExec.RequireInclusion || p.IsIncluding)
                 {
-                    if (toExec.MinParams <= parameters.Count && (!toExec.MaxParams.HasValue || parameters.Count <= toExec.MaxParams))
-                    {
-                        return toExec.Execute(p, directive, parameters, tokens);
-                    }
-                    else
-                    {
-                        p.Error(directive.Location, "Invalid number of parameters (" + parameters.Count + ") to directive " + directiveName + ".");
-                    }
+                    toExec.Execute(p, directive, tokens);
                 }
             }
             else
             {
-                p.Error(directive.Location, "Directive not recognized: " + directiveName);
+                p.Logger.Error(directive.Location, $"Directive not recognized: {directiveName}");
+                p.IgnoreRestOfLine(tokens);
             }
-
-            return new Nothing<ILineNode>();
         }
     }
 }

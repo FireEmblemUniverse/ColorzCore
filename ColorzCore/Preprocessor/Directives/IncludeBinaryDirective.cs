@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
 using ColorzCore.Lexer;
 using ColorzCore.Parser.AST;
@@ -12,37 +10,19 @@ using ColorzCore.IO;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class IncludeBinaryDirective : IDirective
+    public class IncludeBinaryDirective : BaseIncludeDirective
     {
-        public int MinParams { get { return 1; } }
-
-        public int? MaxParams { get { return 1; } }
-
-        public bool RequireInclusion { get { return true; } }
-
-        public IncludeFileSearcher FileSearcher { get; set; }
-
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public override void HandleInclude(EAParser p, Token self, string path, MergeableGenerator<Token> _)
         {
-            Maybe<string> existantFile = FileSearcher.FindFile(Path.GetDirectoryName(self.FileName), parameters[0].ToString());
-
-            if (!existantFile.IsNothing)
+            try
             {
-                try
-                {
-                    string pathname = existantFile.FromJust;
-                    return new Just<ILineNode>(new DataNode(p.CurrentOffset, File.ReadAllBytes(pathname)));
-                }
-                catch (Exception)
-                {
-                    p.Error(self.Location, "Error reading file \"" + parameters[0].ToString() + "\".");
-                }
+                byte[] data = File.ReadAllBytes(path);
+                p.ParseConsumer.OnData(self.Location, data);
             }
-            else
+            catch (IOException e)
             {
-                p.Error(parameters[0].MyLocation, "Could not find file \"" + parameters[0].ToString() + "\".");
+                p.Logger.Error(self.Location, $"Error reading file \"{path}\": {e.Message}.");
             }
-            return new Nothing<ILineNode>();
         }
     }
 }

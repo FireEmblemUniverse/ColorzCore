@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser.AST
@@ -12,27 +11,16 @@ namespace ColorzCore.Parser.AST
     {
         public abstract int Precedence { get; }
 
-        public ParamType Type { get { return ParamType.ATOM; } }
-
-        public virtual Maybe<string> GetIdentifier()
-        {
-            return new Nothing<string>();
-        }
+        public ParamType Type => ParamType.ATOM;
 
         public abstract string PrettyPrint();
-        public abstract IEnumerable<Token> ToTokens();
         public abstract Location MyLocation { get; }
 
-        public abstract Maybe<int> TryEvaluate(TAction<Exception> handler);
+        public abstract int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase);
 
-        public IParamNode SimplifyExpressions(TAction<Exception> handler)
+        public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            return this.Simplify(handler);
-        }
-
-        public Maybe<IAtomNode> AsAtom()
-        {
-            return new Just<IAtomNode>(this);
+            return this.Simplify(handler, evaluationPhase);
         }
     }
 }

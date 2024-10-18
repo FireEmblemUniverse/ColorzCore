@@ -2,45 +2,42 @@ using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 
 namespace ColorzCore.Parser.AST
 {
     public class NumberNode : AtomNodeKernel
     {
-        private int value;
+        public Token SourceToken { get; }
+        public int Value { get; }
 
-        public override Location MyLocation { get; }
-        public override int Precedence { get { return 11; } }
+        public override Location MyLocation => SourceToken.Location;
+        public override int Precedence => int.MaxValue;
 
-		public NumberNode(Token num)
-		{
-            MyLocation = num.Location;
-            value = num.Content.ToInt(); 
+        public NumberNode(Token num)
+        {
+            SourceToken = num;
+            Value = num.Content.ToInt();
         }
+
         public NumberNode(Token text, int value)
         {
-            MyLocation = text.Location;
-            this.value = value;
+            SourceToken = text;
+            Value = value;
         }
+
         public NumberNode(Location loc, int value)
         {
-            MyLocation = loc;
-            this.value = value;
-        }
-        
-        public override IEnumerable<Token> ToTokens () { yield return new Token(TokenType.NUMBER, MyLocation, value.ToString()); }
-
-        public override Maybe<int> TryEvaluate(TAction<Exception> handler)
-        {
-            return new Just<int>(value);
+            SourceToken = new Token(TokenType.NUMBER, loc, value.ToString());
+            Value = value;
         }
 
-        public override string PrettyPrint()
+        public override int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            return "0x" + value.ToString("X");
+            return Value;
         }
+
+        public override string PrettyPrint() => Value >= 16 ? $"0x{Value:X}" : $"{Value}";
     }
 }

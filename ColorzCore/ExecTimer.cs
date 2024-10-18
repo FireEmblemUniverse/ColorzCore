@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace ColorzCore
 {
@@ -14,11 +15,11 @@ namespace ColorzCore
 
         private List<Tuple<DateTime, string>> timingPoints;
 
-        private Dictionary<string, TimeSpan> times;
-        private Dictionary<string, int> counts;
+        private Dictionary<string, TimeSpan>? times;
+        private Dictionary<string, int>? counts;
 
-        private TimeSpan totalTime;
-        
+        private TimeSpan totalTime = TimeSpan.Zero;
+
         private ExecTimer()
         {
             timingPoints = new List<Tuple<DateTime, string>>();
@@ -37,8 +38,9 @@ namespace ColorzCore
 
                 SortedList<TimeSpan, string> sortedTimes = new SortedList<TimeSpan, string>();
 
-                foreach (KeyValuePair<string, TimeSpan> time in this.times)
-                    sortedTimes.Add(time.Value, time.Key);
+                if (this.times != null)
+                    foreach (KeyValuePair<string, TimeSpan> time in this.times)
+                        sortedTimes.Add(time.Value, time.Key);
 
                 return sortedTimes;
             }
@@ -51,7 +53,7 @@ namespace ColorzCore
                 if (this.times == null)
                     ComputeTimes();
 
-                return this.times;
+                return this.times!;
             }
         }
 
@@ -62,7 +64,7 @@ namespace ColorzCore
                 if (this.counts == null)
                     ComputeTimes();
 
-                return this.counts;
+                return this.counts!;
             }
         }
 
@@ -70,7 +72,7 @@ namespace ColorzCore
         {
             get
             {
-                if (this.totalTime == null)
+                if (this.totalTime == TimeSpan.Zero)
                     ComputeTimes();
 
                 return this.totalTime;

@@ -10,23 +10,33 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Raws
 {
-    class Raw
+    public class Raw
     {
         public string Name { get; }
         public int Alignment { get; }
         public HashSet<string> Game { get; }
+
+        // symbolic helper
+        public static HashSet<string> AnyGame { get; } = new HashSet<string>();
 
         private readonly IList<IRawParam> parameters;
         private readonly bool repeatable;
 
         private readonly int unitSize;
         private readonly byte[] baseUnit;
-        private readonly byte[] endUnit; // Note: nullable
+        private readonly byte[]? endUnit;
 
         // TODO: fixed mask?
 
-        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams, 
-            IList<FixedParam> fixedParams, Maybe<int> terminatingList, bool repeatable)
+        public struct FixedParam
+        {
+            public int position;
+            public int size;
+            public int value;
+        }
+
+        public Raw(string name, int length, short code, int offsetMod, HashSet<string> game, IList<IRawParam> varParams,
+            IList<FixedParam>? fixedParams, int? terminatingList, bool repeatable)
         {
             Name = name;
             Game = game;
@@ -41,17 +51,20 @@ namespace ColorzCore.Raws
             // Build base unit
 
             if (code != 0)
+            {
                 baseUnit.SetBits(0, 16, code);
+            }
 
-            foreach (var fp in fixedParams)
-                baseUnit.SetBits(fp.position, fp.size, fp.value);
+            if (fixedParams != null)
+            {
+                foreach (var fp in fixedParams)
+                    baseUnit.SetBits(fp.position, fp.size, fp.value);
+            }
 
             // Build end unit, if needed
 
-            if (!terminatingList.IsNothing)
+            if (terminatingList is int terminator)
             {
-                int terminator = terminatingList.FromJust;
-
                 if (parameters.Count == 0)
                     return;
 
@@ -61,6 +74,11 @@ namespace ColorzCore.Raws
                 // force repeatable to be true if this is terminating list
                 this.repeatable = true;
             }
+        }
+
+        public Raw(string name, int length, short code, int offsetMod, IList<IRawParam> varParams, bool repeatable)
+            : this(name, length, code, offsetMod, AnyGame, varParams, null, null, repeatable)
+        {
         }
 
         public int UnitCount(int paramCount)
@@ -109,7 +127,7 @@ namespace ColorzCore.Raws
 
             return true;
         }
-        
+
         /* Precondition: params fits the shape of this raw's params. */
         public byte[] GetBytes(IList<IParamNode> arguments)
         {
@@ -135,11 +153,23 @@ namespace ColorzCore.Raws
             return result;
         }
 
-        public struct FixedParam
+        public string ToPrettyString()
         {
-            public int position;
-            public int size;
-            public int value;
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append(Name);
+
+            foreach (IRawParam param in parameters)
+            {
+                sb.Append(' ').Append((param is ListParam) ? $"[{param.Name}...]" : param.Name);
+            }
+
+            if (repeatable)
+            {
+                sb.Append("...");
+            }
+
+            return sb.ToString();
         }
     }
 }

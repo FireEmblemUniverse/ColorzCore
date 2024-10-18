@@ -1,4 +1,5 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
+    // TODO: what do we need this for?
     class MacroInvocationNode : IParamNode
     {
         public class MacroException : Exception
@@ -21,15 +23,13 @@ namespace ColorzCore.Parser.AST
 
         private readonly EAParser p;
         private readonly Token invokeToken;
-        private readonly ImmutableStack<Closure> scope;
         public IList<IList<Token>> Parameters { get; }
 
-        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters, ImmutableStack<Closure> scopes)
+        public MacroInvocationNode(EAParser p, Token invokeTok, IList<IList<Token>> parameters)
         {
             this.p = p;
-            this.invokeToken = invokeTok;
-            this.Parameters = parameters;
-            this.scope = scopes;
+            invokeToken = invokeTok;
+            Parameters = parameters;
         }
 
         public ParamType Type => ParamType.MACRO;
@@ -39,7 +39,7 @@ namespace ColorzCore.Parser.AST
             StringBuilder sb = new StringBuilder();
             sb.Append(invokeToken.Content);
             sb.Append('(');
-            for(int i=0; i<Parameters.Count; i++)
+            for (int i = 0; i < Parameters.Count; i++)
             {
                 foreach (Token t in Parameters[i])
                 {
@@ -52,23 +52,9 @@ namespace ColorzCore.Parser.AST
             return sb.ToString();
         }
 
-        public IEnumerable<Token> ExpandMacro()
-        {
-            return p.Macros.GetMacro(invokeToken.Content, Parameters.Count).ApplyMacro(invokeToken, Parameters, scope);
-        }
-
-        public Either<int, string> TryEvaluate()
-        {
-            return new Right<int, string>("Expected atomic parameter.");
-        }
-
-        public string Name { get { return invokeToken.Content; } }
-
         public Location MyLocation { get { return invokeToken.Location; } }
 
-        public Maybe<IAtomNode> AsAtom() { return new Nothing<IAtomNode>(); }
-
-        public IParamNode SimplifyExpressions(TAction<Exception> handler)
+        public IParamNode SimplifyExpressions(Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
             handler(new MacroException(this));
             return this;

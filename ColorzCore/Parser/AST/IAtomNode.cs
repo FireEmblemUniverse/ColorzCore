@@ -1,37 +1,34 @@
 ﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
 using ColorzCore.Lexer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
     public interface IAtomNode : IParamNode
     {
         //TODO: Simplify() partial evaluation as much as is defined, to save on memory space.
-		int Precedence { get; }
-        Maybe<string> GetIdentifier();
-        IEnumerable<Token> ToTokens();
-        Maybe<int> TryEvaluate(TAction<Exception> handler); //Simplifies the AST as much as possible.
+        int Precedence { get; }
+        int? TryEvaluate(Action<Exception> handler, EvaluationPhase evaluationPhase); //Simplifies the AST as much as possible.
     }
 
     public static class AtomExtensions
     {
         public static int CoerceInt(this IAtomNode n)
         {
-            return n.TryEvaluate((Exception e) => { throw e; }).FromJust;
+            return n.TryEvaluate(e => throw e, EvaluationPhase.Final)!.Value;
         }
-        public static IAtomNode Simplify(this IAtomNode n, TAction<Exception> handler)
+
+        public static IAtomNode Simplify(this IAtomNode self, Action<Exception> handler, EvaluationPhase evaluationPhase)
         {
-            IAtomNode ret = n;
-            n.TryEvaluate(handler).IfJust((int i) => { ret = FromInt(n.MyLocation, i); });
-            return ret;
+            return self.TryEvaluate(handler, evaluationPhase).IfJust(intValue => FromInt(self.MyLocation, intValue), () => self);
         }
-        public static IAtomNode FromInt(Location l, int i)
+
+        public static IAtomNode FromInt(Location location, int intValue)
         {
-            return new NumberNode(l, i);
+            return new NumberNode(location, intValue);
         }
     }
 }

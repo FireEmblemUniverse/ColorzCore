@@ -10,7 +10,18 @@ namespace ColorzCore
     {
         public static bool Debug = false;
 
-        private static string[] helpstringarr = {
+        private static readonly IDictionary<string, EAOptions.Warnings> warningNames = new Dictionary<string, EAOptions.Warnings>()
+        {
+            { "nonportable-pathnames", EAOptions.Warnings.NonPortablePath },
+            { "unintuitive-expression-macros" , EAOptions.Warnings.UnintuitiveExpressionMacros },
+            { "unguarded-expression-macros", EAOptions.Warnings.UnguardedExpressionMacros },
+            { "redefine", EAOptions.Warnings.ReDefine },
+            { "legacy", EAOptions.Warnings.LegacyFeatures },
+            { "all", EAOptions.Warnings.All },
+            { "extra", EAOptions.Warnings.Extra },
+        };
+
+        private static readonly string[] helpstringarr = {
             "EA Colorz Core. Usage:",
             "./ColorzCore <A|D|AA> <game> [-opts]",
             "",
@@ -38,6 +49,12 @@ namespace ColorzCore
             "   Add given path to list of paths to search for tools in.",
             "-IT:<path>|-TI:<path>",
             "   Combines --include:<path> and --tools:<path>.",
+            "-W:[no-]<name>:...|--warnings:[no-]<name>:...",
+            "   Enable or disable warnings.",
+            "   By default, all warnings but 'unguarded-expression-macros' are enabled.",
+            "   Multiple warnings can be enabled/disabled at once.",
+            "   Example: '--warnings:no-nonportable-pathnames:no-redefine'.",
+            "   Possible values: " + string.Join(", ", warningNames.Keys),
             "-werr",
             "   Treat all warnings as errors and prevent assembly.",
             "--no-mess",
@@ -54,10 +71,14 @@ namespace ColorzCore
             "   Enable debug mode. Not recommended for end users.",
             "--build-times",
             "   Print build times at the end of build.",
+            "--base-address:<number>",
+            "   Treats the base load address of the binary as the given (hexadecimal) number,",
+            "   for the purposes of POIN, ORG and CURRENTOFFSET. Defaults to 0x08000000.",
+            "   Addresses are added to offsets from 0 to the maximum binary size.",
+            "--maximum-size:<number>",
+            "   Sets the maximum size of the binary. Defaults to 0x02000000.",
             "-romoffset:<number>",
-            "   Treats the offset of the ROM as the given number,",
-            "   for the purposes of POIN. Addresses are or'd.",
-            "   Hex literals only. Defaults to 0x08000000.",
+            "   Compatibility alias for --base-address:<number>",
             "-h|--help",
             "   Display this message and exit.",
             ""
@@ -77,18 +98,17 @@ namespace ColorzCore
             Stream inStream = Console.OpenStandardInput();
             string inFileName = "stdin";
 
-            IOutput output = null;
             string outFileName = "none";
             string ldsFileName = "none";
 
             TextWriter errorStream = Console.Error;
 
-            Maybe<string> rawsFolder = rawSearcher.FindDirectory("Language Raws");
+            string? rawsFolder = rawSearcher.FindDirectory("Language Raws");
             string rawsExtension = ".txt";
 
             if (args.Length < 2)
             {
-                Console.WriteLine("Required parameters missing.");
+                Console.WriteLine(helpstring);
                 return EXIT_FAILURE;
             }
 
@@ -107,210 +127,274 @@ namespace ColorzCore
                 if (args[i][0] != '-')
                 {
                     Console.Error.WriteLine("Unrecognized paramter: " + args[i]);
+                    continue;
                 }
-                else
+
+                string[] flag = args[i].Split(new char[] { ':' }, 2);
+
+                try
                 {
-                    string[] flag = args[i].Substring(1).Split(new char[] { ':' }, 2);
-
-                    try
+                    switch (flag[0])
                     {
-                        switch (flag[0])
-                        {
-                            case "raws":
-                                rawsFolder = rawSearcher.FindDirectory(flag[1]);
-                                break;
+                        case "-raws":
+                            rawsFolder = rawSearcher.FindDirectory(flag[1]);
 
-                            case "rawsExt":
-                                rawsExtension = flag[1];
-                                break;
-
-                            case "output":
-                                outFileName = flag[1];
-                                if(outputASM)
-                                {
-                                    ldsFileName = Path.ChangeExtension(outFileName, "lds");
-                                    output = new ASM(new StreamWriter(outFileName, false),
-                                                     new StreamWriter(ldsFileName, false));
-                                } else
-                                {
-                                    FileStream outStream;
-                                    if(File.Exists(outFileName) && !File.GetAttributes(outFileName).HasFlag(FileAttributes.ReadOnly))
-                                    {
-                                        outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite);
-                                    } else if(!File.Exists(outFileName))
-                                    {
-                                        outStream = File.Create(outFileName);
-                                    } else
-                                    {
-                                        Console.Error.WriteLine("Output file is read-only.");
-                                        return EXIT_FAILURE;
-                                    }
-                                    output = new ROM(outStream);
-                                } 
-                                break;
-
-                            case "input":
-                                inFileName = flag[1];
-                                inStream = File.OpenRead(flag[1]);
-                                break;
-
-                            case "error":
-                                errorStream = new StreamWriter(File.OpenWrite(flag[1]));
-                                EAOptions.Instance.noColoredLog = true;
-                                break;
-
-                            case "debug":
-                                Debug = true;
-                                break;
-
-                            case "werr":
-                                EAOptions.Instance.werr = true;
-                                break;
-
-                            case "-no-mess":
-                                EAOptions.Instance.nomess = true;
-                                break;
-
-                            case "-no-warn":
-                                EAOptions.Instance.nowarn = true;
-                                break;
-
-                            case "-no-colored-log":
-                                EAOptions.Instance.noColoredLog = true;
-                                break;
-
-                            case "quiet":
-                                EAOptions.Instance.nomess = true;
-                                EAOptions.Instance.nowarn = true;
-                                break;
-
-                            case "-nocash-sym":
-                                EAOptions.Instance.nocashSym = true;
-                                break;
-
-                            case "-build-times":
-                                EAOptions.Instance.buildTimes = true;
-                                break;
-
-                            case "I":
-                            case "-include":
-                                EAOptions.Instance.includePaths.Add(flag[1]);
-                                break;
-
-                            case "T":
-                            case "-tools":
-                                EAOptions.Instance.toolsPaths.Add(flag[1]);
-                                break;
-
-                            case "IT":
-                            case "TI":
-                                EAOptions.Instance.includePaths.Add(flag[1]);
-                                EAOptions.Instance.toolsPaths.Add(flag[1]);
-                                break;
-
-                            case "h":
-                            case "-help":
-                                Console.Out.WriteLine(helpstring);
-                                return EXIT_SUCCESS;
-
-                            case "D":
-                            case "def":
-                            case "define":
-                                try {
-                                    string[] def_args = flag[1].Split(new char[] { '=' }, 2);
-                                    EAOptions.Instance.defs.Add(Tuple.Create(def_args[0], def_args[1]));
-                                } catch (IndexOutOfRangeException)
-                                {
-                                    Console.Error.WriteLine("Improperly formed -define directive.");
-                                }
-                                break;
-
-                            case "romoffset":
-                                try
-                                {
-                                    EAOptions.Instance.romOffset = Convert.ToInt32(flag[1], 16);
-                                } catch {
-                                    Console.Error.WriteLine("Invalid hex offset given for ROM.");
-                                }
-                                break;
-
-                            default:
-                                Console.Error.WriteLine("Unrecognized flag: " + flag[0]);
+                            if (rawsFolder == null)
+                            {
+                                Console.Error.WriteLine($"No such folder: {flag[1]}");
                                 return EXIT_FAILURE;
-                        }
+                            }
+
+                            break;
+
+                        case "-rawsExt":
+                            rawsExtension = flag[1];
+                            break;
+
+                        case "-output":
+                            outFileName = flag[1];
+                            break;
+
+                        case "-input":
+                            inFileName = flag[1].Replace('\\', '/');
+                            inStream = File.OpenRead(flag[1]);
+                            break;
+
+                        case "-error":
+                            errorStream = new StreamWriter(File.OpenWrite(flag[1]));
+                            EAOptions.MonochromeLog = true;
+                            break;
+
+                        case "-debug":
+                            Debug = true;
+                            break;
+
+                        case "-werr":
+                            EAOptions.WarningsAreErrors = true;
+                            break;
+
+                        case "--no-mess":
+                            EAOptions.QuietMessages = true;
+                            break;
+
+                        case "--no-warn":
+                            EAOptions.QuietWarnings = true;
+                            break;
+
+                        case "--no-colored-log":
+                            EAOptions.MonochromeLog = true;
+                            break;
+
+                        case "-quiet":
+                        case "--quiet":
+                            EAOptions.QuietMessages = true;
+                            EAOptions.QuietWarnings = true;
+                            break;
+
+                        case "--nocash-sym":
+                            EAOptions.ProduceNocashSym = true;
+                            break;
+
+                        case "--build-times":
+                            EAOptions.BenchmarkBuildTimes = true;
+                            break;
+
+                        case "-I":
+                        case "--include":
+                            EAOptions.IncludePaths.Add(flag[1]);
+                            break;
+
+                        case "-T":
+                        case "--tools":
+                            EAOptions.ToolsPaths.Add(flag[1]);
+                            break;
+
+                        case "-IT":
+                        case "-TI":
+                            EAOptions.IncludePaths.Add(flag[1]);
+                            EAOptions.ToolsPaths.Add(flag[1]);
+                            break;
+
+                        case "-h":
+                        case "--help":
+                            Console.Out.WriteLine(helpstring);
+                            return EXIT_SUCCESS;
+
+                        case "-D":
+                        case "-def":
+                        case "-define":
+                            try
+                            {
+                                string[] def_args = flag[1].Split(new char[] { '=' }, 2);
+                                EAOptions.PreDefintions.Add((def_args[0], def_args[1]));
+                            }
+                            catch (IndexOutOfRangeException)
+                            {
+                                Console.Error.WriteLine("Improperly formed -define directive.");
+                            }
+                            break;
+
+                        case "-romoffset":
+                        case "--base-address":
+                            try
+                            {
+                                EAOptions.BaseAddress = Convert.ToInt32(flag[1], 16);
+                            }
+                            catch
+                            {
+                                Console.Error.WriteLine("Invalid hex base address given for binary.");
+                            }
+                            break;
+
+                        case "--maximum-size":
+                            try
+                            {
+                                EAOptions.MaximumBinarySize = Convert.ToInt32(flag[1], 16);
+                            }
+                            catch
+                            {
+                                Console.Error.WriteLine("Invalid hex size given for binary.");
+                            }
+                            break;
+
+                        case "-W":
+                        case "--warnings":
+                            if (flag.Length == 1)
+                            {
+                                EAOptions.EnabledWarnings |= EAOptions.Warnings.All;
+                            }
+                            else
+                            {
+                                foreach (string warning in flag[1].Split(':'))
+                                {
+                                    string name = warning;
+                                    bool invert = false;
+
+                                    if (name.StartsWith("no-"))
+                                    {
+                                        name = name.Substring(3);
+                                        invert = true;
+                                    }
+
+                                    if (warningNames.TryGetValue(name, out EAOptions.Warnings warnFlag))
+                                    {
+                                        if (invert)
+                                        {
+                                            EAOptions.EnabledWarnings &= ~warnFlag;
+                                        }
+                                        else
+                                        {
+                                            EAOptions.EnabledWarnings |= warnFlag;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Console.Error.WriteLine($"Unrecognized warning: {name}");
+                                    }
+                                }
+                            }
+
+                            break;
+
+                        default:
+                            Console.Error.WriteLine($"Unrecognized flag: {flag[0]}");
+                            return EXIT_FAILURE;
                     }
-                    catch (IOException e)
-                    {
-                        Console.Error.WriteLine("Exception: " + e.Message);
-                        return EXIT_FAILURE;
-                    }
+                }
+                catch (IOException e)
+                {
+                    Console.Error.WriteLine("Exception: " + e.Message);
+                    return EXIT_FAILURE;
                 }
             }
-            
-            if (output == null)
+
+            if (outFileName == null)
             {
                 Console.Error.WriteLine("No output specified for assembly.");
                 return EXIT_FAILURE;
             }
 
-            if (rawsFolder.IsNothing)
+            IOutput output;
+
+            if (outputASM)
             {
-                Console.Error.WriteLine("Couldn't find raws folder");
-                return EXIT_FAILURE;
+                ldsFileName = Path.ChangeExtension(outFileName, "lds");
+                output = new ASM(new StreamWriter(outFileName, false),
+                                 new StreamWriter(ldsFileName, false));
+            }
+            else
+            {
+                FileStream outStream;
+
+                if (File.Exists(outFileName) && !File.GetAttributes(outFileName).HasFlag(FileAttributes.ReadOnly))
+                {
+                    outStream = File.Open(outFileName, FileMode.Open, FileAccess.ReadWrite);
+                }
+                else if (!File.Exists(outFileName))
+                {
+                    outStream = File.Create(outFileName);
+                }
+                else
+                {
+                    Console.Error.WriteLine("Output file is read-only.");
+                    return EXIT_FAILURE;
+                }
+
+                output = new ROM(outStream, EAOptions.MaximumBinarySize);
             }
 
             string game = args[1];
 
             //FirstPass(Tokenizer.Tokenize(inputStream));
 
-            Log log = new Log {
+            Logger log = new Logger
+            {
                 Output = errorStream,
-                WarningsAreErrors = EAOptions.Instance.werr,
-                NoColoredTags = EAOptions.Instance.noColoredLog
+                WarningsAreErrors = EAOptions.WarningsAreErrors,
+                NoColoredTags = EAOptions.MonochromeLog,
+                LocationBasePath = IOUtility.GetPortableBasePathForPrefix(inFileName),
             };
 
-            if (EAOptions.Instance.nowarn)
-                log.IgnoredKinds.Add(Log.MsgKind.WARNING);
+            if (EAOptions.QuietWarnings)
+                log.IgnoredKinds.Add(Logger.MessageKind.WARNING);
 
-            if (EAOptions.Instance.nomess)
-                log.IgnoredKinds.Add(Log.MsgKind.MESSAGE);
+            if (EAOptions.QuietMessages)
+                log.IgnoredKinds.Add(Logger.MessageKind.MESSAGE);
 
-            EAInterpreter myInterpreter = new EAInterpreter(output, game, rawsFolder.FromJust, rawsExtension, inStream, inFileName, log);
+            EADriver myDriver = new EADriver(output, game, rawsFolder, rawsExtension, inStream, inFileName, log);
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_RAWPROC);
 
-            bool success = myInterpreter.Interpret();
+            bool success = myDriver.Interpret();
 
-            if (success && EAOptions.Instance.nocashSym)
+            if (success && EAOptions.ProduceNocashSym)
             {
-                using (var symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym")))
+                using StreamWriter symOut = File.CreateText(Path.ChangeExtension(outFileName, "sym"));
+
+                if (!(success = myDriver.WriteNocashSymbols(symOut)))
                 {
-                    if (!(success = myInterpreter.WriteNocashSymbols(symOut)))
-                    {
-                        log.Message(Log.MsgKind.ERROR, "Error trying to write no$gba symbol file.");
-                    }
+                    log.Message(Logger.MessageKind.ERROR, "Error trying to write no$gba symbol file.");
                 }
             }
 
-            if (EAOptions.Instance.buildTimes) { 
-
-            // Print times
-
-            log.Output.WriteLine();
-            log.Output.WriteLine("Times:");
-
-            foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
+            if (EAOptions.BenchmarkBuildTimes)
             {
-                log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
-            }
+                // Print times
 
-            // Print total time
+                log.Output.WriteLine();
+                log.Output.WriteLine("Times:");
 
-            log.Output.WriteLine();
-            log.Output.WriteLine("Total:");
+                foreach (KeyValuePair<TimeSpan, string> time in ExecTimer.Timer.SortedTimes)
+                {
+                    log.Output.WriteLine("  " + time.Value + ": " + time.Key.ToString() + " (" + ExecTimer.Timer.Counts[time.Value] + ")");
+                }
 
-            log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
+                // Print total time
 
+                log.Output.WriteLine();
+                log.Output.WriteLine("Total:");
+
+                log.Output.WriteLine("  " + ExecTimer.Timer.TotalTime.ToString());
             }
 
             inStream.Close();
@@ -318,8 +402,6 @@ namespace ColorzCore
             errorStream.Close();
 
             return success ? EXIT_SUCCESS : EXIT_FAILURE;
-
         }
     }
 }
-

@@ -1,34 +1,48 @@
-﻿using ColorzCore.IO;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Raws;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    class RawNode : StatementNode
+    public class RawNode : ILineNode
     {
-        private Raw myRaw;
-        private Token myToken;
-        private int offset;
+        public IList<IParamNode> Parameters { get; }
+        public Raw Raw { get; }
+        private int Offset { get; }
 
-        public RawNode(Raw raw, Token t, int offset, IList<IParamNode> paramList) : base(paramList)
+        public RawNode(Raw raw, int offset, IList<IParamNode> parameters)
         {
-            myToken = t;
-            myRaw = raw;
-            this.offset = offset;
+            Parameters = parameters;
+            Raw = raw;
+            Offset = offset;
         }
 
-        public override int Size => myRaw.LengthBytes(Parameters.Count);
+        public void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase)
+        {
+            for (int i = 0; i < Parameters.Count; i++)
+            {
+                Parameters[i] = Parameters[i].SimplifyExpressions(e => evaluationErrors.Add(e switch
+                {
+                    IdentifierNode.UndefinedIdentifierException uie => (uie.CausedError.Location, uie),
+                    Closure.SymbolComputeException sce => (sce.Expression.MyLocation, sce),
+                    _ => (Parameters[i].MyLocation, e),
+                }), evaluationPhase);
+            }
+        }
 
-        public override string PrettyPrint(int indentation)
+        public int Size => Raw.LengthBytes(Parameters.Count);
+
+        public string PrettyPrint(int indentation)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append(' ', indentation);
-            sb.Append(myToken.Content);
+            sb.Append(Raw.Name);
             foreach (IParamNode n in Parameters)
             {
                 sb.Append(' ');
@@ -36,9 +50,10 @@ namespace ColorzCore.Parser.AST
             }
             return sb.ToString();
         }
-        public override void WriteData(IOutput output)
+
+        public void WriteData(IOutput output)
         {
-            output.WriteTo(offset, myRaw.GetBytes(Parameters));
+            output.WriteTo(Offset, Raw.GetBytes(Parameters));
         }
     }
 }

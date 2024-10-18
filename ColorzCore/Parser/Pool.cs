@@ -5,16 +5,14 @@ using ColorzCore.Lexer;
 
 namespace ColorzCore.Parser
 {
-    class Pool
+    public class Pool
     {
         public struct PooledLine
         {
-            public ImmutableStack<Closure> Scope { get; private set; }
             public List<Token> Tokens { get; private set; }
 
-            public PooledLine(ImmutableStack<Closure> scope, List<Token> tokens)
+            public PooledLine(List<Token> tokens)
             {
-                Scope = scope;
                 Tokens = tokens;
             }
         }
@@ -34,7 +32,7 @@ namespace ColorzCore.Parser
         public string MakePoolLabelName()
         {
             // The presence of $ in the label name guarantees that it can't be a user label
-            return string.Format("{0}{1}", pooledLabelPrefix, poolLabelCounter++);
+            return $"{pooledLabelPrefix}{poolLabelCounter++}";
         }
     }
 }

@@ -7,36 +7,38 @@ using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Preprocessor.Directives
 {
-    class PoolDirective : IDirective
+    class PoolDirective : SimpleDirective
     {
-        public int MinParams => 0;
-        public int? MaxParams => 0;
-        public bool RequireInclusion => true;
+        public override int MinParams => 0;
+        public override int? MaxParams => 0;
+        public override bool RequireInclusion => true;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        private readonly Pool pool;
+
+        public PoolDirective(Pool pool)
         {
-            BlockNode result = new BlockNode();
+            this.pool = pool;
+        }
 
+        public override void Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        {
             // Iterating indices (and not values via foreach)
             // to avoid crashes occuring with AddToPool within AddToPool
 
-            for (int i = 0; i < p.Pool.Lines.Count; ++i)
+            for (int i = 0; i < pool.Lines.Count; ++i)
             {
-                Pool.PooledLine line = p.Pool.Lines[i];
+                Pool.PooledLine line = pool.Lines[i];
 
                 MergeableGenerator<Token> tempGenerator = new MergeableGenerator<Token>(line.Tokens);
                 tempGenerator.MoveNext();
 
                 while (!tempGenerator.EOS)
                 {
-                    p.ParseLine(tempGenerator, line.Scope).IfJust(
-                        (lineNode) => result.Children.Add(lineNode));
+                    p.ParseLine(tempGenerator);
                 }
             }
 
-            p.Pool.Lines.Clear();
-
-            return new Just<ILineNode>(result);
+            pool.Lines.Clear();
         }
     }
 }

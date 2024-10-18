@@ -1,18 +1,17 @@
-﻿using ColorzCore.IO;
-using ColorzCore.Lexer;
+﻿using ColorzCore.DataTypes;
+using ColorzCore.Interpreter;
+using ColorzCore.IO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ColorzCore.Parser.AST
 {
-    interface ILineNode
+    public interface ILineNode
     {
         int Size { get; }
         string PrettyPrint(int indentation);
         void WriteData(IOutput output);
-        void EvaluateExpressions(ICollection<Token> undefinedIdentifiers); //Return: undefined identifiers
+        void EvaluateExpressions(ICollection<(Location, Exception)> evaluationErrors, EvaluationPhase evaluationPhase); // outputs errors into evaluationErrors
     }
 }

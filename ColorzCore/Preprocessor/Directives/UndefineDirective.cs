@@ -1,34 +1,51 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ColorzCore.DataTypes;
+using ColorzCore.IO;
 using ColorzCore.Lexer;
 using ColorzCore.Parser;
-using ColorzCore.Parser.AST;
 
 namespace ColorzCore.Preprocessor.Directives
 {
     class UndefineDirective : IDirective
     {
-        public int MinParams => 1;
-
-        public int? MaxParams => null;
-
         public bool RequireInclusion => true;
 
-        public Maybe<ILineNode> Execute(EAParser p, Token self, IList<IParamNode> parameters, MergeableGenerator<Token> tokens)
+        public void Execute(EAParser p, Token self, MergeableGenerator<Token> tokens)
         {
-            foreach (IParamNode parm in parameters)
+            if (tokens.Current.Type == TokenType.NEWLINE)
             {
-                string s = parm.ToString();
-                if (p.Definitions.ContainsKey(s))
-                    p.Definitions.Remove(parm.ToString());
-                else
-                    p.Warning(parm.MyLocation, "Undefining non-existant definition: " + s);
+                p.Logger.Error(self.Location, $"Invalid use of directive '{self.Content}': expected at least one macro name.");
             }
-            return new Nothing<ILineNode>();
+
+            while (tokens.Current.Type != TokenType.NEWLINE)
+            {
+                Token current = tokens.Current;
+                tokens.MoveNext();
+
+                switch (current.Type)
+                {
+                    case TokenType.IDENTIFIER:
+                        ApplyUndefine(p, current);
+                        break;
+
+                    default:
+                        p.Logger.Error(self.Location, $"Invalid use of directive '{self.Content}': expected macro name, got {current}.");
+                        p.IgnoreRestOfLine(tokens);
+                        return;
+                }
+            }
+        }
+
+        private static void ApplyUndefine(EAParser parser, Token token)
+        {
+            string name = token.Content;
+
+            if (!parser.Definitions.Remove(name))
+            {
+                parser.Logger.Warning(token.Location, $"Attempted to purge non existant definition '{name}'");
+            }
         }
     }
 }
