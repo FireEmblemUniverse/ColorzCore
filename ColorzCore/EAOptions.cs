@@ -71,7 +71,7 @@ namespace ColorzCore
 
         public static List<string> IncludePaths { get; } = new List<string>();
         public static List<string> ToolsPaths { get; } = new List<string>();
-        public static List<(string, string)> PreDefintions { get; } = new List<(string, string)>();
+        public static List<(string, string)> PreDefinitions { get; } = new List<(string, string)>();
 
         public static Warnings EnabledWarnings { get; set; } = Warnings.All;
 
