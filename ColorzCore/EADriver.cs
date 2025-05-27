@@ -145,10 +145,10 @@ namespace ColorzCore
 
             ExecTimer.Timer.AddTimingPoint(ExecTimer.KEY_GENERIC);
 
-            foreach ((string name, string body) in EAOptions.PreDefintions)
+            foreach ((string name, string body) in EAOptions.PreDefinitions)
             {
                 Location location = new Location("CMD", 0, 1);
-                myParser.ParseAll(tokenizer.TokenizePhrase($"#define {name} \"{body}\"", location));
+                myParser.ParseAll(tokenizer.TokenizePhrase($"#define {name} \"{body}\"\n", location));
             }
 
             myParser.ParseAll(tokenizer.Tokenize(sin, iFile));

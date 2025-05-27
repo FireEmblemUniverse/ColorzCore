@@ -226,7 +226,7 @@ namespace ColorzCore
                             try
                             {
                                 string[] def_args = flag[1].Split(new char[] { '=' }, 2);
-                                EAOptions.PreDefintions.Add((def_args[0], def_args[1]));
+                                EAOptions.PreDefinitions.Add((def_args[0], def_args[1]));
                             }
                             catch (IndexOutOfRangeException)
                             {
