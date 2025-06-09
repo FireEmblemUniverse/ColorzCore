@@ -66,9 +66,10 @@ namespace ColorzCore
             myParser = new EAParser(logger, allRaws, parseConsumers, myInterpreter.BindIdentifier, stringProcessor);
 
             myParser.Definitions["__COLORZ_CORE__"] = new Definition();
+            myParser.Definitions["_EA_"] = new Definition();
 
             myParser.Definitions["__COLORZ_CORE_VERSION__"] = new Definition(
-                new Token(TokenType.NUMBER, new Location("builtin", 0, 0), "20240504"));
+                new Token(TokenType.NUMBER, new Location("builtin", 0, 0), "20250609"));
 
             if (game != null)
             {
