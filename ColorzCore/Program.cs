@@ -192,6 +192,7 @@ namespace ColorzCore
                             break;
 
                         case "--nocash-sym":
+                        case "-symOutput":
                             EAOptions.ProduceNocashSym = true;
                             break;
 
