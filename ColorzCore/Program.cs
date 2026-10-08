@@ -15,6 +15,7 @@ namespace ColorzCore
             { "nonportable-pathnames", EAOptions.Warnings.NonPortablePath },
             { "unintuitive-expression-macros" , EAOptions.Warnings.UnintuitiveExpressionMacros },
             { "unguarded-expression-macros", EAOptions.Warnings.UnguardedExpressionMacros },
+            { "set-symbol-macros", EAOptions.Warnings.SetSymbolMacros },
             { "redefine", EAOptions.Warnings.ReDefine },
             { "legacy", EAOptions.Warnings.LegacyFeatures },
             { "all", EAOptions.Warnings.All },
